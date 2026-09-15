@@ -25,14 +25,14 @@ extension DialogContext on BuildContext {
   }) {
     showDialog<void>(
       context: this,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         icon: Icon(Icons.info_outline, color: color, size: 36),
         title: Text(title),
         content: Text(message),
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.of(this).pop();
+              Navigator.of(dialogContext).pop();
               onClose?.call();
             },
             child: const Text('Cerrar'),
