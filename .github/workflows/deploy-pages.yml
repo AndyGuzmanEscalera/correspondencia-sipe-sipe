@@ -29,7 +29,7 @@ jobs:
         run: flutter pub get
 
       - name: Build web
-        run: flutter build web --release --base-href "/correspondencia_sipe_sipe/"
+        run: flutter build web --release --base-href "/correspondencia-sipe-sipe/"
 
       - uses: actions/upload-pages-artifact@v3
         with:
