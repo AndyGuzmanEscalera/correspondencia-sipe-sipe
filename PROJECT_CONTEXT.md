@@ -1543,3 +1543,199 @@ muéstrame la diferencia
 y proponme la corrección más segura.
 
 Empieza ahora revisando el repositorio y dime el estado real antes de realizar modificaciones grandes.
+
+# ESTILO DE CÓDIGO Y MANTENIBILIDAD
+
+Este proyecto será mantenido directamente por el desarrollador del sistema.
+
+Por lo tanto, todo código generado debe priorizar:
+
+- claridad;
+- legibilidad;
+- nombres descriptivos;
+- flujo fácil de seguir;
+- métodos pequeños;
+- responsabilidades claras;
+- mínima complejidad accidental.
+
+No generar código excesivamente abstracto o "enterprise" sin necesidad.
+
+No crear interfaces, factories, adapters, managers, handlers o capas adicionales
+si actualmente existe una sola implementación y no aportan una ventaja concreta.
+
+No usar patrones de diseño solo por usarlos.
+
+Antes de introducir una abstracción, debe existir una necesidad real.
+
+Evitar:
+
+- métodos gigantes;
+- archivos gigantes;
+- lógica escondida;
+- magic strings;
+- magic numbers;
+- callbacks difíciles de seguir;
+- herencias innecesarias;
+- genéricos innecesarios;
+- metaprogramación innecesaria;
+- dependencias innecesarias.
+
+Preferir código explícito y fácil de depurar.
+
+El desarrollador debe poder colocar un breakpoint y seguir el flujo de la aplicación
+sin tener que atravesar una cantidad innecesaria de capas.
+
+Para backend mantener como máximo el flujo conceptual:
+
+router -> service -> repository -> database
+
+pero no obligar a que cada operación tenga las cuatro capas si alguna no aporta valor.
+
+Para Flutter mantener:
+
+UI -> Cubit/Bloc -> Repository -> API
+
+sin lógica HTTP directamente en Widgets.
+
+Los nombres de clases, funciones y variables deben estar en inglés.
+Los textos visibles para el usuario deben estar en español.
+
+Los comentarios deben explicar el POR QUÉ cuando sea necesario.
+No llenar el código de comentarios que simplemente repiten lo que hace la línea.
+
+Cuando OpenCode genere una implementación no trivial,
+debe explicar brevemente el flujo antes o después de realizarla.
+
+La prioridad es:
+
+código que un desarrollador humano pueda mantener
+
+> arquitectura sofisticada
+>
+> cantidad de patrones utilizados
+
+# REGLA DE APRENDIZAJE
+
+No implementar bloques grandes de arquitectura sin que el desarrollador pueda
+entenderlos.
+
+Cuando se introduzca una tecnología o concepto nuevo, por ejemplo:
+
+- Alembic
+- JWT
+- refresh tokens
+- middleware
+- repository pattern
+- WebSocket
+- almacenamiento de documentos
+- auditoría
+
+explicar primero:
+
+1. qué problema resuelve;
+2. por qué lo necesitamos;
+3. dónde encaja en este proyecto;
+4. cuál será el flujo;
+5. qué archivos intervienen.
+
+Después implementar.
+
+No asumir que "funciona" es suficiente.
+El código debe poder ser comprendido y mantenido por el desarrollador.
+
+---
+
+# ARQUITECTURA FLUTTER OBLIGATORIA
+
+El frontend Flutter utilizará Clean Architecture organizada por feature.
+
+Estructura base por feature:
+
+feature/
+├── data/
+│   ├── datasources/
+│   ├── models/
+│   └── repositories/
+│
+├── domain/
+│   ├── entities/
+│   ├── repositories/
+│   └── usecases/
+│
+└── presentation/
+    ├── bloc/ o cubit/
+    ├── pages/
+    └── widgets/
+
+Flujo esperado:
+
+UI
+→ Bloc/Cubit
+→ UseCase cuando exista lógica de aplicación que lo justifique
+→ Repository
+→ Datasource
+→ API FastAPI
+
+Reglas:
+
+- Presentation nunca accede directamente a datasources.
+- Los Widgets no realizan llamadas HTTP.
+- Dio vive en la capa data/core correspondiente.
+- Los modelos/response pertenecen a Data.
+- Las Entities pertenecen a Domain.
+- El Repository transforma modelos/responses a Entities.
+- Preferir mapeos explícitos model/response -> entity.
+- Las Entities deben ser inmutables.
+- Utilizar Equatable cuando corresponda.
+- Utilizar copyWith para actualización de estado.
+- Bloc/Cubit mantiene estados inmutables.
+- Mantener manejo consistente de Result/Failure.
+- Los errores técnicos se convierten a Failure antes de llegar a Presentation.
+- No pasar DTOs/API responses directamente a la UI.
+- Inyección de dependencias por constructor.
+- No usar Service Locator de forma indiscriminada.
+- No crear abstracciones vacías solamente para cumplir una plantilla.
+
+UseCases:
+- Se utilizan cuando encapsulan una operación o regla de aplicación real.
+- No crear UseCases triviales que solo llamen una línea del Repository sin aportar claridad.
+- Mantener el estilo ya utilizado en POSMobile, Capturador e Inventarios.
+
+Código en inglés.
+UI y mensajes visibles en español.
+
+La prioridad es que el proyecto resulte familiar y mantenible para el desarrollador,
+no que parezca una Clean Architecture académica sobredimensionada.
+
+IMPORTANTE:
+Esta regla aplica al FRONTEND FLUTTER.
+
+El backend FastAPI mantiene su propia arquitectura modular:
+router -> service -> repository -> database,
+sin intentar copiar artificialmente la arquitectura Flutter.
+
+---
+
+# DISEÑO DEL MODELO DE DATOS — OBSERVACIONES PENDIENTES
+
+Estas observaciones complementan la propuesta del Bloque 1
+(organización + identidad + autorización) y deben respetarse
+cuando se generen los modelos y las migraciones.
+
+1. organizational_units.code
+   No asumir todavía UNIQUE NOT NULL.
+   Marcar la existencia, el formato y la obligatoriedad del código
+   como pendiente del levantamiento institucional.
+
+2. employees.unit_id
+   La relación empleado-unidad es correcta conceptualmente,
+   pero su obligatoriedad y cardinalidad definitivas quedan
+   pendientes del levantamiento institucional
+   por posibles encargaturas, traslados o situaciones especiales.
+
+3. Migraciones
+   No es necesario asignar revision IDs manuales tipo 0001/0002.
+   Alembic generará sus propios IDs.
+   Los nombres conceptuales de las migraciones serán:
+   - create organization structure
+   - create identity and authorization
