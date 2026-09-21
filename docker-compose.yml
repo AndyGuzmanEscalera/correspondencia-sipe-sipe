@@ -39,6 +39,20 @@ services:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: ${POSTGRES_PORT:-5432}
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-sipe_app}:${POSTGRES_PASSWORD:-sipe_dev_password}@postgres:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-correspondencia_sipe}
+      # JWT_ACCESS_SECRET is REQUIRED: no fallback here. The deployment must
+      # provide it via .env (gitignored) or the platform's secret store.
+      # Startup validation in app.core.config.Settings enforces >=32 chars.
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?JWT_ACCESS_SECRET must be set}
+      JWT_ISSUER: ${JWT_ISSUER:-correspondencia-api}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-correspondencia-web}
+      ACCESS_TOKEN_TTL_MINUTES: ${ACCESS_TOKEN_TTL_MINUTES:-15}
+      REFRESH_TOKEN_TTL_DAYS: ${REFRESH_TOKEN_TTL_DAYS:-7}
+      COOKIE_NAME: ${COOKIE_NAME:-refresh_token}
+      COOKIE_PATH: ${COOKIE_PATH:-/auth}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      COOKIE_SAMESITE: ${COOKIE_SAMESITE:-lax}
+      CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS:-}
+      CORS_ALLOW_CREDENTIALS: ${CORS_ALLOW_CREDENTIALS:-true}
     depends_on:
       postgres:
         condition: service_healthy

@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, String, func, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -25,12 +25,10 @@ class User(Base):
     username: Mapped[str] = mapped_column(
         String(50),
         nullable=False,
-        unique=True,
     )
     email: Mapped[str | None] = mapped_column(
         String(150),
         nullable=True,
-        unique=True,
     )
     password_hash: Mapped[str] = mapped_column(
         String(255),
@@ -55,4 +53,9 @@ class User(Base):
         nullable=False,
         server_default=func.now(),
         onupdate=func.now(),
+    )
+
+    __table_args__ = (
+        Index("uq_users_username_lower", text("LOWER(username)"), unique=True),
+        Index("uq_users_email_lower", text("LOWER(email)"), unique=True),
     )
