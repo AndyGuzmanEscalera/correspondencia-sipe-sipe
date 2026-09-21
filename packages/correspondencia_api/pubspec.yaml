@@ -1,0 +1,19 @@
+name: correspondencia_api
+description: HTTP layer for the Correspondencia GAM Sipe Sipe backend.
+version: 0.1.0+1
+publish_to: 'none'
+
+environment:
+  sdk: ">=3.4.4 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  dio: ^5.7.0
+  failures:
+    path: ../failures
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0

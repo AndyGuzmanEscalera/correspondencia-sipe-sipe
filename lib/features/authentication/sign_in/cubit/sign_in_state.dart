@@ -4,7 +4,7 @@ class SignInState extends Equatable implements StatusState {
   const SignInState({
     this.generalStatus = GeneralStatus.initial,
     this.dialogMessage = const DialogMessage.empty(),
-    this.username = '',
+    this.userSession,
   });
 
   @override
@@ -13,20 +13,22 @@ class SignInState extends Equatable implements StatusState {
   @override
   final DialogMessage dialogMessage;
 
-  final String username;
+  final UserSession? userSession;
 
   SignInState copyWith({
     GeneralStatus? generalStatus,
     DialogMessage? dialogMessage,
-    String? username,
+    UserSession? userSession,
+    bool clearUserSession = false,
   }) {
     return SignInState(
       generalStatus: generalStatus ?? this.generalStatus,
       dialogMessage: dialogMessage ?? this.dialogMessage,
-      username: username ?? this.username,
+      userSession:
+          clearUserSession ? null : (userSession ?? this.userSession),
     );
   }
 
   @override
-  List<Object?> get props => [generalStatus, dialogMessage, username];
+  List<Object?> get props => [generalStatus, dialogMessage, userSession];
 }

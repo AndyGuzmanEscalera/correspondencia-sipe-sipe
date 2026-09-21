@@ -4,6 +4,49 @@ Actúa como ingeniero de software senior y arquitecto de software trabajando con
 
 Quiero que continúes el desarrollo desde el estado actual del repositorio, no que empieces un proyecto nuevo.
 
+# ESTADO ACTUAL — INFRAESTRUCTURA FLUTTER + AUTH (confirmado en repo)
+
+Backend FastAPI con autenticación JWT + refresh HttpOnly cookie está operativo
+en Docker (`backend` + `postgres`).
+
+Flutter Web usa packages internos:
+
+| Package | Rol |
+|---------|-----|
+| `packages/failures` | `Failure`, `Result`, `handleExceptions`, `AppLogger` |
+| `packages/correspondencia_api` | `ApiMethod`, 2× Dio, `AuthApi`, interceptors |
+| `packages/correspondencia_repository` | `AuthenticationRepository` |
+
+**Auth Flutter (real, no mock):**
+
+- Access token solo en memoria (`AuthTokenStore`).
+- Refresh token en cookie HttpOnly (navegador; Flutter no lo lee).
+- `refreshDio` → login / refresh / logout (sin interceptor de refresh).
+- `mainDio` → Bearer + `AuthRefreshInterceptor` (401 → refresh → retry 1×).
+- `AuthRefreshCoordinator` → single-flight refresh.
+- Arranque: `main` → `bootstrap` → `AppView` → Splash → `restoreSession()`.
+- `AppSessionCubit` (GetIt lazySingleton, `BlocProvider.value` en UI).
+- Login / logout conectados al backend.
+- Splash distingue: sin sesión (401 refresh) vs backend caído (Network/Timeout/Server).
+
+**Features que siguen en mock (`LocalStore`):**
+
+- Consulta pública, correspondencias, bandejas, empleados, dashboard, reportes.
+
+**Rutas GoRouter:**
+
+- `/` y `/correspondencia` → Splash
+- `/consulta-publica` → consulta pública
+- `/correspondencia/login` → login
+- `/correspondencia/home` → panel admin (protegido)
+
+GitHub Pages base-href: `/correspondencia-sipe-sipe/`
+
+**Debug (solo kDebugMode):** `AuthTokenStore.debugInvalidateAccessToken()` invalida
+el access token en memoria para probar el refresh automático sin esperar expiración JWT.
+
+---
+
 Antes de modificar código:
 
 1. Inspecciona el repositorio actual.
@@ -1739,3 +1782,97 @@ cuando se generen los modelos y las migraciones.
    Los nombres conceptuales de las migraciones serán:
    - create organization structure
    - create identity and authorization
+
+---
+
+# CORRESPONDENCIA — REGLAS FUNCIONALES CONFIRMADAS
+
+Reglas confirmadas con el GAM Sipe Sipe. Se registran aquí para que
+queden como fuente de verdad durante el diseño e implementación.
+Todavía NO se han creado modelos ni endpoints de correspondencia.
+
+## Creación / registro
+
+- La hoja de ruta / correspondencia puede ser generada por cualquier
+  usuario operativo autorizado.
+- Ventanilla será uno de los puntos donde más se registren documentos
+  externos, pero la creación NO está limitada exclusivamente a
+  Ventanilla.
+- La creación de copias / CC queda fuera de la primera versión.
+
+## Derivación
+
+- Un trámite activo puede ser derivado por el usuario que actualmente
+  lo tiene a cargo.
+- Una derivación tiene UN solo destinatario (no hay destinatarios
+  múltiples ni copias en esta versión).
+- La derivación NO requiere aceptación del destinatario.
+- Al derivar, el trámite pasa al nuevo destinatario directamente.
+- No agregar por ahora campos `accepted_at`, `rejected_at`,
+  `acceptance_status` ni equivalentes.
+
+## Conclusión
+
+- Todos los usuarios operativos autorizados pueden concluir un trámite
+  que actualmente tienen a cargo.
+- Un trámite puede concluir en la unidad / funcionario que realmente
+  resuelva el asunto.
+- No se asume ni se hardcodea que la conclusión deba ocurrir
+  necesariamente en Secretaría Administrativa ni Técnica.
+
+## Reapertura
+
+- Los trámites concluidos podrán reabrirse.
+- Una reapertura debe quedar registrada en historial.
+- Nunca borrar el estado anterior: la trazabilidad histórica se
+  conserva siempre.
+
+## Estados (semántica confirmada)
+
+- `PENDIENTE` significa que el trámite sigue activo y requiere
+  atención.
+- `OBSERVADO` significa que existe una observación, falta, corrección o
+  impedimento que requiere atención.
+- `OBSERVADO` debe ser distinto de `PENDIENTE`. NO son sinónimos.
+
+## Trazabilidad
+
+- Toda la trazabilidad histórica debe conservarse.
+- El historial de movimientos y de estados NO se destruye bajo
+  ninguna circunstancia del flujo normal.
+
+## Modelo conceptual futuro (NO implementar todavía)
+
+`Correspondence` mantiene el estado y ubicación actuales.
+`Movement` conserva cada derivación histórica.
+
+`Movement` podrá guardar conceptualmente:
+- correspondence_id
+- from_user_id
+- from_unit_id
+- to_user_id
+- to_unit_id
+- instruction
+- observation
+- sent_at
+- created_by
+
+`Correspondence` podrá mantener, para consultas rápidas de
+"dónde está hoy el trámite":
+- current_user_id
+- current_unit_id
+- status_id
+
+La fuente de verdad del recorrido sigue siendo `Movement`. Los campos
+denormalizados en `Correspondence` existen solo como índice de
+consulta.
+
+## Pendientes del levantamiento (NO cerrar sin confirmar)
+
+Antes de cerrar el modelo se necesita:
+- regla exacta de generación del CITE / código;
+- campos oficiales de la hoja de ruta;
+- datos requeridos al registrar documentación externa;
+- proveídos / instrucciones reales;
+- prioridades;
+- reportes institucionales.

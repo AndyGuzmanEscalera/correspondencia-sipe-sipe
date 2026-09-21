@@ -24,7 +24,10 @@ class Settings(BaseSettings):
 
     database_url: str = Field(default="")
 
+    app_env: str = Field(default="development")
+
     cors_allow_origins: str = Field(default="")
+    cors_allow_origin_regex: str = Field(default="")
     cors_allow_credentials: bool = Field(default=True)
 
     jwt_access_secret: str = Field(default="")
@@ -42,6 +45,15 @@ class Settings(BaseSettings):
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.cors_allow_origins.split(",") if o.strip()]
+
+    @property
+    def effective_cors_origin_regex(self) -> str | None:
+        """Dev: localhost/127.0.0.1 on any port (Flutter Web hostname varies)."""
+        if self.cors_allow_origin_regex.strip():
+            return self.cors_allow_origin_regex.strip()
+        if self.app_env.lower() == "development":
+            return r"https?://(localhost|127\.0\.0\.1)(:\d+)?"
+        return None
 
     @property
     def effective_database_url(self) -> str:

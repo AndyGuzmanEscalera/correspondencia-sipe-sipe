@@ -5,4 +5,4 @@ Write-Host "Iniciando correspondencia_sipe_sipe en Chrome..."
 Write-Host "La primera compilacion puede tardar 30-60 segundos."
 
 flutter pub get
-flutter run -d chrome
+flutter run -d chrome --web-hostname localhost --web-port 5000 --dart-define=API_BASE_URL=http://localhost:8000

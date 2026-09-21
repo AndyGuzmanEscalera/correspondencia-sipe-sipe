@@ -21,6 +21,7 @@ class PublicConsultCubit extends Cubit<PublicConsultState> {
   }
 
   Future<void> consult({
+    required int year,
     required String fullName,
     required String documentId,
     required String phone,
@@ -50,9 +51,11 @@ class PublicConsultCubit extends Cubit<PublicConsultState> {
 
     await Future<void>.delayed(const Duration(milliseconds: 500));
 
+    emit(state.copyWith(year: year));
+
     final result = _store.findPublicConsult(
       PublicConsultRequest(
-        year: state.year,
+        year: year,
         fullName: fullName.trim(),
         documentId: documentId.trim(),
         phone: phone.trim(),

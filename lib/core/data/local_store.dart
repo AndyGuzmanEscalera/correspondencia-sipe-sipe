@@ -55,9 +55,6 @@ class LocalStore {
   int _sequence = 100;
   int _nextUniqueNumber = 2;
 
-  static const defaultUsername = 'admin';
-  static const defaultPassword = 'admin';
-
   void seed() {
     if (correspondences.isNotEmpty) return;
 
@@ -237,10 +234,6 @@ class LocalStore {
         ),
       );
     }
-  }
-
-  bool validateCredentials(String username, String password) {
-    return username == defaultUsername && password == defaultPassword;
   }
 
   CorrespondenceEntity? findPublicConsult(PublicConsultRequest request) {

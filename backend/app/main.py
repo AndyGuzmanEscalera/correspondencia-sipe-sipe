@@ -18,13 +18,19 @@ app = FastAPI(
 )
 
 origins = settings.cors_origins_list
-if origins:
+origin_regex = settings.effective_cors_origin_regex
+if origins or origin_regex:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
+        allow_origin_regex=origin_regex,
         allow_credentials=settings.cors_allow_credentials,
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-        allow_headers=["Content-Type", "Authorization"],
+        allow_headers=["*"] if settings.app_env.lower() == "development" else [
+            "Content-Type",
+            "Authorization",
+            "Accept",
+        ],
     )
 
 app.include_router(auth_router)

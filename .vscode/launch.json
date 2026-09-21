@@ -6,7 +6,12 @@
       "request": "launch",
       "type": "dart",
       "program": "lib/main.dart",
-      "deviceId": "chrome"
+      "deviceId": "chrome",
+      "args": [
+        "--web-hostname=localhost",
+        "--web-port=5000",
+        "--dart-define=API_BASE_URL=http://localhost:8000"
+      ]
     },
     {
       "name": "Correspondencia (Chrome release)",
@@ -14,7 +19,12 @@
       "type": "dart",
       "program": "lib/main.dart",
       "deviceId": "chrome",
-      "flutterMode": "release"
+      "flutterMode": "release",
+      "args": [
+        "--web-hostname=localhost",
+        "--web-port=5000",
+        "--dart-define=API_BASE_URL=http://localhost:8000"
+      ]
     }
   ]
 }

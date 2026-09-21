@@ -1,60 +1,84 @@
+import 'package:correspondencia_repository/correspondencia_repository.dart';
+import 'package:correspondencia_sipe_sipe/core/helpers/dialog_message.dart';
+import 'package:correspondencia_sipe_sipe/core/helpers/status_state.dart';
+import 'package:correspondencia_sipe_sipe/core/util/enums.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-enum AppScreen {
-  publicConsult,
-  signIn,
-  admin,
-}
-
-class AppSessionState extends Equatable {
+class AppSessionState extends Equatable implements StatusState {
   const AppSessionState({
-    this.screen = AppScreen.publicConsult,
-    this.userName = '',
-    this.employeeName = 'Lic. JAIME MONTERO LOPEZ',
+    this.userSession,
   });
 
-  final AppScreen screen;
-  final String userName;
-  final String employeeName;
+  final UserSession? userSession;
+
+  bool get isAuthenticated => userSession != null;
 
   AppSessionState copyWith({
-    AppScreen? screen,
-    String? userName,
-    String? employeeName,
+    UserSession? userSession,
+    bool clearSession = false,
   }) {
     return AppSessionState(
-      screen: screen ?? this.screen,
-      userName: userName ?? this.userName,
-      employeeName: employeeName ?? this.employeeName,
+      userSession:
+          clearSession ? null : (userSession ?? this.userSession),
     );
   }
 
   @override
-  List<Object?> get props => [screen, userName, employeeName];
+  GeneralStatus get generalStatus => GeneralStatus.initial;
+
+  @override
+  DialogMessage get dialogMessage => const DialogMessage.empty();
+
+  @override
+  List<Object?> get props => [userSession];
 }
 
+/// Sesión global en memoria. La navegación la maneja GoRouter.
 class AppSessionCubit extends Cubit<AppSessionState> {
-  AppSessionCubit() : super(const AppSessionState());
+  AppSessionCubit({required AuthenticationRepository authRepository})
+      : _authRepository = authRepository,
+        super(const AppSessionState());
 
-  void showPublicConsult() => emit(state.copyWith(screen: AppScreen.publicConsult));
+  final AuthenticationRepository _authRepository;
 
-  void showSignIn() => emit(state.copyWith(screen: AppScreen.signIn));
+  void onSessionRestored(UserSession session) {
+    emit(AppSessionState(userSession: session));
+  }
 
-  void onSignedIn({required String userName}) {
-    emit(
-      state.copyWith(
-        screen: AppScreen.admin,
-        userName: userName,
-      ),
+  void onSignedIn(UserSession session) {
+    emit(AppSessionState(userSession: session));
+  }
+
+  void onNoSession() {
+    emit(const AppSessionState());
+  }
+
+  void onAuthCleared() {
+    emit(const AppSessionState());
+  }
+
+  Future<bool> tryRestoreSession() async {
+    final result = await _authRepository.restoreSession();
+    return result.when(
+      ok: (session) {
+        if (session != null) {
+          onSessionRestored(session);
+          return true;
+        }
+        onNoSession();
+        return false;
+      },
+      err: (_) {
+        onNoSession();
+        return false;
+      },
     );
   }
 
-  void signOut() {
-    emit(
-      const AppSessionState(
-        screen: AppScreen.publicConsult,
-      ),
-    );
+  Future<void> logout() async {
+    final result = await _authRepository.logout();
+    result.when(ok: (_) {}, err: (_) {});
+    onAuthCleared();
   }
 }

@@ -1,10 +1,12 @@
 import 'package:correspondencia_sipe_sipe/core/helpers/extensions/extension_device.dart';
+import 'package:correspondencia_sipe_sipe/core/routes.dart';
 import 'package:correspondencia_sipe_sipe/core/theme/app_decorations.dart';
 import 'package:correspondencia_sipe_sipe/core/theme/ui_colors.dart';
 import 'package:correspondencia_sipe_sipe/features/app/cubit/app_session_cubit.dart';
 import 'package:correspondencia_sipe_sipe/features/home/side_menu/cubit/side_menu_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 class AdminAppBar extends StatelessWidget {
   const AdminAppBar({
@@ -17,14 +19,13 @@ class AdminAppBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isSmall = context.isSmallScreen;
-    final horizontalPadding = isSmall ? 16.0 : 32.0;
 
     return BlocBuilder<SideMenuCubit, SideMenuState>(
       builder: (context, menuState) {
         return BlocBuilder<AppSessionCubit, AppSessionState>(
           builder: (context, sessionState) {
             return Container(
-              padding: EdgeInsets.fromLTRB(horizontalPadding, 16, horizontalPadding, 16),
+              padding: EdgeInsets.fromLTRB(horizontalPadding(isSmall), 16, horizontalPadding(isSmall), 16),
               decoration: const BoxDecoration(
                 color: UiColors.surface,
                 border: Border(bottom: BorderSide(color: UiColors.borderLight)),
@@ -64,7 +65,7 @@ class AdminAppBar extends StatelessWidget {
                     _UserChip(sessionState: sessionState),
                     const SizedBox(width: 12),
                     OutlinedButton.icon(
-                      onPressed: () => context.read<AppSessionCubit>().signOut(),
+                      onPressed: () => _signOut(context),
                       icon: const Icon(Icons.logout_rounded, size: 18),
                       label: const Text('Salir'),
                     ),
@@ -74,9 +75,7 @@ class AdminAppBar extends StatelessWidget {
                         radius: 18,
                         backgroundColor: UiColors.primarySoft,
                         child: Text(
-                          sessionState.employeeName.isNotEmpty
-                              ? sessionState.employeeName.substring(0, 1)
-                              : 'U',
+                          _initials(sessionState),
                           style: const TextStyle(
                             color: UiColors.primary,
                             fontWeight: FontWeight.w700,
@@ -86,10 +85,10 @@ class AdminAppBar extends StatelessWidget {
                       itemBuilder: (context) => [
                         PopupMenuItem<void>(
                           enabled: false,
-                          child: Text(sessionState.employeeName),
+                          child: Text(_displayName(sessionState)),
                         ),
                         PopupMenuItem<void>(
-                          onTap: () => context.read<AppSessionCubit>().signOut(),
+                          onTap: () => _signOut(context),
                           child: const Row(
                             children: [
                               Icon(Icons.logout_rounded, size: 18),
@@ -108,6 +107,29 @@ class AdminAppBar extends StatelessWidget {
       },
     );
   }
+
+  double horizontalPadding(bool isSmall) => isSmall ? 16.0 : 32.0;
+
+  /// Logout flow. The AppSessionCubit orchestrates: calls repository.logout
+  /// (backend clears HttpOnly cookie) and resets local state. Any network
+  /// error is swallowed because local state is reset regardless.
+  Future<void> _signOut(BuildContext context) async {
+    await context.read<AppSessionCubit>().logout();
+    if (context.mounted) {
+      context.go(Routes.signIn);
+    }
+  }
+
+  String _initials(AppSessionState s) {
+    final name = _displayName(s);
+    return name.isNotEmpty ? name.substring(0, 1).toUpperCase() : 'U';
+  }
+
+  String _displayName(AppSessionState s) {
+    final session = s.userSession;
+    if (session == null) return '';
+    return session.username;
+  }
 }
 
 class _UserChip extends StatelessWidget {
@@ -117,6 +139,10 @@ class _UserChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final session = sessionState.userSession;
+    final displayName = session?.username ?? '';
+    final username = session?.username ?? '';
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
@@ -130,9 +156,7 @@ class _UserChip extends StatelessWidget {
             radius: 18,
             backgroundColor: UiColors.primarySoft,
             child: Text(
-              sessionState.employeeName.isNotEmpty
-                  ? sessionState.employeeName.substring(0, 1)
-                  : 'U',
+              displayName.isNotEmpty ? displayName.substring(0, 1).toUpperCase() : 'U',
               style: const TextStyle(
                 color: UiColors.primary,
                 fontWeight: FontWeight.w700,
@@ -144,11 +168,11 @@ class _UserChip extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                sessionState.employeeName,
+                displayName.isNotEmpty ? displayName : 'Funcionario',
                 style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
               ),
               Text(
-                sessionState.userName.isEmpty ? 'Funcionario' : sessionState.userName,
+                username.isEmpty ? 'Funcionario' : username,
                 style: const TextStyle(color: UiColors.textSecondary, fontSize: 12),
               ),
             ],
