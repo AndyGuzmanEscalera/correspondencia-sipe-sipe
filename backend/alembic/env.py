@@ -13,6 +13,7 @@ if BACKEND_ROOT not in sys.path:
 
 from app.core.config import get_settings  # noqa: E402
 from app.core.database import Base  # noqa: E402
+from app.modules import organization  # noqa: F401, E402  -- registers models in Base.metadata
 
 config = context.config
 
