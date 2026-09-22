@@ -1,7 +1,4 @@
 /// UserResponse: DTO for the `user` block in /auth/login and /auth/me.
-///
-/// Mirrors the backend's UserSession Pydantic schema exactly:
-/// id, username, email, employee_id, is_active.
 class UserResponse {
   const UserResponse({
     required this.id,
@@ -9,15 +6,21 @@ class UserResponse {
     required this.isActive,
     this.email,
     this.employeeId,
+    this.roles = const [],
+    this.permissions = const [],
   });
 
   factory UserResponse.fromJson(Map<String, dynamic> json) {
+    final rawRoles = json['roles'] as List<dynamic>? ?? const [];
+    final rawPermissions = json['permissions'] as List<dynamic>? ?? const [];
     return UserResponse(
       id: json['id'] as String,
       username: json['username'] as String,
       isActive: json['is_active'] as bool? ?? true,
       email: json['email'] as String?,
       employeeId: json['employee_id'] as String?,
+      roles: rawRoles.map((role) => role as String).toList(),
+      permissions: rawPermissions.map((permission) => permission as String).toList(),
     );
   }
 
@@ -26,4 +29,6 @@ class UserResponse {
   final bool isActive;
   final String? email;
   final String? employeeId;
+  final List<String> roles;
+  final List<String> permissions;
 }

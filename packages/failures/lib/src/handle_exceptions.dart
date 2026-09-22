@@ -41,6 +41,16 @@ Future<Result<T, Failure>> handleExceptions<T>(
       feature: feature,
       operation: operation,
     );
+  } on ConflictException catch (e, stackTrace) {
+    return _fail<T>(
+      ValidationFailure(e.message),
+      e,
+      stackTrace,
+      ErrorCode.validation,
+      feature: feature,
+      operation: operation,
+      statusCode: e.statusCode ?? 409,
+    );
   } on NotFoundException catch (e, stackTrace) {
     return _fail<T>(
       const NotFoundFailure(),
@@ -159,6 +169,7 @@ Map<String, dynamic>? _safeDataFrom(Object exception) {
   if (exception is RequestException) return exception.safeData;
   if (exception is NetworkException) return exception.safeData;
   if (exception is ValidationException) return exception.safeData;
+  if (exception is ConflictException) return exception.safeData;
   return null;
 }
 
@@ -170,6 +181,7 @@ String _technicalMessage(Object exception) {
     return exception.message ?? 'Forbidden';
   }
   if (exception is ValidationException) return exception.message;
+  if (exception is ConflictException) return exception.message;
   if (exception is NetworkException) {
     return exception.message ?? 'Network error';
   }

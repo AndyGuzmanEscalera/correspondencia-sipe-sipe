@@ -34,6 +34,22 @@ class ApiMethod {
     );
   }
 
+  /// GET returning a JSON array (e.g. `/document-types`, `/movements`).
+  Future<List<Map<String, dynamic>>> getList(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+    String? operation,
+  }) {
+    final tag = operation ?? path;
+    return _sendJsonList(
+      tag: tag,
+      send: () => dio.get<dynamic>(
+        path,
+        queryParameters: queryParameters,
+      ),
+    );
+  }
+
   Future<Map<String, dynamic>> post(
     String path, {
     Object? data,
@@ -159,6 +175,41 @@ class ApiMethod {
     }
   }
 
+  Future<List<Map<String, dynamic>>> _sendJsonList({
+    required String tag,
+    required Future<Response<dynamic>> Function() send,
+  }) async {
+    try {
+      ApiLogger.logSave('REQUEST $tag ===> Done ${DateTime.now()}');
+      final response = await send();
+      final code = response.statusCode ?? 0;
+      final data = response.data;
+
+      ApiLogger.logSave(
+        'RESPONSE $tag ===> ${ApiLogger.encodeResponse(data)} ${DateTime.now()}',
+      );
+
+      if (code >= 200 && code < 300) {
+        if (data is List) {
+          return data
+              .whereType<Map>()
+              .map((item) => item.cast<String, dynamic>())
+              .toList();
+        }
+      }
+
+      final exception = _exceptionForStatus(code, data);
+      _logHandledFailure(tag, exception);
+      throw exception;
+    } on DioException catch (e) {
+      ApiLogger.logSave(
+        'DIO EXCEPTION $tag ===> ${ApiLogger.formatDioException(e)} '
+        '${DateTime.now()}',
+      );
+      throw _mapDioException(e);
+    }
+  }
+
   Future<Map<String, dynamic>> _sendJson({
     required String tag,
     required Future<Response<dynamic>> Function() send,
@@ -236,6 +287,11 @@ class ApiMethod {
         return ForbiddenException(message, statusCode: statusCode);
       case 404:
         return NotFoundException(statusCode: statusCode);
+      case 409:
+        return ConflictException(
+          message ?? 'El registro ingresado ya existe.',
+          statusCode: statusCode,
+        );
       default:
         if (statusCode >= 500) {
           return ServerException(
@@ -292,6 +348,12 @@ class ApiMethod {
         }
         if (status == 404) {
           return NotFoundException(statusCode: status);
+        }
+        if (status == 409) {
+          return ConflictException(
+            backendMessage ?? 'El registro ingresado ya existe.',
+            statusCode: status,
+          );
         }
         if (status != null && status >= 500) {
           return ServerException(

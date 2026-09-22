@@ -43,7 +43,7 @@ class _SplashViewState extends State<SplashView> {
     final user = state.session;
     if (state.hasSession && user != null) {
       appSession.onSessionRestored(user);
-      context.read<SideMenuCubit>().init();
+      context.read<SideMenuCubit>().init(permissions: user.permissions);
       context.go(Routes.home);
     } else {
       appSession.onNoSession();

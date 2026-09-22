@@ -45,3 +45,15 @@ app.*.map.json
 # Environment and database
 .env
 postgres_data/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Package test/build artifacts
+packages/**/build/
+packages/**/.dart_tool/
+packages/**/test_cache/

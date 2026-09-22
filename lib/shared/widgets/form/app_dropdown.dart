@@ -61,7 +61,7 @@ class AppDropdown<T> extends StatelessWidget {
             ),
             icon: const Icon(Icons.keyboard_arrow_down_rounded),
             style: AppFormFieldStyle.fieldText,
-            decoration: AppFormFieldStyle.decoration(label: label),
+            decoration: AppFormFieldStyle.dropdownDecoration(label: label),
             items: items
                 .map(
                   (item) => DropdownMenuItem<FormOption<T>>(

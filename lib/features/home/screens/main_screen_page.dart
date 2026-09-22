@@ -1,8 +1,14 @@
+import 'package:correspondencia_sipe_sipe/core/auth/permission_guard.dart';
+import 'package:correspondencia_sipe_sipe/core/auth/permissions.dart';
 import 'package:correspondencia_sipe_sipe/core/presentation/widget/responsive_layout.dart';
 import 'package:correspondencia_sipe_sipe/core/util/enums.dart';
+import 'package:correspondencia_sipe_sipe/features/administration/basic_data/document_types/list/views/document_types_list_page.dart';
+import 'package:correspondencia_sipe_sipe/features/administration/basic_data/employees/list/views/employees_list_page.dart';
+import 'package:correspondencia_sipe_sipe/features/administration/basic_data/positions/list/views/positions_list_page.dart';
+import 'package:correspondencia_sipe_sipe/features/administration/basic_data/units/list/views/units_list_page.dart';
+import 'package:correspondencia_sipe_sipe/features/administration/basic_data/users/list/views/users_list_page.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/list/views/correspondence_list_page.dart';
 import 'package:correspondencia_sipe_sipe/features/dashboard/views/dashboard_page.dart';
-import 'package:correspondencia_sipe_sipe/features/employees/list/views/employees_list_page.dart';
 import 'package:correspondencia_sipe_sipe/features/home/side_menu/cubit/side_menu_cubit.dart';
 import 'package:correspondencia_sipe_sipe/features/home/side_menu/widgets/side_menu_widget.dart';
 import 'package:correspondencia_sipe_sipe/features/home/widgets/admin_app_bar.dart';
@@ -99,10 +105,31 @@ class _ContentArea extends StatelessWidget {
       MenuEnum.sent => const InboxPage(inboxType: InboxType.sent),
       MenuEnum.observed => const InboxPage(inboxType: InboxType.observed),
       MenuEnum.archived => const InboxPage(inboxType: InboxType.archived),
-      MenuEnum.employees => const EmployeesListPage(),
       MenuEnum.reports => const ReportsPage(),
-      MenuEnum.units => const DashboardPage(),
-      MenuEnum.settings => const DashboardPage(),
+      MenuEnum.adminUnits => PermissionGuard(
+          permission: Permissions.organizationalUnitsRead,
+          child: const UnitsListPage(),
+        ),
+      MenuEnum.adminPositions => PermissionGuard(
+          permission: Permissions.positionsRead,
+          child: const PositionsListPage(),
+        ),
+      MenuEnum.adminEmployees => PermissionGuard(
+          permission: Permissions.employeesRead,
+          child: const EmployeesListPage(),
+        ),
+      MenuEnum.adminUsers => PermissionGuard(
+          permission: Permissions.usersRead,
+          child: const UsersListPage(),
+        ),
+      MenuEnum.adminDocumentTypes => PermissionGuard(
+          permission: Permissions.documentTypesRead,
+          child: const DocumentTypesListPage(),
+        ),
+      MenuEnum.administration ||
+      MenuEnum.basicData ||
+      MenuEnum.settings =>
+        const DashboardPage(),
     };
   }
 }

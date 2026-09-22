@@ -9,5 +9,7 @@ extension UserResponseToEntity on UserResponse {
         isActive: isActive,
         email: email,
         employeeId: employeeId,
+        roles: roles,
+        permissions: permissions,
       );
 }

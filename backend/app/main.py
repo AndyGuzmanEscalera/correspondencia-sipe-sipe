@@ -6,6 +6,20 @@ from sqlalchemy.orm import Session
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.modules.auth.router import router as auth_router
+from app.modules.correspondence.router import catalog_router as correspondence_catalog_router
+from app.modules.correspondence.router import router as correspondence_router
+from app.modules.correspondence.admin_router import router as document_types_admin_router
+from app.modules.identity.admin_router import router as identity_admin_router
+from app.modules.organization.admin_router import (
+    employees_router as admin_employees_router,
+)
+from app.modules.organization.admin_router import (
+    positions_router as admin_positions_router,
+)
+from app.modules.organization.admin_router import (
+    units_router as admin_units_router,
+)
+from app.modules.organization.router import router as organization_router
 
 settings = get_settings()
 
@@ -34,6 +48,14 @@ if origins or origin_regex:
     )
 
 app.include_router(auth_router)
+app.include_router(correspondence_catalog_router)
+app.include_router(correspondence_router)
+app.include_router(organization_router)
+app.include_router(admin_units_router)
+app.include_router(admin_positions_router)
+app.include_router(admin_employees_router)
+app.include_router(identity_admin_router)
+app.include_router(document_types_admin_router)
 
 
 @app.get("/health", tags=["health"])

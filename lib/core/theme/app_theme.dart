@@ -108,8 +108,8 @@ class AppTheme {
       ),
       dataTableTheme: DataTableThemeData(
         headingRowColor: WidgetStateProperty.all(UiColors.background),
-        dataRowMinHeight: 56,
-        headingRowHeight: 48,
+        dataRowMinHeight: 48,
+        headingRowHeight: 56,
         headingTextStyle: const TextStyle(
           color: UiColors.textSecondary,
           fontWeight: FontWeight.w600,

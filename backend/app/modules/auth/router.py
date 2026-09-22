@@ -29,6 +29,7 @@ from app.modules.auth.service import (
     revoke_session,
     rotate_session_atomically,
 )
+from app.modules.identity.rbac_service import RbacService
 from app.modules.identity.user import User
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -127,5 +128,11 @@ def logout(
 @router.get("/me", response_model=MeResponse)
 def me(
     current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
 ) -> MeResponse:
-    return MeResponse(**_user_to_brief(current_user))
+    rbac = RbacService(db)
+    return MeResponse(
+        **_user_to_brief(current_user),
+        roles=rbac.get_user_role_codes(current_user.id),
+        permissions=rbac.get_user_permission_codes(current_user.id),
+    )

@@ -51,7 +51,9 @@ class SignInView extends StatelessWidget {
             final user = state.userSession;
             if (user != null) {
               appSession.onSignedIn(user);
-              context.read<SideMenuCubit>().init();
+              context.read<SideMenuCubit>().init(
+                    permissions: user.permissions,
+                  );
               context.go(Routes.home);
             }
           },

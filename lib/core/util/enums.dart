@@ -21,9 +21,14 @@ enum MenuEnum {
   sent,
   observed,
   archived,
-  employees,
-  units,
   reports,
+  administration,
+  basicData,
+  adminUnits,
+  adminPositions,
+  adminEmployees,
+  adminUsers,
+  adminDocumentTypes,
   settings,
 }
 

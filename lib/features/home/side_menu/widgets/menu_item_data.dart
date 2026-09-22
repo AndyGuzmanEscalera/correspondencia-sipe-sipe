@@ -9,6 +9,7 @@ class MenuItemData extends Equatable {
     required this.icon,
     this.badge,
     this.isSection = false,
+    this.requiredPermission,
   });
 
   final MenuEnum menu;
@@ -16,7 +17,9 @@ class MenuItemData extends Equatable {
   final IconData icon;
   final int? badge;
   final bool isSection;
+  final String? requiredPermission;
 
   @override
-  List<Object?> get props => [menu, title, icon, badge, isSection];
+  List<Object?> get props =>
+      [menu, title, icon, badge, isSection, requiredPermission];
 }

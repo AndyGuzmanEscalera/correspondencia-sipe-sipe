@@ -27,7 +27,7 @@ class AuthenticationRepository {
           password: password,
         );
         _tokenStore.setAccessToken(response.accessToken);
-        return response.user.toEntity();
+        return (await _authApi.me()).toEntity();
       },
       feature: 'authentication',
       operation: 'signIn',

@@ -28,4 +28,5 @@ class RefreshResponse(BaseModel):
 
 
 class MeResponse(UserBrief):
-    pass
+    roles: list[str] = []
+    permissions: list[str] = []

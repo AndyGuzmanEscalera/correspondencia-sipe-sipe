@@ -55,11 +55,84 @@ Future<void> registerRepositories() async {
     ),
   );
 
+  getIt.registerLazySingleton<CorrespondenceApi>(
+    () => CorrespondenceApi(mainApi: getIt<ApiMethod>(instanceName: 'mainApi')),
+  );
+
+  getIt.registerLazySingleton<OrganizationApi>(
+    () => OrganizationApi(mainApi: getIt<ApiMethod>(instanceName: 'mainApi')),
+  );
+
+  getIt.registerLazySingleton<OrganizationalUnitsAdminApi>(
+    () => OrganizationalUnitsAdminApi(
+      mainApi: getIt<ApiMethod>(instanceName: 'mainApi'),
+    ),
+  );
+
+  getIt.registerLazySingleton<PositionsAdminApi>(
+    () => PositionsAdminApi(mainApi: getIt<ApiMethod>(instanceName: 'mainApi')),
+  );
+
+  getIt.registerLazySingleton<EmployeesAdminApi>(
+    () => EmployeesAdminApi(mainApi: getIt<ApiMethod>(instanceName: 'mainApi')),
+  );
+
+  getIt.registerLazySingleton<UsersAdminApi>(
+    () => UsersAdminApi(mainApi: getIt<ApiMethod>(instanceName: 'mainApi')),
+  );
+
+  getIt.registerLazySingleton<RolesAdminApi>(
+    () => RolesAdminApi(mainApi: getIt<ApiMethod>(instanceName: 'mainApi')),
+  );
+
+  getIt.registerLazySingleton<DocumentTypesAdminApi>(
+    () => DocumentTypesAdminApi(
+      mainApi: getIt<ApiMethod>(instanceName: 'mainApi'),
+    ),
+  );
+
   // ─── Repositories ─────────────────────────────────────────────
   getIt.registerLazySingleton<AuthenticationRepository>(
     () => AuthenticationRepository(
       authApi: getIt<AuthApi>(),
       tokenStore: getIt<AuthTokenStore>(),
     ),
+  );
+
+  getIt.registerLazySingleton<CorrespondenceRepository>(
+    () => CorrespondenceRepository(
+      correspondenceApi: getIt<CorrespondenceApi>(),
+    ),
+  );
+
+  getIt.registerLazySingleton<OrganizationRepository>(
+    () => OrganizationRepository(
+      organizationApi: getIt<OrganizationApi>(),
+    ),
+  );
+
+  getIt.registerLazySingleton<OrganizationalUnitsAdminRepository>(
+    () => OrganizationalUnitsAdminRepository(
+      api: getIt<OrganizationalUnitsAdminApi>(),
+    ),
+  );
+
+  getIt.registerLazySingleton<PositionsAdminRepository>(
+    () => PositionsAdminRepository(api: getIt<PositionsAdminApi>()),
+  );
+
+  getIt.registerLazySingleton<EmployeesAdminRepository>(
+    () => EmployeesAdminRepository(api: getIt<EmployeesAdminApi>()),
+  );
+
+  getIt.registerLazySingleton<UsersAdminRepository>(
+    () => UsersAdminRepository(
+      usersApi: getIt<UsersAdminApi>(),
+      rolesApi: getIt<RolesAdminApi>(),
+    ),
+  );
+
+  getIt.registerLazySingleton<DocumentTypesAdminRepository>(
+    () => DocumentTypesAdminRepository(api: getIt<DocumentTypesAdminApi>()),
   );
 }

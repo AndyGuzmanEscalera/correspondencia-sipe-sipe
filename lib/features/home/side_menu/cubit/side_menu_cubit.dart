@@ -15,12 +15,16 @@ class SideMenuCubit extends Cubit<SideMenuState> {
 
   final LocalStore _store;
 
-  void init() {
-    final menus = MenuOptions.build(counts: _store.inboxCounts());
+  void init({List<String> permissions = const []}) {
+    final menus = MenuOptions.build(
+      counts: _store.inboxCounts(),
+      permissions: permissions,
+    );
+    final selectable = menus.where((item) => !item.isSection).toList();
     emit(
       state.copyWith(
         menus: menus,
-        selected: menus.first,
+        selected: selectable.first,
       ),
     );
   }
@@ -30,12 +34,16 @@ class SideMenuCubit extends Cubit<SideMenuState> {
     emit(state.copyWith(selected: menu));
   }
 
-  void refreshBadges() {
-    final menus = MenuOptions.build(counts: _store.inboxCounts());
+  void refreshBadges({List<String> permissions = const []}) {
+    final menus = MenuOptions.build(
+      counts: _store.inboxCounts(),
+      permissions: permissions,
+    );
+    final selectable = menus.where((item) => !item.isSection).toList();
     final selectedMenu = state.selected.menu;
-    final selected = menus.firstWhere(
-      (item) => item.menu == selectedMenu && !item.isSection,
-      orElse: () => menus.first,
+    final selected = selectable.firstWhere(
+      (item) => item.menu == selectedMenu,
+      orElse: () => selectable.first,
     );
     emit(state.copyWith(menus: menus, selected: selected));
   }

@@ -26,6 +26,7 @@ dependencies:
     path: packages/correspondencia_api
   correspondencia_repository:
     path: packages/correspondencia_repository
+  data_table_2: 2.5.15
 
 dev_dependencies:
   flutter_test:

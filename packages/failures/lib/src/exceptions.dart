@@ -60,6 +60,14 @@ class ValidationException implements Exception {
   final Map<String, dynamic>? safeData;
 }
 
+class ConflictException implements Exception {
+  ConflictException(this.message, {this.statusCode = 409, this.safeData});
+
+  final String message;
+  final int? statusCode;
+  final Map<String, dynamic>? safeData;
+}
+
 class UnexpectedException implements Exception {
   UnexpectedException(this.message, {this.safeData});
 

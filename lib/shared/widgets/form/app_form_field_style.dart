@@ -36,6 +36,19 @@ class AppFormFieldStyle {
     );
   }
 
+  /// Dropdowns use [DropdownButtonFormField], whose closed button is 48px tall
+  /// (kMinInteractiveDimension). A labeled [InputDecoration] expects ~56px, which
+  /// produces invalid min/max height constraints. [isDense] aligns both sides.
+  static InputDecoration dropdownDecoration({
+    required String label,
+    String? hint,
+  }) {
+    return decoration(label: label, hint: hint).copyWith(
+      isDense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    );
+  }
+
   static TextStyle get fieldText => const TextStyle(
         color: UiColors.textPrimary,
         fontSize: 14,

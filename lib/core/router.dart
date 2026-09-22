@@ -69,7 +69,9 @@ class _ProtectedHomePageState extends State<_ProtectedHomePage> {
     if (!mounted) return;
 
     if (restored) {
-      context.read<SideMenuCubit>().init();
+      final permissions =
+          appSession.state.userSession?.permissions ?? const [];
+      context.read<SideMenuCubit>().init(permissions: permissions);
       setState(() => _checking = false);
       return;
     }

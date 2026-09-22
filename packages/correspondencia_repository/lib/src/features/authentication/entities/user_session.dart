@@ -11,6 +11,8 @@ class UserSession extends Equatable {
     required this.isActive,
     this.email,
     this.employeeId,
+    this.roles = const [],
+    this.permissions = const [],
   });
 
   final String id;
@@ -18,6 +20,8 @@ class UserSession extends Equatable {
   final bool isActive;
   final String? email;
   final String? employeeId;
+  final List<String> roles;
+  final List<String> permissions;
 
   UserSession copyWith({
     String? id,
@@ -25,6 +29,8 @@ class UserSession extends Equatable {
     bool? isActive,
     String? email,
     String? employeeId,
+    List<String>? roles,
+    List<String>? permissions,
   }) {
     return UserSession(
       id: id ?? this.id,
@@ -32,9 +38,12 @@ class UserSession extends Equatable {
       isActive: isActive ?? this.isActive,
       email: email ?? this.email,
       employeeId: employeeId ?? this.employeeId,
+      roles: roles ?? this.roles,
+      permissions: permissions ?? this.permissions,
     );
   }
 
   @override
-  List<Object?> get props => [id, username, isActive, email, employeeId];
+  List<Object?> get props =>
+      [id, username, isActive, email, employeeId, roles, permissions];
 }
