@@ -78,4 +78,11 @@ class CorrespondenceApi {
     );
     return items.map(CorrespondenceMovementResponse.fromJson).toList();
   }
+
+  Future<List<int>> downloadChainingPdf(String correspondenceId) async {
+    return _mainApi.downloadBytes(
+      Endpoints.correspondenceEncadenamientoPdf(correspondenceId),
+      operation: 'correspondence.encadenamientoPdf',
+    );
+  }
 }

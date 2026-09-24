@@ -142,6 +142,45 @@ class ApiMethod {
     }
   }
 
+  /// GET returning raw bytes (PDF, exports, etc.).
+  Future<List<int>> downloadBytes({
+    required String path,
+    Map<String, dynamic>? queryParameters,
+    String? operation,
+  }) async {
+    final tag = operation ?? path;
+    try {
+      ApiLogger.logSave('REQUEST $tag ===> Done ${DateTime.now()}');
+      final response = await dio.get<List<int>>(
+        path,
+        queryParameters: queryParameters,
+        options: Options(responseType: ResponseType.bytes),
+      );
+      final code = response.statusCode ?? 0;
+      final data = response.data ?? const <int>[];
+
+      ApiLogger.logSave(
+        'RESPONSE $tag ===> ${data.length} bytes ${DateTime.now()}',
+      );
+
+      if (code >= 200 && code < 300) {
+        return data;
+      }
+
+      final exception = _exceptionForStatus(code, null);
+      _logHandledFailure(tag, exception);
+      throw exception;
+    } on SocketException {
+      throw const SocketException('');
+    } on DioException catch (e) {
+      ApiLogger.logSave(
+        'DIO EXCEPTION $tag ===> ${ApiLogger.formatDioException(e)} '
+        '${DateTime.now()}',
+      );
+      throw _mapDioException(e);
+    }
+  }
+
   /// Returns raw response body (Capturador `rawGet` style).
   Future<String> rawGet({
     required String path,

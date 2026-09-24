@@ -1,7 +1,9 @@
+import io
 import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -85,6 +87,26 @@ def derive_correspondence(
     service: Annotated[CorrespondenceService, Depends(_service)],
 ) -> CorrespondenceDetail:
     return service.derive_correspondence(user, correspondence_id, body)
+
+
+@router.get("/{correspondence_id}/encadenamiento.pdf")
+def download_encadenamiento_pdf(
+    correspondence_id: uuid.UUID,
+    user: Annotated[User, Depends(get_current_user)],
+    service: Annotated[CorrespondenceService, Depends(_service)],
+) -> StreamingResponse:
+    del user
+    pdf_bytes, filename = service.generate_encadenamiento_pdf_bytes(
+        correspondence_id,
+        active_only=True,
+    )
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'inline; filename="{filename}"',
+        },
+    )
 
 
 @router.get(

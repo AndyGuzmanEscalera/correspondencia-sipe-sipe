@@ -15,6 +15,8 @@ class Endpoints {
   static String correspondenceDerive(String id) => '/correspondences/$id/derive';
   static String correspondenceMovements(String id) =>
       '/correspondences/$id/movements';
+  static String correspondenceEncadenamientoPdf(String id) =>
+      '/correspondences/$id/encadenamiento.pdf';
 
   static const String organizationalUnits = '/organizational-units';
   static String organizationalUnitUsers(String unitId) =>

@@ -46,6 +46,10 @@ app.*.map.json
 .env
 postgres_data/
 
+# Runtime file storage (not backend/app/core/storage source module)
+/backend/storage/
+/storage/
+
 # Python
 __pycache__/
 *.py[cod]

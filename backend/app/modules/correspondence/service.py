@@ -8,6 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
 from app.modules.correspondence.constants import (
     CORRESPONDENCE_TYPE_EXTERNAL,
     CORRESPONDENCE_TYPE_INTERNAL,
@@ -30,6 +31,16 @@ from app.modules.correspondence.schemas import (
     CreateCorrespondenceRequest,
     DeriveCorrespondenceRequest,
     DocumentTypeResponse,
+)
+from app.modules.correspondence.pdf.encadenamiento_builder import (
+    build_encadenamiento_context,
+    movement_type_label,
+    resolve_de,
+    resolve_para,
+)
+from app.modules.correspondence.pdf.encadenamiento_pdf import (
+    EncadenamientoMovementRow,
+    generate_encadenamiento_pdf,
 )
 from app.modules.identity.user import User
 from app.modules.organization.employee import Employee
@@ -256,6 +267,68 @@ class CorrespondenceService:
         self._db.refresh(correspondence)
         return self._to_detail(correspondence)
 
+    def generate_encadenamiento_pdf_bytes(
+        self,
+        correspondence_id: uuid.UUID,
+        *,
+        active_only: bool = True,
+    ) -> tuple[bytes, str]:
+        """Genera on-demand el PDF de encadenamiento desde el estado actual."""
+        correspondence = self._get_correspondence_or_404(
+            correspondence_id,
+            active_only=active_only,
+        )
+        movement_rows = self._load_encadenamiento_movements(correspondence_id)
+        generated_at = datetime.now(timezone.utc)
+        issued_at = correspondence.created_at
+        if issued_at.tzinfo is None:
+            issued_at = issued_at.replace(tzinfo=timezone.utc)
+
+        settings = get_settings()
+        logo_path = settings.institutional_logo_path
+        if logo_path is not None and not logo_path.is_file():
+            logo_path = None
+
+        para = resolve_para(
+            current_unit_name=self._unit_name(correspondence.current_unit_id),
+            current_user_name=self._user_display_name(correspondence.current_user_id),
+            movement_rows=movement_rows,
+        )
+        de = resolve_de(
+            correspondence=correspondence,
+            origin_unit_name=self._unit_name(correspondence.origin_unit_id),
+            origin_user_name=self._user_display_name(correspondence.origin_user_id),
+        )
+
+        try:
+            context = build_encadenamiento_context(
+                correspondence=correspondence,
+                movement_rows=movement_rows,
+                para=para,
+                de=de,
+                issued_at=issued_at,
+                generated_at=generated_at,
+                logo_path=logo_path,
+            )
+            pdf_bytes = generate_encadenamiento_pdf(context)
+        except ImportError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=(
+                    "Generación de PDF no disponible: falta instalar reportlab "
+                    "en el backend (pip install -r requirements.txt o rebuild Docker)."
+                ),
+            ) from exc
+        except Exception as exc:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="No se pudo generar el PDF de encadenamiento",
+            ) from exc
+
+        safe_route = correspondence.route_number.replace("/", "-")
+        filename = f"encadenamiento_{safe_route}.pdf"
+        return pdf_bytes, filename
+
     def list_movements(
         self,
         correspondence_id: uuid.UUID,
@@ -399,6 +472,32 @@ class CorrespondenceService:
             )
         )
         return (current_max or 0) + 1
+
+    def _load_encadenamiento_movements(
+        self,
+        correspondence_id: uuid.UUID,
+    ) -> list[EncadenamientoMovementRow]:
+        rows = self._db.scalars(
+            select(CorrespondenceMovement)
+            .where(CorrespondenceMovement.correspondence_id == correspondence_id)
+            .order_by(CorrespondenceMovement.sequence_number)
+        ).all()
+        return [
+            EncadenamientoMovementRow(
+                sequence_number=row.sequence_number,
+                movement_type=row.movement_type,
+                movement_type_label=movement_type_label(row.movement_type),
+                from_unit=self._unit_name(row.from_unit_id),
+                from_user=self._user_display_name(row.from_user_id),
+                to_unit=self._unit_name(row.to_unit_id),
+                to_user=self._user_display_name(row.to_user_id),
+                instruction=row.instruction,
+                created_at=row.created_at,
+                is_cancelled=row.cancelled_at is not None,
+                cancellation_reason=row.cancellation_reason,
+            )
+            for row in rows
+        ]
 
     def _add_movement(
         self,

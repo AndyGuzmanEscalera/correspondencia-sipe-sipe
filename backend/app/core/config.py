@@ -1,4 +1,5 @@
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -36,6 +37,9 @@ class Settings(BaseSettings):
     access_token_ttl_minutes: int = Field(default=15)
 
     refresh_token_ttl_days: int = Field(default=7)
+
+    storage_root: Path = Field(default=Path("storage"))
+    institutional_logo_path: Path | None = Field(default=None)
 
     cookie_name: str = Field(default="refresh_token")
     cookie_path: str = Field(default="/auth")

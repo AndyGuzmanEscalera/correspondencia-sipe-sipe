@@ -22,3 +22,10 @@ MOVEMENT_ANNULLED = "ANNULLED"
 
 # Provisional technical format until GAM Sipe Sipe confirms official rules.
 ROUTE_NUMBER_PREFIX = "HR"
+
+GENERATED_ENCADENAMIENTO_PREFIX = "encadenamiento_"
+GENERATED_ENCADENAMIENTO_MIME = "application/pdf"
+
+# Valores conceptuales para futuro attachment_kind / source (sin columna DB aún).
+ATTACHMENT_SOURCE_UPLOADED = "UPLOADED"
+ATTACHMENT_SOURCE_GENERATED_CHAINING = "GENERATED_CHAINING"
