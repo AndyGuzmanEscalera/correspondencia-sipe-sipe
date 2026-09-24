@@ -1,4 +1,5 @@
 import 'package:correspondencia_sipe_sipe/core/util/form/models/form_option.dart';
+import 'package:correspondencia_sipe_sipe/core/util/form/result_validate.dart';
 import 'package:flutter/material.dart';
 
 class ControllerFieldPro {
@@ -66,4 +67,16 @@ class ControllerFieldDropdown<T> {
 
 extension FormKeyValidate on GlobalKey<FormState> {
   bool validateForm() => currentState?.validate() ?? false;
+
+  ResultValidate validateAndGetErrors(
+    List<GlobalKey<FormFieldState<Object?>>> fieldKeys,
+  ) {
+    for (final fieldKey in fieldKeys) {
+      fieldKey.currentState?.validate();
+    }
+    return ResultValidate(
+      errors: const {},
+      isPassed: currentState?.validate() ?? false,
+    );
+  }
 }

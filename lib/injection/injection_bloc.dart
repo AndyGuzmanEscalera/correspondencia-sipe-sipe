@@ -1,15 +1,22 @@
 import 'package:get_it/get_it.dart';
 import 'package:correspondencia_repository/correspondencia_repository.dart';
 
-import '../../features/administration/basic_data/document_types/list/cubit/document_types_list_cubit.dart';
-import '../../features/administration/basic_data/employees/list/cubit/employees_list_cubit.dart';
-import '../../features/administration/basic_data/positions/list/cubit/positions_list_cubit.dart';
-import '../../features/administration/basic_data/units/list/cubit/units_list_cubit.dart';
-import '../../features/administration/basic_data/users/list/cubit/users_list_cubit.dart';
+import '../../features/administration/basic_data/document_types/list_document_types/cubit/document_types_cubit.dart';
+import '../../features/administration/basic_data/document_types/upsert_document_types/cubit/upsert_document_types_cubit.dart';
+import '../../features/administration/basic_data/employees/list_employees/cubit/employees_cubit.dart';
+import '../../features/administration/basic_data/employees/upsert_employees/cubit/upsert_employees_cubit.dart';
+import '../../features/administration/basic_data/positions/list_positions/cubit/positions_cubit.dart';
+import '../../features/administration/basic_data/positions/upsert_positions/cubit/upsert_positions_cubit.dart';
+import '../../features/administration/basic_data/units/list_units/cubit/units_cubit.dart';
+import '../../features/administration/basic_data/units/upsert_units/cubit/upsert_units_cubit.dart';
+import '../../features/administration/basic_data/users/list_users/cubit/users_cubit.dart';
+import '../../features/administration/basic_data/users/upsert_users/cubit/upsert_users_cubit.dart';
 import '../../features/app/cubit/app_session_cubit.dart';
 import '../../features/authentication/sign_in/cubit/sign_in_cubit.dart';
+import '../../features/correspondence/derive_correspondence/cubit/derive_correspondence_cubit.dart';
 import '../../features/correspondence/detail/cubit/correspondence_detail_cubit.dart';
-import '../../features/correspondence/list/cubit/correspondence_list_cubit.dart';
+import '../../features/correspondence/list_correspondence/cubit/correspondence_cubit.dart';
+import '../../features/correspondence/upsert_correspondence/cubit/upsert_correspondence_cubit.dart';
 import '../../features/home/side_menu/cubit/side_menu_cubit.dart';
 import '../../features/splash/cubit/splash_cubit.dart';
 
@@ -39,9 +46,13 @@ void registerCubits() {
     () => SignInCubit(authRepository: getIt<AuthenticationRepository>()),
   );
 
-  getIt.registerFactory<CorrespondenceListCubit>(
-    () => CorrespondenceListCubit(
-      repository: getIt<CorrespondenceRepository>(),
+  getIt.registerFactory<CorrespondenceCubit>(
+    () => CorrespondenceCubit(getIt<CorrespondenceRepository>()),
+  );
+
+  getIt.registerFactory<UpsertCorrespondenceCubit>(
+    () => UpsertCorrespondenceCubit(
+      correspondenceRepository: getIt<CorrespondenceRepository>(),
       organizationRepository: getIt<OrganizationRepository>(),
     ),
   );
@@ -49,39 +60,62 @@ void registerCubits() {
   getIt.registerFactoryParam<CorrespondenceDetailCubit, String, void>(
     (correspondenceId, _) => CorrespondenceDetailCubit(
       repository: getIt<CorrespondenceRepository>(),
+      correspondenceId: correspondenceId,
+    ),
+  );
+
+  getIt.registerFactoryParam<DeriveCorrespondenceCubit, String, void>(
+    (correspondenceId, _) => DeriveCorrespondenceCubit(
+      correspondenceRepository: getIt<CorrespondenceRepository>(),
       organizationRepository: getIt<OrganizationRepository>(),
       correspondenceId: correspondenceId,
     ),
   );
 
-  getIt.registerFactory<UnitsListCubit>(
-    () => UnitsListCubit(
-      repository: getIt<OrganizationalUnitsAdminRepository>(),
-    ),
+  getIt.registerFactory<UnitsCubit>(
+    () => UnitsCubit(getIt<OrganizationalUnitsAdminRepository>()),
   );
 
-  getIt.registerFactory<PositionsListCubit>(
-    () => PositionsListCubit(repository: getIt<PositionsAdminRepository>()),
+  getIt.registerFactory<UpsertUnitsCubit>(
+    () => UpsertUnitsCubit(getIt<OrganizationalUnitsAdminRepository>()),
   );
 
-  getIt.registerFactory<EmployeesListCubit>(
-    () => EmployeesListCubit(
+  getIt.registerFactory<PositionsCubit>(
+    () => PositionsCubit(getIt<PositionsAdminRepository>()),
+  );
+
+  getIt.registerFactory<UpsertPositionsCubit>(
+    () => UpsertPositionsCubit(getIt<PositionsAdminRepository>()),
+  );
+
+  getIt.registerFactory<EmployeesCubit>(
+    () => EmployeesCubit(getIt<EmployeesAdminRepository>()),
+  );
+
+  getIt.registerFactory<UpsertEmployeesCubit>(
+    () => UpsertEmployeesCubit(
       employeesRepository: getIt<EmployeesAdminRepository>(),
       unitsRepository: getIt<OrganizationalUnitsAdminRepository>(),
       positionsRepository: getIt<PositionsAdminRepository>(),
     ),
   );
 
-  getIt.registerFactory<UsersListCubit>(
-    () => UsersListCubit(
+  getIt.registerFactory<UsersCubit>(
+    () => UsersCubit(getIt<UsersAdminRepository>()),
+  );
+
+  getIt.registerFactory<UpsertUsersCubit>(
+    () => UpsertUsersCubit(
       usersRepository: getIt<UsersAdminRepository>(),
       employeesRepository: getIt<EmployeesAdminRepository>(),
     ),
   );
 
-  getIt.registerFactory<DocumentTypesListCubit>(
-    () => DocumentTypesListCubit(
-      repository: getIt<DocumentTypesAdminRepository>(),
-    ),
+  getIt.registerFactory<DocumentTypesCubit>(
+    () => DocumentTypesCubit(getIt<DocumentTypesAdminRepository>()),
+  );
+
+  getIt.registerFactory<UpsertDocumentTypesCubit>(
+    () => UpsertDocumentTypesCubit(getIt<DocumentTypesAdminRepository>()),
   );
 }

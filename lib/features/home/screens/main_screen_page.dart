@@ -2,12 +2,12 @@ import 'package:correspondencia_sipe_sipe/core/auth/permission_guard.dart';
 import 'package:correspondencia_sipe_sipe/core/auth/permissions.dart';
 import 'package:correspondencia_sipe_sipe/core/presentation/widget/responsive_layout.dart';
 import 'package:correspondencia_sipe_sipe/core/util/enums.dart';
-import 'package:correspondencia_sipe_sipe/features/administration/basic_data/document_types/list/views/document_types_list_page.dart';
-import 'package:correspondencia_sipe_sipe/features/administration/basic_data/employees/list/views/employees_list_page.dart';
-import 'package:correspondencia_sipe_sipe/features/administration/basic_data/positions/list/views/positions_list_page.dart';
-import 'package:correspondencia_sipe_sipe/features/administration/basic_data/units/list/views/units_list_page.dart';
-import 'package:correspondencia_sipe_sipe/features/administration/basic_data/users/list/views/users_list_page.dart';
-import 'package:correspondencia_sipe_sipe/features/correspondence/list/views/correspondence_list_page.dart';
+import 'package:correspondencia_sipe_sipe/features/administration/basic_data/document_types/list_document_types/views/document_types_page.dart';
+import 'package:correspondencia_sipe_sipe/features/administration/basic_data/employees/list_employees/views/employees_page.dart';
+import 'package:correspondencia_sipe_sipe/features/administration/basic_data/positions/list_positions/views/positions_page.dart';
+import 'package:correspondencia_sipe_sipe/features/administration/basic_data/units/list_units/views/units_page.dart';
+import 'package:correspondencia_sipe_sipe/features/administration/basic_data/users/list_users/views/users_page.dart';
+import 'package:correspondencia_sipe_sipe/features/correspondence/list_correspondence/views/correspondence_page.dart';
 import 'package:correspondencia_sipe_sipe/features/dashboard/views/dashboard_page.dart';
 import 'package:correspondencia_sipe_sipe/features/home/side_menu/cubit/side_menu_cubit.dart';
 import 'package:correspondencia_sipe_sipe/features/home/side_menu/widgets/side_menu_widget.dart';
@@ -99,7 +99,7 @@ class _ContentArea extends StatelessWidget {
   Widget build(BuildContext context) {
     return switch (menu) {
       MenuEnum.dashboard => const DashboardPage(),
-      MenuEnum.correspondences => const CorrespondenceListPage(),
+      MenuEnum.correspondences => const CorrespondencePage(),
       MenuEnum.inbox => const InboxPage(inboxType: InboxType.inbox),
       MenuEnum.received => const InboxPage(inboxType: InboxType.received),
       MenuEnum.sent => const InboxPage(inboxType: InboxType.sent),
@@ -108,23 +108,23 @@ class _ContentArea extends StatelessWidget {
       MenuEnum.reports => const ReportsPage(),
       MenuEnum.adminUnits => PermissionGuard(
           permission: Permissions.organizationalUnitsRead,
-          child: const UnitsListPage(),
+          child: const UnitsPage(),
         ),
       MenuEnum.adminPositions => PermissionGuard(
           permission: Permissions.positionsRead,
-          child: const PositionsListPage(),
+          child: const PositionsPage(),
         ),
       MenuEnum.adminEmployees => PermissionGuard(
           permission: Permissions.employeesRead,
-          child: const EmployeesListPage(),
+          child: const EmployeesPage(),
         ),
       MenuEnum.adminUsers => PermissionGuard(
           permission: Permissions.usersRead,
-          child: const UsersListPage(),
+          child: const UsersPage(),
         ),
       MenuEnum.adminDocumentTypes => PermissionGuard(
           permission: Permissions.documentTypesRead,
-          child: const DocumentTypesListPage(),
+          child: const DocumentTypesPage(),
         ),
       MenuEnum.administration ||
       MenuEnum.basicData ||

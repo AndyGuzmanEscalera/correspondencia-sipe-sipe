@@ -5,6 +5,11 @@ enum GeneralStatus {
   error,
 }
 
+enum TypeOperation {
+  create,
+  update,
+}
+
 enum InboxType {
   inbox,
   received,
