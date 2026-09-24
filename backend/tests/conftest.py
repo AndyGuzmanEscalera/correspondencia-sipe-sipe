@@ -61,11 +61,37 @@ def client() -> TestClient:
 
 
 @pytest.fixture()
-def document_type(db: Session) -> DocumentType:
-    existing = db.get(
-        DocumentType, uuid.UUID("a1000001-0001-4001-8001-000000000001")
+def encadenamiento_document_type(db: Session) -> DocumentType:
+    existing = db.scalar(
+        select(DocumentType).where(DocumentType.code == "EDIE")
     )
     if existing:
+        if not existing.is_active:
+            existing.is_active = True
+            db.commit()
+            db.refresh(existing)
+        return existing
+    doc_type = DocumentType(
+        id=uuid.uuid4(),
+        code="EDIE",
+        name="ENCADENAMIENTO DE DOCUMENTOS INTERNOS Y EXTERNOS",
+        is_active=True,
+    )
+    db.add(doc_type)
+    db.commit()
+    db.refresh(doc_type)
+    return doc_type
+
+
+@pytest.fixture()
+def document_type(db: Session) -> DocumentType:
+    fixed_id = uuid.UUID("a1000001-0001-4001-8001-000000000001")
+    existing = db.get(DocumentType, fixed_id)
+    if existing:
+        if not existing.is_active:
+            existing.is_active = True
+            db.commit()
+            db.refresh(existing)
         return existing
     doc_type = DocumentType(
         id=uuid.UUID("a1000001-0001-4001-8001-000000000001"),

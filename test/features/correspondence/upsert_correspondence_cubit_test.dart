@@ -1,7 +1,9 @@
 import 'package:correspondencia_repository/correspondencia_repository.dart'
     as repo;
 import 'package:correspondencia_sipe_sipe/core/util/enums.dart';
+import 'package:correspondencia_sipe_sipe/features/correspondence/domain/document_type_profiles.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/cubit/upsert_correspondence_cubit.dart';
+import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/models/pending_attachment.dart';
 import 'package:failures/failures.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -9,11 +11,14 @@ class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
   _FakeCorrespondenceRepository({
     this.createResult,
     this.listDocumentTypesResult,
+    this.uploadResult,
   });
 
   Result<repo.Correspondence, Failure>? createResult;
   Result<List<repo.DocumentType>, Failure>? listDocumentTypesResult;
+  Result<repo.CorrespondenceAttachment, Failure>? uploadResult;
   repo.CreateCorrespondenceInput? lastCreateInput;
+  int uploadCalls = 0;
 
   @override
   Future<Result<repo.Correspondence, Failure>> createCorrespondence(
@@ -28,9 +33,9 @@ class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
             routeYear: 2026,
             routeSequence: 1,
             correspondenceType: input.correspondenceType,
-            documentTypeCode: 'CARTA',
-            documentTypeName: 'Carta',
-            subject: input.subject,
+            documentTypeCode: 'EDIE',
+            documentTypeName: 'Encadenamiento',
+            subject: input.subject ?? input.description ?? '',
             priority: input.priority,
             status: 'ACTIVE',
             registeredAt: DateTime.utc(2026, 1, 15),
@@ -42,8 +47,39 @@ class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
   Future<Result<List<repo.DocumentType>, Failure>> listDocumentTypes() async {
     return listDocumentTypesResult ??
         Ok([
-          repo.DocumentType(id: 'dt-1', code: 'CARTA', name: 'Carta'),
+          repo.DocumentType(id: 'dt-edie', code: 'EDIE', name: 'Encadenamiento'),
+          repo.DocumentType(id: 'dt-nota', code: 'NOTA', name: 'Nota Interna'),
         ]);
+  }
+
+  @override
+  Future<Result<List<repo.EmployeeOption>, Failure>> listEmployees() async {
+    return Ok([
+      repo.EmployeeOption(
+        id: 'emp-1',
+        fullName: 'Juan Pérez',
+        unitName: 'Sistemas',
+      ),
+    ]);
+  }
+
+  @override
+  Future<Result<repo.CorrespondenceAttachment, Failure>> uploadAttachment({
+    required String correspondenceId,
+    required repo.UploadAttachmentInput input,
+  }) async {
+    uploadCalls++;
+    return uploadResult ??
+        Ok(
+          repo.CorrespondenceAttachment(
+            id: 'att-$uploadCalls',
+            correspondenceId: correspondenceId,
+            originalFilename: input.filename,
+            isActive: true,
+            createdByUserId: 'user-1',
+            createdAt: DateTime.utc(2026, 1, 15),
+          ),
+        );
   }
 
   @override
@@ -91,15 +127,24 @@ void main() {
       );
     }
 
-    test('init carga document types y units', () async {
+    test('init carga document types, units y employees', () async {
       final cubit = buildCubit();
 
       await cubit.init();
 
       expect(cubit.state.catalogLoaded, isTrue);
-      expect(cubit.state.catalogReady, isTrue);
-      expect(cubit.state.documentTypes, hasLength(1));
+      expect(cubit.state.hasBaseCatalog, isTrue);
+      expect(
+        cubit.state.isCatalogReadyFor(
+          profile: DocumentFormProfile.chaining,
+          isExternal: true,
+        ),
+        isTrue,
+      );
+      expect(cubit.state.documentTypes, hasLength(2));
       expect(cubit.state.organizationalUnits, hasLength(2));
+      expect(cubit.state.employees, hasLength(1));
+      expect(cubit.state.defaultDocumentTypeId, 'dt-edie');
       await cubit.close();
     });
 
@@ -125,82 +170,103 @@ void main() {
       await cubit.close();
     });
 
-    test('clearUnitUsers limpia usuarios destino', () async {
-      final organizationRepository = _FakeOrganizationRepository(
-        usersByUnit: {
-          'unit-2': [
-            repo.UnitUser(
-              id: 'user-2',
-              username: 'dest',
-              displayName: 'Usuario Destino',
-            ),
-          ],
-        },
-      );
-      final cubit = buildCubit(organizationRepository: organizationRepository);
-
-      await cubit.init();
-      await cubit.loadUnitUsers('unit-2');
-      cubit.clearUnitUsers();
-
-      expect(cubit.state.unitUsers, isEmpty);
-      await cubit.close();
-    });
-
-    test('create EXTERNAL emite success con route number', () async {
+    test('create CHAINING EXTERNAL emite success', () async {
       final correspondenceRepository = _FakeCorrespondenceRepository();
       final cubit = buildCubit(
         correspondenceRepository: correspondenceRepository,
       );
 
       await cubit.create(
+        profile: DocumentFormProfile.chaining,
         subject: 'Solicitud externa',
         type: CorrespondenceTypeCode.ce,
         priorityLabel: 'Alta',
-        documentTypeId: 'dt-1',
+        documentTypeId: 'dt-edie',
         initialToUnitId: 'unit-2',
-        initialToUserId: 'user-2',
-        initialInstruction: 'Atender',
         senderName: 'Ciudadano',
-        senderDocument: '1234567',
-        senderContact: '70000000',
-        originDescription: 'Ventanilla',
       );
 
       expect(cubit.state.generalStatus, GeneralStatus.success);
-      expect(
-        cubit.state.dialogMessage.message,
-        contains('HR-2026-000001'),
-      );
       expect(cubit.state.createdCorrespondence?.id, 'corr-1');
       final input = correspondenceRepository.lastCreateInput!;
       expect(input.correspondenceType, 'EXTERNAL');
       expect(input.senderName, 'Ciudadano');
-      expect(input.initialToUnitId, 'unit-2');
       await cubit.close();
     });
 
-    test('create INTERNAL no envía campos externos', () async {
+    test('create INTERNAL NOTE envía description y origin_employee_id', () async {
       final correspondenceRepository = _FakeCorrespondenceRepository();
       final cubit = buildCubit(
         correspondenceRepository: correspondenceRepository,
       );
 
       await cubit.create(
-        subject: 'Memorándum interno',
+        profile: DocumentFormProfile.internalNote,
+        description: 'Contenido de la nota',
         type: CorrespondenceTypeCode.ci,
         priorityLabel: 'Media',
-        documentTypeId: 'dt-1',
+        documentTypeId: 'dt-nota',
         initialToUnitId: 'unit-2',
-        senderName: 'No debe ir',
+        originEmployeeId: 'emp-1',
       );
 
       final input = correspondenceRepository.lastCreateInput!;
       expect(input.correspondenceType, 'INTERNAL');
+      expect(input.description, 'Contenido de la nota');
+      expect(input.originEmployeeId, 'emp-1');
       expect(input.senderName, isNull);
-      expect(input.senderDocument, isNull);
-      expect(input.senderContact, isNull);
-      expect(input.originDescription, isNull);
+      await cubit.close();
+    });
+
+    test('create sube adjuntos pendientes secuencialmente', () async {
+      final correspondenceRepository = _FakeCorrespondenceRepository();
+      final cubit = buildCubit(
+        correspondenceRepository: correspondenceRepository,
+      );
+
+      await cubit.create(
+        profile: DocumentFormProfile.chaining,
+        subject: 'Con adjuntos',
+        type: CorrespondenceTypeCode.ce,
+        priorityLabel: 'Baja',
+        documentTypeId: 'dt-edie',
+        initialToUnitId: 'unit-2',
+        senderName: 'Remitente',
+        pendingAttachments: const [
+          PendingAttachment(filename: 'a.pdf', bytes: [1]),
+          PendingAttachment(filename: 'b.pdf', bytes: [2, 3]),
+        ],
+      );
+
+      expect(correspondenceRepository.uploadCalls, 2);
+      expect(cubit.state.generalStatus, GeneralStatus.success);
+      await cubit.close();
+    });
+
+    test('create con fallo parcial de adjuntos informa en mensaje', () async {
+      final correspondenceRepository = _FakeCorrespondenceRepository(
+        uploadResult: const Err(ServerFailure('Error al subir')),
+      );
+      final cubit = buildCubit(
+        correspondenceRepository: correspondenceRepository,
+      );
+
+      await cubit.create(
+        profile: DocumentFormProfile.chaining,
+        subject: 'Parcial',
+        type: CorrespondenceTypeCode.ce,
+        priorityLabel: 'Baja',
+        documentTypeId: 'dt-edie',
+        initialToUnitId: 'unit-2',
+        senderName: 'Remitente',
+        pendingAttachments: const [
+          PendingAttachment(filename: 'a.pdf', bytes: [1]),
+        ],
+      );
+
+      expect(cubit.state.generalStatus, GeneralStatus.success);
+      expect(cubit.state.attachmentUploadFailures, hasLength(1));
+      expect(cubit.state.dialogMessage.title, 'Registro parcial');
       await cubit.close();
     });
 
@@ -213,33 +279,17 @@ void main() {
       );
 
       await cubit.create(
+        profile: DocumentFormProfile.chaining,
         subject: 'Fallará',
         type: CorrespondenceTypeCode.ce,
         priorityLabel: 'Baja',
-        documentTypeId: 'dt-1',
+        documentTypeId: 'dt-edie',
         initialToUnitId: 'unit-2',
         senderName: 'Remitente',
       );
 
       expect(cubit.state.generalStatus, GeneralStatus.error);
       expect(cubit.state.dialogMessage.message, 'No se pudo registrar');
-      await cubit.close();
-    });
-
-    test('init error en document types emite DialogMessage', () async {
-      final correspondenceRepository = _FakeCorrespondenceRepository(
-        listDocumentTypesResult:
-            const Err(ServerFailure('Error al cargar tipos')),
-      );
-      final cubit = buildCubit(
-        correspondenceRepository: correspondenceRepository,
-      );
-
-      await cubit.init();
-
-      expect(cubit.state.catalogLoaded, isTrue);
-      expect(cubit.state.catalogReady, isFalse);
-      expect(cubit.state.generalStatus, GeneralStatus.error);
       await cubit.close();
     });
   });

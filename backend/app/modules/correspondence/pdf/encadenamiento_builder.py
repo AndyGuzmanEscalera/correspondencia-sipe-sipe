@@ -30,9 +30,14 @@ def build_encadenamiento_context(
 ) -> EncadenamientoPdfContext:
     referencia = _resolve_referencia(correspondence)
 
+    document_number = correspondence.document_number or str(
+        correspondence.document_sequence or ""
+    )
+
     return EncadenamientoPdfContext(
         route_number=correspondence.route_number,
         route_sequence=correspondence.route_sequence,
+        document_number=document_number,
         correspondence_type=correspondence.correspondence_type,
         para=para,
         de=de,
@@ -74,8 +79,9 @@ def resolve_para(
 def resolve_de(
     *,
     correspondence: Correspondence,
+    origin_employee_name: str | None,
     origin_unit_name: str | None,
-    origin_user_name: str | None,
+    origin_position_name: str | None,
 ) -> str:
     if correspondence.correspondence_type == CORRESPONDENCE_TYPE_EXTERNAL:
         parts: list[str] = []
@@ -85,9 +91,17 @@ def resolve_de(
             parts.append(correspondence.origin_description.strip())
         return " — ".join(parts)
 
-    if origin_user_name and origin_unit_name:
-        return f"{origin_user_name} ({origin_unit_name})"
-    return origin_user_name or origin_unit_name or ""
+    parts: list[str] = []
+    if origin_employee_name:
+        parts.append(origin_employee_name)
+    detail: list[str] = []
+    if origin_position_name:
+        detail.append(origin_position_name)
+    if origin_unit_name:
+        detail.append(origin_unit_name)
+    if detail:
+        parts.append(f"({', '.join(detail)})")
+    return " ".join(parts).strip()
 
 
 def movement_type_label(movement_type: str) -> str:

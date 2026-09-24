@@ -65,6 +65,24 @@ class ApiMethod {
     );
   }
 
+  /// POST multipart/form-data (e.g. file uploads).
+  Future<Map<String, dynamic>> uploadMultipart(
+    String path, {
+    required FormData data,
+    String? operation,
+  }) {
+    final tag = operation ?? path;
+    return _sendJson(
+      tag: tag,
+      send: () => dio.post<dynamic>(
+        path,
+        data: data,
+        options: Options(contentType: 'multipart/form-data'),
+      ),
+      requestBody: 'multipart/form-data',
+    );
+  }
+
   Future<Map<String, dynamic>> put(
     String path, {
     Object? data,
@@ -91,17 +109,18 @@ class ApiMethod {
     );
   }
 
-  Future<void> delete(
+  Future<Map<String, dynamic>> delete(
     String path, {
     Object? data,
     String? operation,
-  }) async {
+    bool allowEmptyBody = false,
+  }) {
     final tag = operation ?? path;
-    await _sendJson(
+    return _sendJson(
       tag: tag,
       send: () => dio.delete<dynamic>(path, data: data),
       requestBody: data,
-      allowEmptyBody: true,
+      allowEmptyBody: allowEmptyBody,
     );
   }
 

@@ -51,7 +51,7 @@ class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
             correspondenceType: input.correspondenceType,
             documentTypeCode: 'CARTA',
             documentTypeName: 'Carta',
-            subject: input.subject,
+            subject: input.subject ?? '',
             priority: input.priority,
             status: 'ACTIVE',
             registeredAt: DateTime.utc(2026, 1, 15),
@@ -62,7 +62,18 @@ class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
   @override
   Future<Result<List<repo.DocumentType>, Failure>> listDocumentTypes() async {
     return Ok([
-      repo.DocumentType(id: 'dt-1', code: 'CARTA', name: 'Carta'),
+      repo.DocumentType(id: 'dt-edie', code: 'EDIE', name: 'Encadenamiento'),
+    ]);
+  }
+
+  @override
+  Future<Result<List<repo.EmployeeOption>, Failure>> listEmployees() async {
+    return Ok([
+      repo.EmployeeOption(
+        id: 'emp-1',
+        fullName: 'Juan Pérez',
+        unitName: 'Sistemas',
+      ),
     ]);
   }
 
@@ -238,7 +249,9 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsNothing);
     });
 
-    testWidgets('INTERNAL oculta campos externos', (tester) async {
+    testWidgets('INTERNAL oculta campos externos en encadenamiento', (
+      tester,
+    ) async {
       await pumpCreateDialog(tester);
 
       expect(find.text('Remitente externo'), findsOneWidget);
@@ -246,6 +259,7 @@ void main() {
       await _selectTypeDropdown(tester, optionText: 'Interna (CI)');
 
       expect(find.text('Remitente externo'), findsNothing);
+      expect(find.text('Empleado origen'), findsOneWidget);
     });
 
     testWidgets('error mantiene upsert abierto', (tester) async {
@@ -286,11 +300,14 @@ class _FakeListRepository implements repo.CorrespondenceRepository {
 }
 
 Future<void> _fillMinimumExternalForm(WidgetTester tester) async {
-  await tester.enterText(find.byType(TextFormField).at(0), 'Solicitud externa');
-  await _selectStringDropdown(tester, dropdownIndex: 0, optionText: 'Carta');
-  await _selectStringDropdown(tester, dropdownIndex: 2, optionText: 'Sistemas');
+  await tester.enterText(find.byType(TextFormField).at(0), 'Ciudadano');
+  await tester.enterText(find.byType(TextFormField).at(4), 'Solicitud externa');
+  await _selectStringDropdown(
+    tester,
+    dropdownIndex: 2,
+    optionText: 'Sistemas',
+  );
   await tester.pumpAndSettle();
-  await tester.enterText(find.byType(TextFormField).at(3), 'Ciudadano');
 }
 
 Future<void> _selectStringDropdown(

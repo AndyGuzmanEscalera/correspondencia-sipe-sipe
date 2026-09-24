@@ -1,7 +1,10 @@
+import 'package:correspondencia_repository/correspondencia_repository.dart';
 import 'package:correspondencia_sipe_sipe/core/util/enums.dart';
 import 'package:correspondencia_sipe_sipe/core/util/form/controllers/controllers.dart';
 import 'package:correspondencia_sipe_sipe/core/util/form/models/form_option.dart';
 import 'package:correspondencia_sipe_sipe/core/util/form/result_validate.dart';
+import 'package:correspondencia_sipe_sipe/features/correspondence/domain/document_type_profiles.dart';
+import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/models/pending_attachment.dart';
 import 'package:flutter/material.dart';
 
 class UpsertCorrespondenceInherited extends InheritedWidget {
@@ -40,6 +43,7 @@ class UpsertCorrespondenceInherited extends InheritedWidget {
   final formKey = GlobalKey<FormState>();
   final subject = ControllerFieldPro();
   final reference = ControllerFieldPro();
+  final description = ControllerFieldPro();
   final senderName = ControllerFieldPro();
   final senderDocument = ControllerFieldPro();
   final senderContact = ControllerFieldPro();
@@ -48,8 +52,11 @@ class UpsertCorrespondenceInherited extends InheritedWidget {
   final type = ControllerFieldDropdown<CorrespondenceTypeCode>();
   final priority = ControllerFieldDropdown<String>();
   final documentType = ControllerFieldDropdown<String>();
+  final originEmployee = ControllerFieldDropdown<String>();
   final toUnit = ControllerFieldDropdown<String>();
   final toUser = ControllerFieldDropdown<String>();
+
+  final List<PendingAttachment> pendingAttachments = [];
 
   static UpsertCorrespondenceInherited of(BuildContext context) {
     final result = context
@@ -63,9 +70,30 @@ class UpsertCorrespondenceInherited extends InheritedWidget {
 
   bool get isExternal => selectedType == CorrespondenceTypeCode.ce;
 
+  DocumentFormProfile profileFor(List<DocumentType> documentTypes) {
+    final selected = findDocumentTypeById(documentTypes, documentType.get());
+    if (selected == null) return DocumentFormProfile.generic;
+    return resolveDocumentFormProfile(selected.code);
+  }
+
+  void addPendingAttachment(PendingAttachment attachment) {
+    pendingAttachments.add(attachment);
+  }
+
+  void removePendingAttachmentAt(int index) {
+    if (index >= 0 && index < pendingAttachments.length) {
+      pendingAttachments.removeAt(index);
+    }
+  }
+
+  void clearPendingAttachments() {
+    pendingAttachments.clear();
+  }
+
   void clear() {
     subject.textEditingController.clear();
     reference.textEditingController.clear();
+    description.textEditingController.clear();
     senderName.textEditingController.clear();
     senderDocument.textEditingController.clear();
     senderContact.textEditingController.clear();
@@ -74,8 +102,10 @@ class UpsertCorrespondenceInherited extends InheritedWidget {
     type.setDefaultValue(typeItems.first);
     priority.setDefaultValue(priorityItems[1]);
     documentType.clear();
+    originEmployee.clear();
     toUnit.clear();
     toUser.clear();
+    clearPendingAttachments();
   }
 
   void clearExternalFields() {
@@ -89,25 +119,54 @@ class UpsertCorrespondenceInherited extends InheritedWidget {
     toUser.clear();
   }
 
-  ResultValidate valid({required bool isExternal}) {
+  ResultValidate valid({
+    required DocumentFormProfile profile,
+    required bool isExternal,
+  }) {
     final fieldKeys = <GlobalKey<FormFieldState<Object?>>>[
-      subject.fieldKey,
       documentType.fieldKey,
-      type.fieldKey,
       priority.fieldKey,
       toUnit.fieldKey,
     ];
 
-    if (isExternal) {
-      fieldKeys.add(senderName.fieldKey);
+    switch (profile) {
+      case DocumentFormProfile.chaining:
+        fieldKeys.addAll([type.fieldKey]);
+        if (isExternal) {
+          fieldKeys.add(senderName.fieldKey);
+        } else {
+          fieldKeys.add(originEmployee.fieldKey);
+        }
+      case DocumentFormProfile.technicalReport:
+      case DocumentFormProfile.internalNote:
+        fieldKeys.add(description.fieldKey);
+        fieldKeys.add(originEmployee.fieldKey);
+      case DocumentFormProfile.generic:
+        fieldKeys.addAll([subject.fieldKey, type.fieldKey]);
+        if (isExternal) {
+          fieldKeys.add(senderName.fieldKey);
+        }
     }
 
-    return formKey.validateAndGetErrors(fieldKeys);
+    final result = formKey.validateAndGetErrors(fieldKeys);
+
+    if (result.isPassed &&
+        profile == DocumentFormProfile.chaining &&
+        subject.getValue().trim().isEmpty &&
+        reference.getValue().trim().isEmpty) {
+      return const ResultValidate(
+        isPassed: false,
+        errors: {'chaining': 'El asunto o la referencia es obligatorio'},
+      );
+    }
+
+    return result;
   }
 
   void dispose() {
     subject.dispose();
     reference.dispose();
+    description.dispose();
     senderName.dispose();
     senderDocument.dispose();
     senderContact.dispose();
@@ -116,6 +175,7 @@ class UpsertCorrespondenceInherited extends InheritedWidget {
     type.dispose();
     priority.dispose();
     documentType.dispose();
+    originEmployee.dispose();
     toUnit.dispose();
     toUser.dispose();
   }

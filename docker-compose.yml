@@ -55,12 +55,15 @@ services:
       CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS:-http://localhost:5000,http://127.0.0.1:5000}
       CORS_ALLOW_ORIGIN_REGEX: ${CORS_ALLOW_ORIGIN_REGEX:-}
       CORS_ALLOW_CREDENTIALS: ${CORS_ALLOW_CREDENTIALS:-true}
+      STORAGE_ROOT: /app/storage
     depends_on:
       postgres:
         condition: service_healthy
     volumes:
       - ./backend:/app
+      - backend_storage:/app/storage
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
 volumes:
   postgres_data:
+  backend_storage:

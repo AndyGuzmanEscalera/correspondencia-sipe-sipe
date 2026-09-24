@@ -40,6 +40,20 @@ class Settings(BaseSettings):
 
     storage_root: Path = Field(default=Path("storage"))
     institutional_logo_path: Path | None = Field(default=None)
+    max_attachment_size_mb: int = Field(default=25)
+    attachment_allowed_mime_types: str = Field(
+        default=(
+            "application/pdf,"
+            "application/msword,"
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document,"
+            "application/vnd.ms-excel,"
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,"
+            "image/jpeg,"
+            "image/png,"
+            "image/webp,"
+            "image/gif"
+        )
+    )
 
     cookie_name: str = Field(default="refresh_token")
     cookie_path: str = Field(default="/auth")
@@ -58,6 +72,18 @@ class Settings(BaseSettings):
         if self.app_env.lower() == "development":
             return r"https?://(localhost|127\.0\.0\.1)(:\d+)?"
         return None
+
+    @property
+    def max_attachment_size_bytes(self) -> int:
+        return self.max_attachment_size_mb * 1024 * 1024
+
+    @property
+    def attachment_allowed_mime_types_list(self) -> list[str]:
+        return [
+            item.strip().lower()
+            for item in self.attachment_allowed_mime_types.split(",")
+            if item.strip()
+        ]
 
     @property
     def effective_database_url(self) -> str:

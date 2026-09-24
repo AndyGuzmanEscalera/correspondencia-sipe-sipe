@@ -31,12 +31,23 @@ class UpdateDocumentTypeRequest(BaseModel):
     name: str = Field(min_length=1, max_length=200)
 
 
+class EmployeeOptionResponse(BaseModel):
+    id: uuid.UUID
+    full_name: str
+    unit_id: uuid.UUID | None
+    unit_name: str | None
+    position_name: str | None
+    document_number: str | None
+
+
 class CreateCorrespondenceRequest(BaseModel):
     correspondence_type: Literal["INTERNAL", "EXTERNAL"]
     document_type_id: uuid.UUID
-    subject: str = Field(min_length=1, max_length=500)
+    subject: str | None = Field(default=None, max_length=500)
     reference: str | None = Field(default=None, max_length=200)
+    description: str | None = Field(default=None, max_length=10000)
     priority: Literal["HIGH", "MEDIUM", "LOW"]
+    origin_employee_id: uuid.UUID | None = None
     sender_name: str | None = Field(default=None, max_length=200)
     sender_document: str | None = Field(default=None, max_length=30)
     sender_contact: str | None = Field(default=None, max_length=50)
@@ -58,6 +69,9 @@ class CorrespondenceListItem(BaseModel):
     route_number: str
     route_year: int
     route_sequence: int
+    document_number: str | None
+    document_sequence: int | None
+    document_year: int | None
     correspondence_type: str
     document_type_code: str
     document_type_name: str
@@ -80,6 +94,7 @@ class CorrespondenceListResponse(BaseModel):
 
 class CorrespondenceDetail(CorrespondenceListItem):
     reference: str | None
+    description: str | None
     sender_name: str | None
     sender_document: str | None
     sender_contact: str | None
@@ -88,6 +103,8 @@ class CorrespondenceDetail(CorrespondenceListItem):
     origin_unit_name: str | None
     origin_user_id: uuid.UUID | None
     origin_user_name: str | None
+    origin_employee_id: uuid.UUID | None
+    origin_employee_name: str | None
     current_unit_id: uuid.UUID | None
     current_user_id: uuid.UUID | None
     cite_sequence: int | None
@@ -96,6 +113,20 @@ class CorrespondenceDetail(CorrespondenceListItem):
     reopened_at: datetime | None
     created_by_user_id: uuid.UUID
     created_by_username: str
+
+
+class CorrespondenceAttachmentResponse(BaseModel):
+    id: uuid.UUID
+    correspondence_id: uuid.UUID
+    original_filename: str | None
+    mime_type: str | None
+    size_bytes: int | None
+    sha256: str | None
+    is_active: bool
+    created_by_user_id: uuid.UUID
+    created_by_username: str | None
+    created_at: datetime
+    deleted_at: datetime | None
 
 
 class CorrespondenceMovementResponse(BaseModel):

@@ -27,6 +27,7 @@ dependencies:
   correspondencia_repository:
     path: packages/correspondencia_repository
   data_table_2: 2.5.15
+  file_picker: ^8.1.4
 
 dev_dependencies:
   flutter_test:

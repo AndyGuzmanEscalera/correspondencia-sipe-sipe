@@ -8,8 +8,8 @@ import 'package:correspondencia_sipe_sipe/shared/widgets/form/app_text_field.dar
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-class CorrespondenceDestinationSection extends StatelessWidget {
-  const CorrespondenceDestinationSection({
+class DestinationSection extends StatelessWidget {
+  const DestinationSection({
     required this.organizationalUnits,
     required this.unitUsers,
     required this.unitUsersLoading,

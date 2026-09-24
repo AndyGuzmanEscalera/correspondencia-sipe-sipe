@@ -1,12 +1,25 @@
 import 'package:correspondencia_api/correspondencia_api.dart';
 
 import '../entities/correspondence.dart';
+import '../entities/correspondence_attachment.dart';
 import '../entities/correspondence_movement.dart';
 import '../entities/create_correspondence_input.dart';
 import '../entities/document_type.dart';
+import '../entities/employee_option.dart';
 
 extension DocumentTypeResponseMapper on DocumentTypeResponse {
   DocumentType toEntity() => DocumentType(id: id, code: code, name: name);
+}
+
+extension EmployeeOptionResponseMapper on EmployeeOptionResponse {
+  EmployeeOption toEntity() => EmployeeOption(
+        id: id,
+        fullName: fullName,
+        unitId: unitId,
+        unitName: unitName,
+        positionName: positionName,
+        documentNumber: documentNumber,
+      );
 }
 
 extension CorrespondenceResponseMapper on CorrespondenceResponse {
@@ -15,6 +28,7 @@ extension CorrespondenceResponseMapper on CorrespondenceResponse {
         routeNumber: routeNumber,
         routeYear: routeYear,
         routeSequence: routeSequence,
+        documentNumber: documentNumber,
         correspondenceType: correspondenceType,
         documentTypeCode: documentTypeCode,
         documentTypeName: documentTypeName,
@@ -26,6 +40,7 @@ extension CorrespondenceResponseMapper on CorrespondenceResponse {
         cite: cite,
         registeredAt: registeredAt,
         reference: reference,
+        description: description,
         senderName: senderName,
         senderDocument: senderDocument,
         senderContact: senderContact,
@@ -34,6 +49,8 @@ extension CorrespondenceResponseMapper on CorrespondenceResponse {
         originUnitName: originUnitName,
         originUserId: originUserId,
         originUserName: originUserName,
+        originEmployeeId: originEmployeeId,
+        originEmployeeName: originEmployeeName,
         currentUnitId: currentUnitId,
         currentUserId: currentUserId,
         createdByUsername: createdByUsername,
@@ -68,6 +85,22 @@ extension CorrespondenceMovementResponseMapper on CorrespondenceMovementResponse
       );
 }
 
+extension CorrespondenceAttachmentResponseMapper on CorrespondenceAttachmentResponse {
+  CorrespondenceAttachment toEntity() => CorrespondenceAttachment(
+        id: id,
+        correspondenceId: correspondenceId,
+        originalFilename: originalFilename,
+        mimeType: mimeType,
+        sizeBytes: sizeBytes,
+        sha256: sha256,
+        isActive: isActive,
+        createdByUserId: createdByUserId,
+        createdByUsername: createdByUsername,
+        createdAt: createdAt,
+        deletedAt: deletedAt,
+      );
+}
+
 extension CreateCorrespondenceInputMapper on CreateCorrespondenceInput {
   CreateCorrespondenceRequest toRequest() => CreateCorrespondenceRequest(
         correspondenceType: correspondenceType,
@@ -75,6 +108,8 @@ extension CreateCorrespondenceInputMapper on CreateCorrespondenceInput {
         subject: subject,
         priority: priority,
         reference: reference,
+        description: description,
+        originEmployeeId: originEmployeeId,
         senderName: senderName,
         senderDocument: senderDocument,
         senderContact: senderContact,

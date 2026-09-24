@@ -38,8 +38,21 @@ MOVEMENT_TYPE_LABELS = {
     "ANNULLED": "Anulación",
 }
 
-MOVEMENTS_ON_FIRST_PAGE = 4
-MOVEMENTS_ON_CONTINUATION_PAGE = 8
+RECIPIENTS_ON_FIRST_PAGE = 4
+RECIPIENTS_ON_CONTINUATION_PAGE = 4
+
+RECIPIENT_ORDINALS = (
+    "Primer",
+    "Segundo",
+    "Tercer",
+    "Cuarto",
+    "Quinto",
+    "Sexto",
+    "Séptimo",
+    "Octavo",
+    "Noveno",
+    "Décimo",
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,6 +74,7 @@ class EncadenamientoMovementRow:
 class EncadenamientoPdfContext:
     route_number: str
     route_sequence: int
+    document_number: str
     correspondence_type: str
     para: str
     de: str
@@ -84,40 +98,46 @@ def generate_encadenamiento_pdf(context: EncadenamientoPdfContext) -> bytes:
     inner_width = inner_right - inner_left
 
     c = canvas.Canvas(buffer, pagesize=letter)
-    movements = list(context.movements)
+    recipients = [
+        movement
+        for movement in context.movements
+        if movement.movement_type == "DERIVED"
+    ]
 
-    if not movements:
+    if not recipients:
         _draw_page_frame(c, inner_left, inner_bottom, inner_width, inner_top - inner_bottom)
         y = _draw_header(c, context, inner_left, inner_top, inner_width, inner_right)
         y = _draw_general_section(c, context, inner_left, inner_width, y)
         y -= 0.15 * inch
         c.setFont("Helvetica-Oblique", 9)
-        c.drawString(inner_left + 0.12 * inch, y, "Sin movimientos registrados.")
+        c.drawString(inner_left + 0.12 * inch, y, "Sin destinatarios registrados.")
         _draw_footer(c, context, inner_left, inner_right, inner_bottom + 0.12 * inch)
         c.showPage()
         c.save()
         return buffer.getvalue()
 
-    first_chunk = movements[:MOVEMENTS_ON_FIRST_PAGE]
-    remaining = movements[MOVEMENTS_ON_FIRST_PAGE:]
+    first_chunk = recipients[:RECIPIENTS_ON_FIRST_PAGE]
+    remaining = recipients[RECIPIENTS_ON_FIRST_PAGE:]
+    recipient_offset = 0
 
     _draw_page_frame(c, inner_left, inner_bottom, inner_width, inner_top - inner_bottom)
     y = _draw_header(c, context, inner_left, inner_top, inner_width, inner_right)
     y = _draw_general_section(c, context, inner_left, inner_width, y)
-    y = _draw_movements_table(
+    _draw_recipient_blocks(
         c,
         inner_left,
         inner_right,
-        y - 0.1 * inch,
+        y - 0.08 * inch,
         first_chunk,
-        title="SEGUIMIENTO",
+        start_index=recipient_offset,
     )
     _draw_footer(c, context, inner_left, inner_right, inner_bottom + 0.12 * inch)
     c.showPage()
+    recipient_offset += len(first_chunk)
 
     while remaining:
-        chunk = remaining[:MOVEMENTS_ON_CONTINUATION_PAGE]
-        remaining = remaining[MOVEMENTS_ON_CONTINUATION_PAGE:]
+        chunk = remaining[:RECIPIENTS_ON_CONTINUATION_PAGE]
+        remaining = remaining[RECIPIENTS_ON_CONTINUATION_PAGE:]
 
         _draw_page_frame(c, inner_left, inner_bottom, inner_width, inner_top - inner_bottom)
         y = _draw_continuation_header(
@@ -128,16 +148,18 @@ def generate_encadenamiento_pdf(context: EncadenamientoPdfContext) -> bytes:
             inner_width,
             inner_right,
         )
-        _draw_movements_table(
+        _draw_recipient_blocks(
             c,
             inner_left,
             inner_right,
-            y - 0.1 * inch,
+            y - 0.08 * inch,
             chunk,
-            title="SEGUIMIENTO (continuación)",
+            start_index=recipient_offset,
+            continuation=True,
         )
         _draw_footer(c, context, inner_left, inner_right, inner_bottom + 0.12 * inch)
         c.showPage()
+        recipient_offset += len(chunk)
 
     c.save()
     return buffer.getvalue()
@@ -210,7 +232,7 @@ def _draw_header(
     c.drawString(number_box_x + 6, number_box_y + number_box_h - 14, "Nº:")
     c.setFillColor(colors.red)
     c.setFont("Helvetica-Bold", 11)
-    c.drawString(number_box_x + 28, number_box_y + 6, str(context.route_sequence))
+    c.drawString(number_box_x + 28, number_box_y + 6, context.document_number or "—")
     c.setFillColor(colors.black)
 
     y -= 0.95 * inch
@@ -300,7 +322,77 @@ def _draw_general_section(
     else:
         c.drawString(inner_left + 0.85 * inch, y, "NO")
 
+    c.setFont("Helvetica-Bold", 9)
+    c.drawString(inner_left + 2.2 * inch, y, "HOJA DE RUTA:")
+    c.setFont("Helvetica", 9)
+    c.drawString(inner_left + 3.35 * inch, y, context.route_number)
+
     y -= 0.12 * inch
+    return y
+
+
+def _recipient_label(index: int, *, continuation: bool = False) -> str:
+    if index < len(RECIPIENT_ORDINALS):
+        return f"{RECIPIENT_ORDINALS[index]} destinatario"
+    if continuation:
+        return f"Destinatario {index + 1}"
+    return f"Destinatario {index + 1}"
+
+
+def _draw_recipient_blocks(
+    c: canvas.Canvas,
+    inner_left: float,
+    inner_right: float,
+    y: float,
+    movements: list[EncadenamientoMovementRow],
+    *,
+    start_index: int,
+    continuation: bool = False,
+) -> float:
+    block_width = inner_right - inner_left - 0.2 * inch
+    block_x = inner_left + 0.1 * inch
+
+    for offset, movement in enumerate(movements):
+        label = _recipient_label(start_index + offset, continuation=continuation)
+        block_h = 0.95 * inch
+        y -= block_h + 0.08 * inch
+
+        c.setLineWidth(0.75)
+        c.rect(block_x, y, block_width, block_h)
+        c.setFont("Helvetica-Bold", 8.5)
+        c.drawString(block_x + 6, y + block_h - 12, label.upper())
+
+        text_y = y + block_h - 28
+        c.setFont("Helvetica", 8)
+        c.drawString(block_x + 8, text_y, f"Unidad: {_truncate(movement.to_unit or '—', 70)}")
+        text_y -= 12
+        c.drawString(block_x + 8, text_y, f"Funcionario: {_truncate(movement.to_user or '—', 70)}")
+        text_y -= 12
+        c.drawString(
+            block_x + 8,
+            text_y,
+            f"Instructivo / Proveído: {_truncate(movement.instruction or '—', 70)}",
+        )
+        text_y -= 12
+        c.drawString(
+            block_x + 8,
+            text_y,
+            f"Fecha: {_format_datetime(movement.created_at)}   Estado: {_movement_status(movement)}",
+        )
+        if movement.is_cancelled and movement.cancellation_reason:
+            text_y -= 12
+            c.setFont("Helvetica-Oblique", 7.5)
+            c.drawString(
+                block_x + 8,
+                text_y,
+                f"Motivo cancelación: {_truncate(movement.cancellation_reason, 80)}",
+            )
+
+        sig_y = y + 8
+        c.setFont("Helvetica", 7)
+        c.drawString(block_x + block_width * 0.55, sig_y + 18, "Firma:")
+        c.line(block_x + block_width * 0.55, sig_y + 12, inner_right - 0.18 * inch, sig_y + 12)
+
     return y
 
 

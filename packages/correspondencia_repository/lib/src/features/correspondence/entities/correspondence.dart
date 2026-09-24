@@ -6,6 +6,7 @@ class Correspondence extends Equatable {
     required this.routeNumber,
     required this.routeYear,
     required this.routeSequence,
+    this.documentNumber,
     required this.correspondenceType,
     required this.documentTypeCode,
     required this.documentTypeName,
@@ -17,6 +18,7 @@ class Correspondence extends Equatable {
     this.cite,
     required this.registeredAt,
     this.reference,
+    this.description,
     this.senderName,
     this.senderDocument,
     this.senderContact,
@@ -25,6 +27,8 @@ class Correspondence extends Equatable {
     this.originUnitName,
     this.originUserId,
     this.originUserName,
+    this.originEmployeeId,
+    this.originEmployeeName,
     this.currentUnitId,
     this.currentUserId,
     this.createdByUsername,
@@ -34,6 +38,7 @@ class Correspondence extends Equatable {
   final String routeNumber;
   final int routeYear;
   final int routeSequence;
+  final String? documentNumber;
   final String correspondenceType;
   final String documentTypeCode;
   final String documentTypeName;
@@ -45,6 +50,7 @@ class Correspondence extends Equatable {
   final String? cite;
   final DateTime registeredAt;
   final String? reference;
+  final String? description;
   final String? senderName;
   final String? senderDocument;
   final String? senderContact;
@@ -53,6 +59,8 @@ class Correspondence extends Equatable {
   final String? originUnitName;
   final String? originUserId;
   final String? originUserName;
+  final String? originEmployeeId;
+  final String? originEmployeeName;
   final String? currentUnitId;
   final String? currentUserId;
   final String? createdByUsername;
@@ -65,6 +73,7 @@ class Correspondence extends Equatable {
         routeNumber,
         routeYear,
         routeSequence,
+        documentNumber,
         correspondenceType,
         documentTypeCode,
         documentTypeName,
@@ -76,6 +85,7 @@ class Correspondence extends Equatable {
         cite,
         registeredAt,
         reference,
+        description,
         senderName,
         senderDocument,
         senderContact,
@@ -84,6 +94,8 @@ class Correspondence extends Equatable {
         originUnitName,
         originUserId,
         originUserName,
+        originEmployeeId,
+        originEmployeeName,
         currentUnitId,
         currentUserId,
         createdByUsername,

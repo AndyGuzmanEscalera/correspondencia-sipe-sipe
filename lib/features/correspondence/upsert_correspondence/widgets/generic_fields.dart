@@ -3,8 +3,8 @@ import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_corresp
 import 'package:correspondencia_sipe_sipe/shared/widgets/form/app_text_field.dart';
 import 'package:flutter/material.dart';
 
-class CorrespondenceExternalOriginSection extends StatelessWidget {
-  const CorrespondenceExternalOriginSection({super.key});
+class GenericFields extends StatelessWidget {
+  const GenericFields({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -14,24 +14,15 @@ class CorrespondenceExternalOriginSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         AppTextField(
-          controller: inherited.senderName,
-          label: 'Remitente externo',
+          controller: inherited.subject,
+          label: 'Asunto',
           validators: [
             RequiredValid(error: 'Campo requerido'),
           ],
         ),
         AppTextField(
-          controller: inherited.senderDocument,
-          label: 'Documento del remitente (opcional)',
-        ),
-        AppTextField(
-          controller: inherited.senderContact,
-          label: 'Contacto del remitente (opcional)',
-          inputType: TextInputType.phone,
-        ),
-        AppTextField(
-          controller: inherited.originDescription,
-          label: 'Descripción del origen (opcional)',
+          controller: inherited.reference,
+          label: 'Referencia (opcional)',
         ),
       ],
     );

@@ -31,7 +31,17 @@ class CorrespondenceInfoSection extends StatelessWidget {
             label: 'Tipo de correspondencia',
             value: item.typeLabel,
           ),
+          if (item.documentNumber != null && item.documentNumber!.isNotEmpty)
+            CorrespondenceInfoTile(
+              label: 'Número de documento',
+              value: item.documentNumber!,
+            ),
           CorrespondenceInfoTile(label: 'Asunto', value: item.subject),
+          if (item.description != null && item.description!.isNotEmpty)
+            CorrespondenceInfoTile(
+              label: 'Descripción',
+              value: item.description!,
+            ),
           if (item.reference != null && item.reference!.isNotEmpty)
             CorrespondenceInfoTile(
               label: 'Referencia',

@@ -9,7 +9,12 @@ from app.core.database import Base
 
 
 class CorrespondenceAttachment(Base):
-    """Prepared for future file storage — no upload in milestone 1."""
+    """Metadatos de archivos asociados a una correspondencia.
+
+    ``storage_path`` almacena una clave relativa al storage root, nunca una ruta
+    absoluta del host. Futuro ``attachment_kind`` / ``source`` distinguirá
+    UPLOADED vs GENERATED_CHAINING (sin columna en DB todavía).
+    """
 
     __tablename__ = "correspondence_attachments"
 

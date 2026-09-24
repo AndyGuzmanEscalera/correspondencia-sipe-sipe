@@ -2,9 +2,11 @@ import 'package:correspondencia_api/correspondencia_api.dart';
 import 'package:failures/failures.dart';
 
 import '../entities/correspondence.dart';
+import '../entities/correspondence_attachment.dart';
 import '../entities/correspondence_movement.dart';
 import '../entities/create_correspondence_input.dart';
 import '../entities/document_type.dart';
+import '../entities/employee_option.dart';
 import '../mappers/correspondence_mapper.dart';
 
 class CorrespondenceRepository {
@@ -21,6 +23,17 @@ class CorrespondenceRepository {
       },
       feature: 'correspondence',
       operation: 'listDocumentTypes',
+    );
+  }
+
+  Future<Result<List<EmployeeOption>, Failure>> listEmployees() {
+    return handleExceptions<List<EmployeeOption>>(
+      () async {
+        final items = await _correspondenceApi.listEmployees();
+        return items.map((item) => item.toEntity()).toList();
+      },
+      feature: 'correspondence',
+      operation: 'listEmployees',
     );
   }
 
@@ -92,6 +105,65 @@ class CorrespondenceRepository {
       },
       feature: 'correspondence',
       operation: 'listMovements',
+    );
+  }
+
+  Future<Result<List<CorrespondenceAttachment>, Failure>> listAttachments(
+    String correspondenceId,
+  ) {
+    return handleExceptions<List<CorrespondenceAttachment>>(
+      () async {
+        final items = await _correspondenceApi.listAttachments(correspondenceId);
+        return items.map((item) => item.toEntity()).toList();
+      },
+      feature: 'correspondence',
+      operation: 'listAttachments',
+    );
+  }
+
+  Future<Result<CorrespondenceAttachment, Failure>> uploadAttachment({
+    required String correspondenceId,
+    required UploadAttachmentInput input,
+  }) {
+    return handleExceptions<CorrespondenceAttachment>(
+      () async => (await _correspondenceApi.uploadAttachment(
+            correspondenceId: correspondenceId,
+            filename: input.filename,
+            bytes: input.bytes,
+            mimeType: input.mimeType,
+          ))
+          .toEntity(),
+      feature: 'correspondence',
+      operation: 'uploadAttachment',
+    );
+  }
+
+  Future<Result<List<int>, Failure>> downloadAttachment({
+    required String correspondenceId,
+    required String attachmentId,
+  }) {
+    return handleExceptions<List<int>>(
+      () async => _correspondenceApi.downloadAttachment(
+        correspondenceId: correspondenceId,
+        attachmentId: attachmentId,
+      ),
+      feature: 'correspondence',
+      operation: 'downloadAttachment',
+    );
+  }
+
+  Future<Result<CorrespondenceAttachment, Failure>> deactivateAttachment({
+    required String correspondenceId,
+    required String attachmentId,
+  }) {
+    return handleExceptions<CorrespondenceAttachment>(
+      () async => (await _correspondenceApi.deactivateAttachment(
+            correspondenceId: correspondenceId,
+            attachmentId: attachmentId,
+          ))
+          .toEntity(),
+      feature: 'correspondence',
+      operation: 'deactivateAttachment',
     );
   }
 }

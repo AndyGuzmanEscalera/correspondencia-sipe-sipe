@@ -10,6 +10,7 @@ class Endpoints {
   static const String authMe = '/auth/me';
 
   static const String documentTypes = '/document-types';
+  static const String employees = '/employees';
   static const String correspondences = '/correspondences';
   static String correspondence(String id) => '/correspondences/$id';
   static String correspondenceDerive(String id) => '/correspondences/$id/derive';
@@ -17,6 +18,15 @@ class Endpoints {
       '/correspondences/$id/movements';
   static String correspondenceEncadenamientoPdf(String id) =>
       '/correspondences/$id/encadenamiento.pdf';
+  static String correspondenceAttachments(String id) =>
+      '/correspondences/$id/attachments';
+  static String correspondenceAttachment(String correspondenceId, String attachmentId) =>
+      '/correspondences/$correspondenceId/attachments/$attachmentId';
+  static String correspondenceAttachmentDownload(
+    String correspondenceId,
+    String attachmentId,
+  ) =>
+      '/correspondences/$correspondenceId/attachments/$attachmentId/download';
 
   static const String organizationalUnits = '/organizational-units';
   static String organizationalUnitUsers(String unitId) =>

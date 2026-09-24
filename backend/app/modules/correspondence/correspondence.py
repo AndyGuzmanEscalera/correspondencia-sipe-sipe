@@ -7,6 +7,7 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
+    Text,
     UniqueConstraint,
     func,
 )
@@ -24,6 +25,12 @@ class Correspondence(Base):
             "route_year",
             "route_sequence",
             name="uq_correspondences_route_year_sequence",
+        ),
+        UniqueConstraint(
+            "document_type_id",
+            "document_year",
+            "document_sequence",
+            name="uq_correspondences_document_type_year_sequence",
         ),
     )
 
@@ -43,6 +50,10 @@ class Correspondence(Base):
     )
     subject: Mapped[str] = mapped_column(String(500), nullable=False)
     reference: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    document_sequence: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    document_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    document_number: Mapped[str | None] = mapped_column(String(30), nullable=True)
     priority: Mapped[str] = mapped_column(String(20), nullable=False)
     status: Mapped[str] = mapped_column(String(30), nullable=False)
     sender_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
@@ -57,6 +68,11 @@ class Correspondence(Base):
     origin_user_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="RESTRICT"),
+        nullable=True,
+    )
+    origin_employee_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("employees.id", ondelete="RESTRICT"),
         nullable=True,
     )
     current_unit_id: Mapped[uuid.UUID | None] = mapped_column(

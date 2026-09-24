@@ -19,10 +19,18 @@ from app.modules.correspondence.constants import (
 )
 from app.modules.correspondence.correspondence import Correspondence
 from app.modules.correspondence.correspondence_movement import CorrespondenceMovement
+from app.modules.correspondence.correspondence_document_sequence import (
+    CorrespondenceDocumentSequence,
+)
 from app.modules.correspondence.correspondence_route_sequence import (
     CorrespondenceRouteSequence,
 )
 from app.modules.correspondence.document_type import DocumentType
+from app.modules.correspondence.document_type_profiles import (
+    DocumentFormProfile,
+    resolve_document_form_profile,
+    supports_encadenamiento_pdf,
+)
 from app.modules.correspondence.schemas import (
     CorrespondenceDetail,
     CorrespondenceListItem,
@@ -31,6 +39,7 @@ from app.modules.correspondence.schemas import (
     CreateCorrespondenceRequest,
     DeriveCorrespondenceRequest,
     DocumentTypeResponse,
+    EmployeeOptionResponse,
 )
 from app.modules.correspondence.pdf.encadenamiento_builder import (
     build_encadenamiento_context,
@@ -45,12 +54,24 @@ from app.modules.correspondence.pdf.encadenamiento_pdf import (
 from app.modules.identity.user import User
 from app.modules.organization.employee import Employee
 from app.modules.organization.organizational_unit import OrganizationalUnit
+from app.modules.organization.position import Position
 
 
 @dataclass(frozen=True)
 class InstitutionalResponsible:
     user_id: uuid.UUID
     unit_id: uuid.UUID
+
+
+@dataclass(frozen=True)
+class ResolvedOrigin:
+    correspondence_type: str
+    origin_employee_id: uuid.UUID | None
+    origin_unit_id: uuid.UUID | None
+    sender_name: str | None
+    sender_document: str | None
+    sender_contact: str | None
+    origin_description: str | None
 
 
 class CorrespondenceService:
@@ -71,6 +92,14 @@ class CorrespondenceService:
             DocumentTypeResponse(id=row.id, code=row.code, name=row.name)
             for row in rows
         ]
+
+    def list_active_employees(self) -> list[EmployeeOptionResponse]:
+        rows = self._db.scalars(
+            select(Employee)
+            .where(Employee.is_active == True)  # noqa: E712
+            .order_by(Employee.last_name, Employee.first_name)
+        ).all()
+        return [self._to_employee_option(row) for row in rows]
 
     def list_correspondences(
         self,
@@ -140,29 +169,17 @@ class CorrespondenceService:
         body: CreateCorrespondenceRequest,
     ) -> CorrespondenceDetail:
         responsible = self._resolve_institutional_responsible(user)
-        self._validate_document_type(body.document_type_id)
+        doc_type = self._validate_document_type(body.document_type_id)
+        profile = resolve_document_form_profile(doc_type.code)
 
-        if body.correspondence_type == CORRESPONDENCE_TYPE_INTERNAL:
-            origin_unit_id = responsible.unit_id
-            origin_user_id = responsible.user_id
-            sender_name = None
-            sender_document = None
-            sender_contact = None
-            origin_description = None
-        else:
-            if not body.sender_name or not body.sender_name.strip():
-                raise HTTPException(
-                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    detail="sender_name es obligatorio para correspondencia externa",
-                )
-            origin_unit_id = None
-            origin_user_id = None
-            sender_name = body.sender_name.strip()
-            sender_document = body.sender_document
-            sender_contact = body.sender_contact
-            origin_description = body.origin_description
+        origin = self._resolve_origin_fields(body, profile, user=user)
+        subject = self._resolve_subject(body, profile)
+        description = self._normalize_optional_text(body.description)
 
         route_year, route_sequence, route_number = self._allocate_route_number()
+        doc_year, doc_sequence, doc_number = self._allocate_document_number(
+            body.document_type_id
+        )
 
         self._validate_destination(body.initial_to_unit_id, body.initial_to_user_id)
 
@@ -170,18 +187,23 @@ class CorrespondenceService:
             route_number=route_number,
             route_sequence=route_sequence,
             route_year=route_year,
-            correspondence_type=body.correspondence_type,
+            document_sequence=doc_sequence,
+            document_year=doc_year,
+            document_number=doc_number,
+            correspondence_type=origin.correspondence_type,
             document_type_id=body.document_type_id,
-            subject=body.subject.strip(),
-            reference=body.reference,
+            subject=subject,
+            reference=self._normalize_optional_text(body.reference),
+            description=description,
             priority=body.priority,
             status=STATUS_ACTIVE,
-            sender_name=sender_name,
-            sender_document=sender_document,
-            sender_contact=sender_contact,
-            origin_description=origin_description,
-            origin_unit_id=origin_unit_id,
-            origin_user_id=origin_user_id,
+            sender_name=origin.sender_name,
+            sender_document=origin.sender_document,
+            sender_contact=origin.sender_contact,
+            origin_description=origin.origin_description,
+            origin_unit_id=origin.origin_unit_id,
+            origin_user_id=None,
+            origin_employee_id=origin.origin_employee_id,
             current_unit_id=body.initial_to_unit_id,
             current_user_id=body.initial_to_user_id,
             created_by_user_id=user.id,
@@ -278,6 +300,15 @@ class CorrespondenceService:
             correspondence_id,
             active_only=active_only,
         )
+        doc_type = self._document_type(correspondence.document_type_id)
+        if not supports_encadenamiento_pdf(doc_type.code):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=(
+                    "El PDF de encadenamiento solo aplica al tipo de documento "
+                    "Encadenamiento"
+                ),
+            )
         movement_rows = self._load_encadenamiento_movements(correspondence_id)
         generated_at = datetime.now(timezone.utc)
         issued_at = correspondence.created_at
@@ -296,8 +327,13 @@ class CorrespondenceService:
         )
         de = resolve_de(
             correspondence=correspondence,
+            origin_employee_name=self._employee_display_name(
+                correspondence.origin_employee_id
+            ),
             origin_unit_name=self._unit_name(correspondence.origin_unit_id),
-            origin_user_name=self._user_display_name(correspondence.origin_user_id),
+            origin_position_name=self._employee_position_name(
+                correspondence.origin_employee_id
+            ),
         )
 
         try:
@@ -393,13 +429,218 @@ class CorrespondenceService:
             )
         return InstitutionalResponsible(user_id=user.id, unit_id=employee.unit_id)
 
-    def _validate_document_type(self, document_type_id: uuid.UUID) -> None:
+    def _validate_document_type(self, document_type_id: uuid.UUID) -> DocumentType:
         doc_type = self._db.get(DocumentType, document_type_id)
         if doc_type is None or not doc_type.is_active:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Tipo de documento inválido",
             )
+        return doc_type
+
+    def _resolve_origin_fields(
+        self,
+        body: CreateCorrespondenceRequest,
+        profile: DocumentFormProfile,
+        *,
+        user: User,
+    ) -> ResolvedOrigin:
+        if profile in {
+            DocumentFormProfile.TECHNICAL_REPORT,
+            DocumentFormProfile.INTERNAL_NOTE,
+        }:
+            self._reject_external_sender_fields(body)
+            employee = self._require_active_employee(body.origin_employee_id)
+            return ResolvedOrigin(
+                correspondence_type=CORRESPONDENCE_TYPE_INTERNAL,
+                origin_employee_id=employee.id,
+                origin_unit_id=employee.unit_id,
+                sender_name=None,
+                sender_document=None,
+                sender_contact=None,
+                origin_description=None,
+            )
+
+        if profile == DocumentFormProfile.CHAINING:
+            if body.correspondence_type == CORRESPONDENCE_TYPE_EXTERNAL:
+                sender_name = self._normalize_optional_text(body.sender_name)
+                if not sender_name:
+                    raise HTTPException(
+                        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                        detail="El nombre del remitente externo es obligatorio",
+                    )
+                return ResolvedOrigin(
+                    correspondence_type=CORRESPONDENCE_TYPE_EXTERNAL,
+                    origin_employee_id=None,
+                    origin_unit_id=None,
+                    sender_name=sender_name,
+                    sender_document=self._normalize_optional_text(body.sender_document),
+                    sender_contact=self._normalize_optional_text(body.sender_contact),
+                    origin_description=self._normalize_optional_text(
+                        body.origin_description
+                    ),
+                )
+
+            employee = self._require_active_employee(body.origin_employee_id)
+            return ResolvedOrigin(
+                correspondence_type=CORRESPONDENCE_TYPE_INTERNAL,
+                origin_employee_id=employee.id,
+                origin_unit_id=employee.unit_id,
+                sender_name=None,
+                sender_document=None,
+                sender_contact=None,
+                origin_description=None,
+            )
+
+        # Perfil genérico: conservar comportamiento previo simplificado.
+        if body.correspondence_type == CORRESPONDENCE_TYPE_EXTERNAL:
+            sender_name = self._normalize_optional_text(body.sender_name)
+            if not sender_name:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="sender_name es obligatorio para correspondencia externa",
+                )
+            return ResolvedOrigin(
+                correspondence_type=CORRESPONDENCE_TYPE_EXTERNAL,
+                origin_employee_id=None,
+                origin_unit_id=None,
+                sender_name=sender_name,
+                sender_document=self._normalize_optional_text(body.sender_document),
+                sender_contact=self._normalize_optional_text(body.sender_contact),
+                origin_description=self._normalize_optional_text(body.origin_description),
+            )
+
+        employee_id = body.origin_employee_id or user.employee_id
+        employee = self._require_active_employee(employee_id)
+        return ResolvedOrigin(
+            correspondence_type=CORRESPONDENCE_TYPE_INTERNAL,
+            origin_employee_id=employee.id,
+            origin_unit_id=employee.unit_id,
+            sender_name=None,
+            sender_document=None,
+            sender_contact=None,
+            origin_description=None,
+        )
+
+    def _resolve_subject(
+        self,
+        body: CreateCorrespondenceRequest,
+        profile: DocumentFormProfile,
+    ) -> str:
+        subject = self._normalize_optional_text(body.subject)
+        description = self._normalize_optional_text(body.description)
+        reference = self._normalize_optional_text(body.reference)
+
+        if profile in {
+            DocumentFormProfile.TECHNICAL_REPORT,
+            DocumentFormProfile.INTERNAL_NOTE,
+        }:
+            if not description:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="La descripción es obligatoria para este tipo de documento",
+                )
+            if subject:
+                return subject[:500]
+            return description[:500]
+
+        if profile == DocumentFormProfile.CHAINING:
+            if subject:
+                return subject[:500]
+            if reference:
+                return reference[:500]
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="El asunto o la referencia es obligatorio",
+            )
+
+        if not subject:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="El asunto es obligatorio",
+            )
+        return subject[:500]
+
+    def _reject_external_sender_fields(self, body: CreateCorrespondenceRequest) -> None:
+        if any(
+            self._normalize_optional_text(value)
+            for value in (
+                body.sender_name,
+                body.sender_document,
+                body.sender_contact,
+                body.origin_description,
+            )
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Los campos de remitente externo no aplican a este tipo de documento",
+            )
+        if body.correspondence_type == CORRESPONDENCE_TYPE_EXTERNAL:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Este tipo de documento requiere origen interno (funcionario)",
+            )
+
+    def _require_active_employee(self, employee_id: uuid.UUID | None) -> Employee:
+        if employee_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Debe seleccionar el funcionario de origen",
+            )
+        employee = self._db.get(Employee, employee_id)
+        if employee is None or not employee.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Funcionario de origen no encontrado o inactivo",
+            )
+        if employee.unit_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="El funcionario de origen no tiene unidad asignada",
+            )
+        unit = self._db.get(OrganizationalUnit, employee.unit_id)
+        if unit is None or not unit.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="La unidad del funcionario de origen no está activa",
+            )
+        return employee
+
+    @staticmethod
+    def _normalize_optional_text(value: str | None) -> str | None:
+        if value is None:
+            return None
+        trimmed = value.strip()
+        return trimmed or None
+
+    def _allocate_document_number(
+        self,
+        document_type_id: uuid.UUID,
+    ) -> tuple[int, int, str]:
+        year = datetime.now(timezone.utc).year
+        self._db.execute(
+            insert(CorrespondenceDocumentSequence)
+            .values(document_type_id=document_type_id, year=year, last_sequence=0)
+            .on_conflict_do_nothing(
+                index_elements=["document_type_id", "year"],
+            )
+        )
+        seq_row = self._db.scalar(
+            select(CorrespondenceDocumentSequence)
+            .where(
+                CorrespondenceDocumentSequence.document_type_id == document_type_id,
+                CorrespondenceDocumentSequence.year == year,
+            )
+            .with_for_update()
+        )
+        if seq_row is None:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="No se pudo reservar secuencia del documento",
+            )
+        seq_row.last_sequence += 1
+        sequence = seq_row.last_sequence
+        return year, sequence, str(sequence)
 
     def _validate_destination(
         self,
@@ -541,10 +782,37 @@ class CorrespondenceService:
         if user is None:
             return None
         if user.employee_id:
-            employee = self._db.get(Employee, user.employee_id)
-            if employee:
-                return f"{employee.first_name} {employee.last_name}".strip()
+            return self._employee_display_name(user.employee_id)
         return user.username
+
+    def _employee_display_name(self, employee_id: uuid.UUID | None) -> str | None:
+        if employee_id is None:
+            return None
+        employee = self._db.get(Employee, employee_id)
+        if employee is None:
+            return None
+        return f"{employee.first_name} {employee.last_name}".strip()
+
+    def _employee_position_name(self, employee_id: uuid.UUID | None) -> str | None:
+        if employee_id is None:
+            return None
+        employee = self._db.get(Employee, employee_id)
+        if employee is None or employee.position_id is None:
+            return None
+        position = self._db.get(Position, employee.position_id)
+        return position.name if position else None
+
+    def _to_employee_option(self, employee: Employee) -> EmployeeOptionResponse:
+        unit_name = self._unit_name(employee.unit_id)
+        position_name = self._employee_position_name(employee.id)
+        return EmployeeOptionResponse(
+            id=employee.id,
+            full_name=self._employee_display_name(employee.id) or "",
+            unit_id=employee.unit_id,
+            unit_name=unit_name,
+            position_name=position_name,
+            document_number=employee.document_number,
+        )
 
     def _document_type(self, document_type_id: uuid.UUID) -> DocumentType:
         doc_type = self._db.get(DocumentType, document_type_id)
@@ -562,6 +830,9 @@ class CorrespondenceService:
             route_number=correspondence.route_number,
             route_year=correspondence.route_year,
             route_sequence=correspondence.route_sequence,
+            document_number=correspondence.document_number,
+            document_sequence=correspondence.document_sequence,
+            document_year=correspondence.document_year,
             correspondence_type=correspondence.correspondence_type,
             document_type_code=doc_type.code,
             document_type_name=doc_type.name,
@@ -580,6 +851,7 @@ class CorrespondenceService:
         return CorrespondenceDetail(
             **base.model_dump(),
             reference=correspondence.reference,
+            description=correspondence.description,
             sender_name=correspondence.sender_name,
             sender_document=correspondence.sender_document,
             sender_contact=correspondence.sender_contact,
@@ -588,6 +860,10 @@ class CorrespondenceService:
             origin_unit_name=self._unit_name(correspondence.origin_unit_id),
             origin_user_id=correspondence.origin_user_id,
             origin_user_name=self._user_display_name(correspondence.origin_user_id),
+            origin_employee_id=correspondence.origin_employee_id,
+            origin_employee_name=self._employee_display_name(
+                correspondence.origin_employee_id
+            ),
             current_unit_id=correspondence.current_unit_id,
             current_user_id=correspondence.current_user_id,
             cite_sequence=correspondence.cite_sequence,

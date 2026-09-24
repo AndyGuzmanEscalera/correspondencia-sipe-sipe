@@ -108,8 +108,10 @@ def test_create_internal_with_destination(
     assert response.status_code == 201, response.text
     body = response.json()
     assert body["correspondence_type"] == "INTERNAL"
+    assert body["origin_employee_id"] is not None
     assert body["origin_unit_id"] is not None
-    assert body["origin_user_id"] is not None
+    assert body["origin_user_id"] is None
+    assert body["document_number"] is not None
     assert body["current_unit_id"] == str(second_org_unit.id)
 
 

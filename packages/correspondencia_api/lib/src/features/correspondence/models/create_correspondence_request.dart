@@ -2,9 +2,11 @@ class CreateCorrespondenceRequest {
   const CreateCorrespondenceRequest({
     required this.correspondenceType,
     required this.documentTypeId,
-    required this.subject,
+    this.subject,
     required this.priority,
     this.reference,
+    this.description,
+    this.originEmployeeId,
     this.senderName,
     this.senderDocument,
     this.senderContact,
@@ -16,9 +18,11 @@ class CreateCorrespondenceRequest {
 
   final String correspondenceType;
   final String documentTypeId;
-  final String subject;
+  final String? subject;
   final String priority;
   final String? reference;
+  final String? description;
+  final String? originEmployeeId;
   final String? senderName;
   final String? senderDocument;
   final String? senderContact;
@@ -30,9 +34,11 @@ class CreateCorrespondenceRequest {
   Map<String, dynamic> toJson() => {
         'correspondence_type': correspondenceType,
         'document_type_id': documentTypeId,
-        'subject': subject,
+        if (subject != null) 'subject': subject,
         'priority': priority,
         if (reference != null) 'reference': reference,
+        if (description != null) 'description': description,
+        if (originEmployeeId != null) 'origin_employee_id': originEmployeeId,
         if (senderName != null) 'sender_name': senderName,
         if (senderDocument != null) 'sender_document': senderDocument,
         if (senderContact != null) 'sender_contact': senderContact,

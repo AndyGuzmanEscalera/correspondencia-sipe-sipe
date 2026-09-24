@@ -2,9 +2,11 @@ class CreateCorrespondenceInput {
   const CreateCorrespondenceInput({
     required this.correspondenceType,
     required this.documentTypeId,
-    required this.subject,
+    this.subject,
     required this.priority,
     this.reference,
+    this.description,
+    this.originEmployeeId,
     this.senderName,
     this.senderDocument,
     this.senderContact,
@@ -16,9 +18,11 @@ class CreateCorrespondenceInput {
 
   final String correspondenceType;
   final String documentTypeId;
-  final String subject;
+  final String? subject;
   final String priority;
   final String? reference;
+  final String? description;
+  final String? originEmployeeId;
   final String? senderName;
   final String? senderDocument;
   final String? senderContact;

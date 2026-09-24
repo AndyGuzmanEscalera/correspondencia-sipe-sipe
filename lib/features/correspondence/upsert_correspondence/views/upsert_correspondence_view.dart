@@ -1,13 +1,21 @@
+import 'package:correspondencia_repository/correspondencia_repository.dart';
 import 'package:correspondencia_sipe_sipe/core/helpers/full_widget_generics.dart';
 import 'package:correspondencia_sipe_sipe/core/helpers/listener/listener_generic.dart';
 import 'package:correspondencia_sipe_sipe/core/util/enums.dart';
+import 'package:correspondencia_sipe_sipe/core/util/form/models/form_option.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/detail/views/correspondence_detail_page.dart';
+import 'package:correspondencia_sipe_sipe/features/correspondence/domain/document_type_profiles.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/list_correspondence/cubit/correspondence_cubit.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/cubit/upsert_correspondence_cubit.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/helpers/upsert_correspondence_inherited.dart';
-import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/widgets/correspondence_basic_information_section.dart';
-import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/widgets/correspondence_destination_section.dart';
-import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/widgets/correspondence_external_origin_section.dart';
+import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/widgets/attachments_section.dart';
+import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/widgets/chaining_fields.dart';
+import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/widgets/destination_section.dart';
+import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/widgets/document_type_section.dart';
+import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/widgets/generic_fields.dart';
+import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/widgets/internal_note_fields.dart';
+import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/widgets/origin_section.dart';
+import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/widgets/technical_report_fields.dart';
 import 'package:correspondencia_sipe_sipe/features/home/side_menu/cubit/side_menu_cubit.dart';
 import 'package:correspondencia_sipe_sipe/injection/injection_bloc.dart';
 import 'package:flutter/material.dart';
@@ -88,8 +96,50 @@ class UpsertCorrespondenceBody extends StatefulWidget {
 
 class _UpsertCorrespondenceBodyState extends State<UpsertCorrespondenceBody> {
   CorrespondenceTypeCode _selectedType = CorrespondenceTypeCode.ce;
+  DocumentFormProfile _profile = DocumentFormProfile.chaining;
+  bool _defaultsApplied = false;
 
   bool get _isExternal => _selectedType == CorrespondenceTypeCode.ce;
+
+  void _applyDefaultDocumentType(UpsertCorrespondenceState state) {
+    if (_defaultsApplied || state.defaultDocumentTypeId == null) return;
+
+    final inherited = UpsertCorrespondenceInherited.of(context);
+    FormOption<String>? defaultOption;
+    for (final type in state.documentTypes) {
+      if (type.id == state.defaultDocumentTypeId) {
+        defaultOption = FormOption<String>(
+          id: type.id.hashCode,
+          text: '${type.name} (${type.code})',
+          value: type.id,
+        );
+        _profile = resolveDocumentFormProfile(type.code);
+        break;
+      }
+    }
+    if (defaultOption != null) {
+      inherited.documentType.setDefaultValue(defaultOption);
+      if (_profile == DocumentFormProfile.technicalReport ||
+          _profile == DocumentFormProfile.internalNote) {
+        inherited.type.setDefaultValue(
+          UpsertCorrespondenceInherited.typeItems[1],
+        );
+        _selectedType = CorrespondenceTypeCode.ci;
+      }
+    }
+    _defaultsApplied = true;
+  }
+
+  void _onDocumentTypeChanged(DocumentType documentType) {
+    final profile = resolveDocumentFormProfile(documentType.code);
+    setState(() {
+      _profile = profile;
+    });
+    if (profile == DocumentFormProfile.technicalReport ||
+        profile == DocumentFormProfile.internalNote) {
+      _onTypeChanged(CorrespondenceTypeCode.ci);
+    }
+  }
 
   void _onTypeChanged(CorrespondenceTypeCode type) {
     setState(() {
@@ -123,7 +173,7 @@ class _UpsertCorrespondenceBodyState extends State<UpsertCorrespondenceBody> {
           );
         }
 
-        if (!state.catalogReady) {
+        if (!state.hasBaseCatalog) {
           return AlertDialog(
             title: const Text('Nueva correspondencia'),
             content: const Text(
@@ -138,30 +188,50 @@ class _UpsertCorrespondenceBodyState extends State<UpsertCorrespondenceBody> {
           );
         }
 
+        _applyDefaultDocumentType(state);
+
         final isLoading = state.generalStatus == GeneralStatus.loading;
-        final canSubmit = !isLoading && !state.unitUsersLoading;
+        final catalogReady = state.isCatalogReadyFor(
+          profile: _profile,
+          isExternal: _isExternal,
+        );
+        final canSubmit =
+            catalogReady && !isLoading && !state.unitUsersLoading;
 
         return AlertDialog(
           title: const Text('Nueva correspondencia'),
           content: SizedBox(
-            width: 480,
+            width: 520,
             child: SingleChildScrollView(
               child: Form(
                 key: inherited.formKey,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    CorrespondenceBasicInformationSection(
+                    DocumentTypeSection(
                       documentTypes: state.documentTypes,
+                      onDocumentTypeChanged: _onDocumentTypeChanged,
+                    ),
+                    OriginSection(
+                      profile: _profile,
+                      employees: state.employees,
+                      isExternal: _isExternal,
                       onTypeChanged: _onTypeChanged,
                     ),
-                    CorrespondenceDestinationSection(
+                    if (_profile == DocumentFormProfile.chaining)
+                      const ChainingFields(),
+                    if (_profile == DocumentFormProfile.technicalReport)
+                      const TechnicalReportFields(),
+                    if (_profile == DocumentFormProfile.internalNote)
+                      const InternalNoteFields(),
+                    if (_profile == DocumentFormProfile.generic)
+                      const GenericFields(),
+                    DestinationSection(
                       organizationalUnits: state.organizationalUnits,
                       unitUsers: state.unitUsers,
                       unitUsersLoading: state.unitUsersLoading,
                     ),
-                    if (_isExternal)
-                      const CorrespondenceExternalOriginSection(),
+                    const AttachmentsSection(),
                   ],
                 ),
               ),
@@ -192,15 +262,17 @@ class _UpsertCorrespondenceBodyState extends State<UpsertCorrespondenceBody> {
     UpsertCorrespondenceCubit upsertCubit,
     UpsertCorrespondenceInherited inherited,
   ) async {
-    final validResult = inherited.valid(isExternal: _isExternal);
+    final validResult = inherited.valid(
+      profile: _profile,
+      isExternal: _isExternal,
+    );
     if (!validResult.isPassed) return;
 
-    final type = inherited.type.get();
+    final type = inherited.type.get() ?? CorrespondenceTypeCode.ci;
     final priority = inherited.priority.get();
     final documentTypeId = inherited.documentType.get();
     final toUnitId = inherited.toUnit.get();
-    if (type == null ||
-        priority == null ||
+    if (priority == null ||
         documentTypeId == null ||
         toUnitId == null ||
         toUnitId.isEmpty) {
@@ -211,8 +283,11 @@ class _UpsertCorrespondenceBodyState extends State<UpsertCorrespondenceBody> {
         inherited.toUser.isExist() ? inherited.toUser.get() : null;
 
     await upsertCubit.create(
+      profile: _profile,
       subject: inherited.subject.getValue(),
       reference: inherited.reference.getValue(),
+      description: inherited.description.getValue(),
+      originEmployeeId: inherited.originEmployee.get(),
       type: type,
       priorityLabel: priority,
       documentTypeId: documentTypeId,
@@ -225,6 +300,7 @@ class _UpsertCorrespondenceBodyState extends State<UpsertCorrespondenceBody> {
       senderDocument: inherited.senderDocument.getValue(),
       senderContact: inherited.senderContact.getValue(),
       originDescription: inherited.originDescription.getValue(),
+      pendingAttachments: List.of(inherited.pendingAttachments),
     );
   }
 }

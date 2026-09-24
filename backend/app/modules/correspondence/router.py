@@ -2,19 +2,22 @@ import io
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, status
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, Depends, File, Query, UploadFile, status
+from fastapi.responses import Response, StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.modules.auth.dependencies import get_current_user
+from app.modules.correspondence.attachment_service import CorrespondenceAttachmentService
 from app.modules.correspondence.schemas import (
+    CorrespondenceAttachmentResponse,
     CorrespondenceDetail,
     CorrespondenceListResponse,
     CorrespondenceMovementResponse,
     CreateCorrespondenceRequest,
     DeriveCorrespondenceRequest,
     DocumentTypeResponse,
+    EmployeeOptionResponse,
 )
 from app.modules.correspondence.service import CorrespondenceService
 from app.modules.identity.user import User
@@ -27,12 +30,26 @@ def _service(db: Annotated[Session, Depends(get_db)]) -> CorrespondenceService:
     return CorrespondenceService(db)
 
 
+def _attachment_service(
+    db: Annotated[Session, Depends(get_db)],
+) -> CorrespondenceAttachmentService:
+    return CorrespondenceAttachmentService(db)
+
+
 @catalog_router.get("/document-types", response_model=list[DocumentTypeResponse])
 def list_document_types(
     service: Annotated[CorrespondenceService, Depends(_service)],
     _user: Annotated[User, Depends(get_current_user)],
 ) -> list[DocumentTypeResponse]:
     return service.list_document_types()
+
+
+@catalog_router.get("/employees", response_model=list[EmployeeOptionResponse])
+def list_active_employees(
+    service: Annotated[CorrespondenceService, Depends(_service)],
+    _user: Annotated[User, Depends(get_current_user)],
+) -> list[EmployeeOptionResponse]:
+    return service.list_active_employees()
 
 
 @router.post(
@@ -120,3 +137,75 @@ def list_movements(
 ) -> list[CorrespondenceMovementResponse]:
     del user
     return service.list_movements(correspondence_id, active_only=True)
+
+
+@router.get(
+    "/{correspondence_id}/attachments",
+    response_model=list[CorrespondenceAttachmentResponse],
+)
+def list_attachments(
+    correspondence_id: uuid.UUID,
+    user: Annotated[User, Depends(get_current_user)],
+    service: Annotated[CorrespondenceAttachmentService, Depends(_attachment_service)],
+) -> list[CorrespondenceAttachmentResponse]:
+    del user
+    return service.list_attachments(correspondence_id, active_only=True)
+
+
+@router.post(
+    "/{correspondence_id}/attachments",
+    response_model=CorrespondenceAttachmentResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def upload_attachment(
+    correspondence_id: uuid.UUID,
+    user: Annotated[User, Depends(get_current_user)],
+    service: Annotated[CorrespondenceAttachmentService, Depends(_attachment_service)],
+    file: UploadFile = File(...),
+) -> CorrespondenceAttachmentResponse:
+    return await service.upload_attachment(
+        user,
+        correspondence_id,
+        file,
+        active_only=True,
+    )
+
+
+@router.get("/{correspondence_id}/attachments/{attachment_id}/download")
+def download_attachment(
+    correspondence_id: uuid.UUID,
+    attachment_id: uuid.UUID,
+    user: Annotated[User, Depends(get_current_user)],
+    service: Annotated[CorrespondenceAttachmentService, Depends(_attachment_service)],
+) -> Response:
+    del user
+    payload, filename, mime_type = service.download_attachment(
+        correspondence_id,
+        attachment_id,
+        active_only=True,
+    )
+    return Response(
+        content=payload,
+        media_type=mime_type,
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+        },
+    )
+
+
+@router.delete(
+    "/{correspondence_id}/attachments/{attachment_id}",
+    response_model=CorrespondenceAttachmentResponse,
+)
+def deactivate_attachment(
+    correspondence_id: uuid.UUID,
+    attachment_id: uuid.UUID,
+    user: Annotated[User, Depends(get_current_user)],
+    service: Annotated[CorrespondenceAttachmentService, Depends(_attachment_service)],
+) -> CorrespondenceAttachmentResponse:
+    return service.deactivate_attachment(
+        user,
+        correspondence_id,
+        attachment_id,
+        active_only=True,
+    )

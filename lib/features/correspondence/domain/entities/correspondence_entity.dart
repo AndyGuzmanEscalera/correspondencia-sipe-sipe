@@ -17,8 +17,11 @@ class CorrespondenceEntity extends Equatable {
     required this.registeredAt,
     required this.statusLabel,
     required this.documentTypeName,
+    this.documentNumber,
     this.reference,
+    this.description,
     this.originDescription,
+    this.originEmployeeName,
     this.originUnitName,
     this.originUserName,
     this.senderDocument,
@@ -39,8 +42,11 @@ class CorrespondenceEntity extends Equatable {
   final DateTime registeredAt;
   final String statusLabel;
   final String documentTypeName;
+  final String? documentNumber;
   final String? reference;
+  final String? description;
   final String? originDescription;
+  final String? originEmployeeName;
   final String? originUnitName;
   final String? originUserName;
   final String? senderDocument;
@@ -60,6 +66,9 @@ class CorrespondenceEntity extends Equatable {
   String get originLabel {
     if (type == CorrespondenceTypeCode.ce) {
       return externalSender;
+    }
+    if (originEmployeeName != null && originEmployeeName!.isNotEmpty) {
+      return originEmployeeName!;
     }
     final parts = [originUnitName, originUserName].whereType<String>();
     return parts.join(' / ');
@@ -90,8 +99,11 @@ class CorrespondenceEntity extends Equatable {
       registeredAt: registeredAt,
       statusLabel: statusLabel ?? this.statusLabel,
       documentTypeName: documentTypeName,
+      documentNumber: documentNumber,
       reference: reference,
+      description: description,
       originDescription: originDescription,
+      originEmployeeName: originEmployeeName,
       originUnitName: originUnitName,
       originUserName: originUserName,
       senderDocument: senderDocument,
@@ -115,8 +127,11 @@ class CorrespondenceEntity extends Equatable {
         registeredAt,
         statusLabel,
         documentTypeName,
+        documentNumber,
         reference,
+        description,
         originDescription,
+        originEmployeeName,
         originUnitName,
         originUserName,
         senderDocument,

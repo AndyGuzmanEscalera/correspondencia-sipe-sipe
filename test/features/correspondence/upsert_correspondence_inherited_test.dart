@@ -1,5 +1,6 @@
 import 'package:correspondencia_sipe_sipe/core/util/enums.dart';
 import 'package:correspondencia_sipe_sipe/core/util/form/models/form_option.dart';
+import 'package:correspondencia_sipe_sipe/features/correspondence/domain/document_type_profiles.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/helpers/upsert_correspondence_inherited.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -97,7 +98,10 @@ void main() {
       );
       inherited.subject.setValue('Memorándum');
 
-      final result = inherited.valid(isExternal: false);
+      final result = inherited.valid(
+        profile: DocumentFormProfile.generic,
+        isExternal: false,
+      );
       expect(result.isPassed, isTrue);
       inherited.dispose();
     });

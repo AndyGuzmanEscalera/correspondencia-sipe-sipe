@@ -1,6 +1,7 @@
 import 'package:correspondencia_repository/correspondencia_repository.dart'
     as repo;
 import 'package:correspondencia_sipe_sipe/core/presentation/widget/responsive_breakpoints.dart';
+import 'package:correspondencia_sipe_sipe/features/correspondence/attachments/cubit/correspondence_attachments_cubit.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/derive_correspondence/cubit/derive_correspondence_cubit.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/derive_correspondence/helpers/derive_correspondence_inherited.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/derive_correspondence/views/derive_correspondence_view.dart';
@@ -17,6 +18,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'detail_test_fixtures.dart';
 
 class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
+  @override
+  Future<Result<List<repo.CorrespondenceAttachment>, Failure>>
+      listAttachments(String correspondenceId) async {
+    return const Ok([]);
+  }
+
   @override
   noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
@@ -55,10 +62,19 @@ void main() {
       if (getIt.isRegistered<DeriveCorrespondenceCubit>()) {
         getIt.unregister<DeriveCorrespondenceCubit>();
       }
+      if (getIt.isRegistered<CorrespondenceAttachmentsCubit>()) {
+        getIt.unregister<CorrespondenceAttachmentsCubit>();
+      }
       getIt.registerFactoryParam<DeriveCorrespondenceCubit, String, void>(
         (correspondenceId, _) => DeriveCorrespondenceCubit(
           correspondenceRepository: _FakeCorrespondenceRepository(),
           organizationRepository: organizationRepository,
+          correspondenceId: correspondenceId,
+        ),
+      );
+      getIt.registerFactoryParam<CorrespondenceAttachmentsCubit, String, void>(
+        (correspondenceId, _) => CorrespondenceAttachmentsCubit(
+          repository: _FakeCorrespondenceRepository(),
           correspondenceId: correspondenceId,
         ),
       );
@@ -68,6 +84,9 @@ void main() {
       await cubit.close();
       if (getIt.isRegistered<DeriveCorrespondenceCubit>()) {
         getIt.unregister<DeriveCorrespondenceCubit>();
+      }
+      if (getIt.isRegistered<CorrespondenceAttachmentsCubit>()) {
+        getIt.unregister<CorrespondenceAttachmentsCubit>();
       }
     });
 
@@ -95,10 +114,11 @@ void main() {
       await tester.pump(const Duration(milliseconds: 200));
     }
 
-    testWidgets('muestra info, movements y derive', (tester) async {
+    testWidgets('muestra info, adjuntos, movements y derive', (tester) async {
       await pumpBody(tester);
 
       expect(find.byType(CorrespondenceInfoSection), findsOneWidget);
+      expect(find.text('Adjuntos'), findsOneWidget);
       expect(find.byType(CorrespondenceMovementsSection), findsOneWidget);
       expect(find.byType(DeriveCorrespondencePage), findsOneWidget);
       expect(find.text('Derivar trámite'), findsOneWidget);

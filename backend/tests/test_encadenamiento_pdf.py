@@ -47,6 +47,7 @@ def test_generate_encadenamiento_pdf_returns_valid_pdf() -> None:
         EncadenamientoPdfContext(
             route_number="HR-2026-000980",
             route_sequence=980,
+            document_number="42",
             correspondence_type="EXTERNAL",
             para="Secretaría Municipal — Ana Flores",
             de="Remitente externo",
@@ -68,6 +69,7 @@ def test_generate_encadenamiento_pdf_supports_many_movements() -> None:
         EncadenamientoPdfContext(
             route_number="HR-2026-000981",
             route_sequence=981,
+            document_number="43",
             correspondence_type="INTERNAL",
             para="Unidad A",
             de="Origen interno",
@@ -83,13 +85,14 @@ def test_generate_encadenamiento_pdf_supports_many_movements() -> None:
 
 def test_generate_encadenamiento_pdf_shows_cancelled_movement() -> None:
     movements = (
-        _movement_row(1, movement_type="CREATED"),
-        _movement_row(2, cancelled=True),
+        _movement_row(1, cancelled=True),
+        _movement_row(2),
     )
     pdf_bytes = generate_encadenamiento_pdf(
         EncadenamientoPdfContext(
             route_number="HR-2026-000982",
             route_sequence=982,
+            document_number="44",
             correspondence_type="INTERNAL",
             para="Unidad destino",
             de="Origen",
@@ -105,7 +108,7 @@ def test_generate_encadenamiento_pdf_shows_cancelled_movement() -> None:
 def test_create_correspondence_does_not_persist_encadenamiento_attachment(
     client: TestClient,
     auth_headers: dict[str, str],
-    document_type: DocumentType,
+    encadenamiento_document_type: DocumentType,
     second_org_unit: OrganizationalUnit,
     db: Session,
 ) -> None:
@@ -113,11 +116,12 @@ def test_create_correspondence_does_not_persist_encadenamiento_attachment(
         "/correspondences",
         headers=auth_headers,
         json=_create_payload(
-            document_type,
+            encadenamiento_document_type,
             "Solicitud sin PDF en create",
             unit_id=second_org_unit.id,
             priority="HIGH",
             initial_instruction="Derivar",
+            sender_name="Remitente externo",
         ),
     )
     assert response.status_code == 201, response.text
@@ -137,16 +141,17 @@ def test_create_correspondence_does_not_persist_encadenamiento_attachment(
 def test_download_encadenamiento_pdf_on_demand(
     client: TestClient,
     auth_headers: dict[str, str],
-    document_type: DocumentType,
+    encadenamiento_document_type: DocumentType,
     second_org_unit: OrganizationalUnit,
 ) -> None:
     create = client.post(
         "/correspondences",
         headers=auth_headers,
         json=_create_payload(
-            document_type,
+            encadenamiento_document_type,
             "Descarga on-demand",
             unit_id=second_org_unit.id,
+            sender_name="Remitente externo",
         ),
     )
     assert create.status_code == 201, create.text
@@ -164,7 +169,7 @@ def test_download_encadenamiento_pdf_on_demand(
 
 def test_download_encadenamiento_pdf_requires_auth(
     client: TestClient,
-    document_type: DocumentType,
+    encadenamiento_document_type: DocumentType,
     second_org_unit: OrganizationalUnit,
     auth_headers: dict[str, str],
 ) -> None:
@@ -172,9 +177,10 @@ def test_download_encadenamiento_pdf_requires_auth(
         "/correspondences",
         headers=auth_headers,
         json=_create_payload(
-            document_type,
+            encadenamiento_document_type,
             "Auth required",
             unit_id=second_org_unit.id,
+            sender_name="Remitente externo",
         ),
     )
     correspondence_id = create.json()["id"]
@@ -195,7 +201,7 @@ def test_download_encadenamiento_pdf_not_found(client: TestClient, auth_headers:
 def test_download_encadenamiento_pdf_reflects_new_derivation(
     client: TestClient,
     auth_headers: dict[str, str],
-    document_type: DocumentType,
+    encadenamiento_document_type: DocumentType,
     second_org_unit: OrganizationalUnit,
     org_unit: OrganizationalUnit,
     db: Session,
@@ -204,9 +210,10 @@ def test_download_encadenamiento_pdf_reflects_new_derivation(
         "/correspondences",
         headers=auth_headers,
         json=_create_payload(
-            document_type,
+            encadenamiento_document_type,
             "Derivación posterior",
             unit_id=second_org_unit.id,
+            sender_name="Remitente externo",
         ),
     )
     correspondence_id = create.json()["id"]
@@ -241,6 +248,7 @@ def test_generate_encadenamiento_pdf_without_logo() -> None:
         EncadenamientoPdfContext(
             route_number="HR-2026-000983",
             route_sequence=983,
+            document_number="45",
             correspondence_type="INTERNAL",
             para="Unidad",
             de="Origen",
@@ -254,7 +262,7 @@ def test_generate_encadenamiento_pdf_without_logo() -> None:
     assert pdf_bytes.startswith(b"%PDF")
 
 
-def test_download_encadenamiento_pdf_generation_failure_returns_500(
+def test_download_encadenamiento_pdf_rejects_non_chaining_type(
     client: TestClient,
     auth_headers: dict[str, str],
     document_type: DocumentType,
@@ -265,8 +273,33 @@ def test_download_encadenamiento_pdf_generation_failure_returns_500(
         headers=auth_headers,
         json=_create_payload(
             document_type,
+            "No encadenamiento",
+            unit_id=second_org_unit.id,
+            sender_name="Remitente externo",
+        ),
+    )
+    correspondence_id = create.json()["id"]
+    response = client.get(
+        f"/correspondences/{correspondence_id}/encadenamiento.pdf",
+        headers=auth_headers,
+    )
+    assert response.status_code == 422
+
+
+def test_download_encadenamiento_pdf_generation_failure_returns_500(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    encadenamiento_document_type: DocumentType,
+    second_org_unit: OrganizationalUnit,
+) -> None:
+    create = client.post(
+        "/correspondences",
+        headers=auth_headers,
+        json=_create_payload(
+            encadenamiento_document_type,
             "Fallo generación PDF",
             unit_id=second_org_unit.id,
+            sender_name="Remitente externo",
         ),
     )
     correspondence_id = create.json()["id"]
