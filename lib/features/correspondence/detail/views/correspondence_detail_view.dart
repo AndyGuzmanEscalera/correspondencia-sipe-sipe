@@ -1,6 +1,7 @@
 import 'package:correspondencia_sipe_sipe/core/helpers/listener/listener_generic.dart';
 import 'package:correspondencia_sipe_sipe/core/theme/ui_colors.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/detail/cubit/correspondence_detail_cubit.dart';
+import 'package:correspondencia_sipe_sipe/features/correspondence/detail/cubit/correspondence_document_actions_cubit.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/detail/views/correspondence_detail_body.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -21,6 +22,9 @@ class CorrespondenceDetailView extends StatelessWidget {
         listeners: [
           ListenerPro<CorrespondenceDetailCubit, CorrespondenceDetailState>()
               .listen(),
+          ListenerPro<CorrespondenceDocumentActionsCubit,
+                  CorrespondenceDocumentActionsState>()
+              .listen(showLoading: false),
         ],
         child: CorrespondenceDetailBody(correspondenceId: correspondenceId),
       ),

@@ -44,6 +44,7 @@ class AppDataGrid<T> extends StatefulWidget {
     this.onPageChanged,
     this.onPageSizeChanged,
     this.nullLabel = AppDataGridValueUtils.defaultNullLabel,
+    this.shrinkWrap = false,
     super.key,
   });
 
@@ -66,6 +67,7 @@ class AppDataGrid<T> extends StatefulWidget {
   final ValueChanged<int>? onPageChanged;
   final ValueChanged<int>? onPageSizeChanged;
   final String nullLabel;
+  final bool shrinkWrap;
 
   @override
   State<AppDataGrid<T>> createState() => _AppDataGridState<T>();
@@ -113,49 +115,53 @@ class _AppDataGridState<T> extends State<AppDataGrid<T>> {
               );
         }
 
+        final content = isMobile
+            ? _MobileList<T>(
+                items: _displayItems,
+                columns: widget.columns,
+                actions: widget.actions,
+                nullLabel: widget.nullLabel,
+                onRowTap: widget.onRowTap,
+                onRowDoubleTap: widget.onRowDoubleTap,
+                mobileItemBuilder: widget.mobileItemBuilder,
+                shrinkWrap: widget.shrinkWrap,
+              )
+            : SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: SizedBox(
+                  width: math.max(
+                    width,
+                    AppDataGridDesktopTable.estimateMinWidth(
+                      widget.columns,
+                      widget.actions,
+                      rowActionsBuilder: widget.rowActionsBuilder,
+                    ),
+                  ),
+                  child: AppDataGridDesktopTable<T>(
+                    items: _displayItems,
+                    columns: widget.columns,
+                    actions: widget.actions,
+                    nullLabel: widget.nullLabel,
+                    allowSorting: widget.allowSorting,
+                    sortColumnKey: _sortColumnKey,
+                    sortAscending: _sortAscending,
+                    onSort: _handleSort,
+                    onRowTap: widget.onRowTap,
+                    onRowDoubleTap: widget.onRowDoubleTap,
+                    rowActionsBuilder: widget.rowActionsBuilder,
+                  ),
+                ),
+              );
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (widget.isLoading && widget.items.isNotEmpty)
               const LinearProgressIndicator(minHeight: 2),
-            Expanded(
-              child: isMobile
-                  ? _MobileList<T>(
-                      items: _displayItems,
-                      columns: widget.columns,
-                      actions: widget.actions,
-                      nullLabel: widget.nullLabel,
-                      onRowTap: widget.onRowTap,
-                      onRowDoubleTap: widget.onRowDoubleTap,
-                      mobileItemBuilder: widget.mobileItemBuilder,
-                    )
-                  : SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: SizedBox(
-                        width: math.max(
-                          width,
-                          AppDataGridDesktopTable.estimateMinWidth(
-                            widget.columns,
-                            widget.actions,
-                            rowActionsBuilder: widget.rowActionsBuilder,
-                          ),
-                        ),
-                        child: AppDataGridDesktopTable<T>(
-                          items: _displayItems,
-                          columns: widget.columns,
-                          actions: widget.actions,
-                          nullLabel: widget.nullLabel,
-                          allowSorting: widget.allowSorting,
-                          sortColumnKey: _sortColumnKey,
-                          sortAscending: _sortAscending,
-                          onSort: _handleSort,
-                          onRowTap: widget.onRowTap,
-                          onRowDoubleTap: widget.onRowDoubleTap,
-                          rowActionsBuilder: widget.rowActionsBuilder,
-                        ),
-                      ),
-                    ),
-            ),
+            if (widget.shrinkWrap)
+              content
+            else
+              Expanded(child: content),
             if (_showPagination)
               AppDataGridPagination(
                 currentPage: widget.currentPage!,
@@ -215,6 +221,7 @@ class _MobileList<T> extends StatelessWidget {
     this.onRowTap,
     this.onRowDoubleTap,
     this.mobileItemBuilder,
+    this.shrinkWrap = false,
   });
 
   final List<T> items;
@@ -224,11 +231,16 @@ class _MobileList<T> extends StatelessWidget {
   final void Function(T item)? onRowTap;
   final void Function(T item)? onRowDoubleTap;
   final Widget Function(BuildContext context, T item)? mobileItemBuilder;
+  final bool shrinkWrap;
 
   @override
   Widget build(BuildContext context) {
     return ListView.separated(
       padding: const EdgeInsets.all(12),
+      shrinkWrap: shrinkWrap,
+      physics: shrinkWrap
+          ? const NeverScrollableScrollPhysics()
+          : const AlwaysScrollableScrollPhysics(),
       itemCount: items.length,
       separatorBuilder: (_, __) => const SizedBox(height: 10),
       itemBuilder: (context, index) {

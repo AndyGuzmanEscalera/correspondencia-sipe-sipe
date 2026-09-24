@@ -166,4 +166,12 @@ class CorrespondenceRepository {
       operation: 'deactivateAttachment',
     );
   }
+
+  Future<Result<List<int>, Failure>> downloadChainingPdf(String correspondenceId) {
+    return handleExceptions<List<int>>(
+      () async => _correspondenceApi.downloadChainingPdf(correspondenceId),
+      feature: 'correspondence',
+      operation: 'downloadChainingPdf',
+    );
+  }
 }

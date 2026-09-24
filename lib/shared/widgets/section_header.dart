@@ -14,30 +14,36 @@ class SectionHeader extends StatelessWidget {
   final String? subtitle;
   final List<Widget>? actions;
 
+  static const _compactMaxWidth = 767.0;
+
   @override
   Widget build(BuildContext context) {
-    final isSmall = context.isSmallScreen;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth <= _compactMaxWidth;
 
-    if (isSmall && actions != null) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _TitleBlock(title: title, subtitle: subtitle),
-          const SizedBox(height: 12),
-          Wrap(spacing: 10, runSpacing: 10, children: actions!),
-        ],
-      );
-    }
+        if (isCompact && actions != null) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _TitleBlock(title: title, subtitle: subtitle),
+              const SizedBox(height: 12),
+              Wrap(spacing: 10, runSpacing: 10, children: actions!),
+            ],
+          );
+        }
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(child: _TitleBlock(title: title, subtitle: subtitle)),
-        if (actions != null) ...[
-          const SizedBox(width: 16),
-          Wrap(spacing: 10, children: actions!),
-        ],
-      ],
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: _TitleBlock(title: title, subtitle: subtitle)),
+            if (actions != null) ...[
+              const SizedBox(width: 16),
+              Wrap(spacing: 10, runSpacing: 10, children: actions!),
+            ],
+          ],
+        );
+      },
     );
   }
 }

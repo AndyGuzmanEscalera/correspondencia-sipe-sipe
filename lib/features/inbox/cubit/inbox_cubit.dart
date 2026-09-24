@@ -69,6 +69,7 @@ class InboxCubit extends Cubit<InboxState> {
               currentUserName: 'N/D',
               registeredAt: DateTime.now(),
               statusLabel: derivation.statusLabel,
+              documentTypeCode: 'N/D',
               documentTypeName: 'N/D',
             ),
       );

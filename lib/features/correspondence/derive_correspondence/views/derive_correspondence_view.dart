@@ -12,10 +12,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 class DeriveCorrespondencePage extends StatelessWidget {
   const DeriveCorrespondencePage({
     required this.correspondenceId,
+    this.scrollable = true,
     super.key,
   });
 
   final String correspondenceId;
+  final bool scrollable;
 
   @override
   Widget build(BuildContext context) {
@@ -24,14 +26,19 @@ class DeriveCorrespondencePage extends StatelessWidget {
         create: (_) => getIt<DeriveCorrespondenceCubit>(
           param1: correspondenceId,
         ),
-        child: const DeriveCorrespondenceView(),
+        child: DeriveCorrespondenceView(scrollable: scrollable),
       ),
     );
   }
 }
 
 class DeriveCorrespondenceView extends StatelessWidget {
-  const DeriveCorrespondenceView({super.key});
+  const DeriveCorrespondenceView({
+    this.scrollable = true,
+    super.key,
+  });
+
+  final bool scrollable;
 
   @override
   Widget build(BuildContext context) {
@@ -58,14 +65,19 @@ class DeriveCorrespondenceView extends StatelessWidget {
           deriveCubit.init();
         },
         onDispose: DeriveCorrespondenceInherited.of(context).dispose,
-        child: const DeriveCorrespondenceBody(),
+        child: DeriveCorrespondenceBody(scrollable: scrollable),
       ),
     );
   }
 }
 
 class DeriveCorrespondenceBody extends StatelessWidget {
-  const DeriveCorrespondenceBody({super.key});
+  const DeriveCorrespondenceBody({
+    this.scrollable = true,
+    super.key,
+  });
+
+  final bool scrollable;
 
   @override
   Widget build(BuildContext context) {
@@ -93,35 +105,40 @@ class DeriveCorrespondenceBody extends StatelessWidget {
         final isLoading = state.generalStatus == GeneralStatus.loading;
         final canSubmit = !isLoading && !state.unitUsersLoading;
 
-        return SingleChildScrollView(
-          child: Form(
-            key: inherited.formKey,
-            child: Column(
-              children: [
-                DeriveCorrespondenceFormSection(
-                  organizationalUnits: state.organizationalUnits,
-                  unitUsers: state.unitUsers,
-                  unitUsersLoading: state.unitUsersLoading,
+        final form = Form(
+          key: inherited.formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              DeriveCorrespondenceFormSection(
+                organizationalUnits: state.organizationalUnits,
+                unitUsers: state.unitUsers,
+                unitUsersLoading: state.unitUsersLoading,
+              ),
+              Align(
+                alignment: Alignment.centerRight,
+                child: ElevatedButton.icon(
+                  onPressed:
+                      canSubmit ? () => _submit(deriveCubit, inherited) : null,
+                  icon: isLoading
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.forward_rounded),
+                  label: const Text('Derivar'),
                 ),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: ElevatedButton.icon(
-                    onPressed:
-                        canSubmit ? () => _submit(deriveCubit, inherited) : null,
-                    icon: isLoading
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.forward_rounded),
-                    label: const Text('Derivar'),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         );
+
+        if (!scrollable) {
+          return form;
+        }
+
+        return SingleChildScrollView(child: form);
       },
     );
   }

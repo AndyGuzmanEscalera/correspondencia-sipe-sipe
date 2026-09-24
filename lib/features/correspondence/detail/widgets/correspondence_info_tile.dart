@@ -1,3 +1,4 @@
+import 'package:correspondencia_sipe_sipe/core/helpers/extensions/extension_device.dart';
 import 'package:flutter/material.dart';
 
 class CorrespondenceInfoTile extends StatelessWidget {
@@ -12,19 +13,22 @@ class CorrespondenceInfoTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 220,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelMedium,
-          ),
-          const SizedBox(height: 4),
-          Text(value),
-        ],
-      ),
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: Theme.of(context).textTheme.labelMedium,
+        ),
+        const SizedBox(height: 4),
+        Text(value),
+      ],
     );
+
+    if (context.isSmallScreen) {
+      return content;
+    }
+
+    return SizedBox(width: 220, child: content);
   }
 }

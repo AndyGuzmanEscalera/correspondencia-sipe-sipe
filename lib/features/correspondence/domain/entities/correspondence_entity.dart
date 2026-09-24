@@ -16,8 +16,10 @@ class CorrespondenceEntity extends Equatable {
     required this.currentUserName,
     required this.registeredAt,
     required this.statusLabel,
+    required this.documentTypeCode,
     required this.documentTypeName,
     this.documentNumber,
+    this.createdByUsername,
     this.reference,
     this.description,
     this.originDescription,
@@ -41,8 +43,10 @@ class CorrespondenceEntity extends Equatable {
   final String currentUserName;
   final DateTime registeredAt;
   final String statusLabel;
+  final String documentTypeCode;
   final String documentTypeName;
   final String? documentNumber;
+  final String? createdByUsername;
   final String? reference;
   final String? description;
   final String? originDescription;
@@ -98,8 +102,10 @@ class CorrespondenceEntity extends Equatable {
       currentUserName: currentUserName,
       registeredAt: registeredAt,
       statusLabel: statusLabel ?? this.statusLabel,
+      documentTypeCode: documentTypeCode,
       documentTypeName: documentTypeName,
       documentNumber: documentNumber,
+      createdByUsername: createdByUsername,
       reference: reference,
       description: description,
       originDescription: originDescription,
@@ -126,8 +132,10 @@ class CorrespondenceEntity extends Equatable {
         currentUserName,
         registeredAt,
         statusLabel,
+        documentTypeCode,
         documentTypeName,
         documentNumber,
+        createdByUsername,
         reference,
         description,
         originDescription,

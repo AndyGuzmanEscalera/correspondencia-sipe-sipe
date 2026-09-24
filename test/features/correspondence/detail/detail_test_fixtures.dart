@@ -14,12 +14,15 @@ final externalCorrespondence = CorrespondenceEntity(
   externalSender: 'Ciudadano Test',
   externalRecipient: 'Sistemas',
   currentUserName: 'Usuario Destino',
-  registeredAt: DateTime.utc(2026, 1, 15),
+  registeredAt: DateTime.utc(2026, 1, 15, 14, 30),
   statusLabel: 'Activo',
-  documentTypeName: 'Carta',
+  documentTypeCode: 'EDIE',
+  documentTypeName: 'Encadenamiento',
+  documentNumber: '15/2026',
   reference: 'REF-001',
   originDescription: 'Ventanilla',
   senderDocument: '1234567',
+  createdByUsername: 'admin',
 );
 
 final internalCorrespondence = CorrespondenceEntity(
@@ -34,11 +37,31 @@ final internalCorrespondence = CorrespondenceEntity(
   externalSender: '',
   externalRecipient: 'Secretaría',
   currentUserName: '',
-  registeredAt: DateTime.utc(2026, 1, 16),
+  registeredAt: DateTime.utc(2026, 1, 16, 9, 15),
   statusLabel: 'Activo',
-  documentTypeName: 'Memorándum',
+  documentTypeCode: 'INFORME',
+  documentTypeName: 'Informe Técnico',
+  originEmployeeName: 'Juan Pérez',
   originUnitName: 'Sistemas',
-  originUserName: 'Juan Pérez',
+);
+
+final notaCorrespondence = CorrespondenceEntity(
+  id: 'corr-nota',
+  uniqueNumber: 3,
+  year: 2026,
+  cite: '',
+  routeNumber: 'HR-2026-000003',
+  type: CorrespondenceTypeCode.ci,
+  priority: 'Baja',
+  subject: 'Nota interna',
+  externalSender: '',
+  externalRecipient: 'Sistemas',
+  currentUserName: '',
+  registeredAt: DateTime.utc(2026, 1, 17, 11, 0),
+  statusLabel: 'Activo',
+  documentTypeCode: 'NOTA',
+  documentTypeName: 'Nota Interna',
+  originEmployeeName: 'María López',
 );
 
 final vigenteMovement = CorrespondenceMovementEntity(

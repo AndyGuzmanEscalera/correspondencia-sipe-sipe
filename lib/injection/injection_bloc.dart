@@ -16,6 +16,7 @@ import '../../features/authentication/sign_in/cubit/sign_in_cubit.dart';
 import '../../features/correspondence/attachments/cubit/correspondence_attachments_cubit.dart';
 import '../../features/correspondence/derive_correspondence/cubit/derive_correspondence_cubit.dart';
 import '../../features/correspondence/detail/cubit/correspondence_detail_cubit.dart';
+import '../../features/correspondence/detail/cubit/correspondence_document_actions_cubit.dart';
 import '../../features/correspondence/list_correspondence/cubit/correspondence_cubit.dart';
 import '../../features/correspondence/upsert_correspondence/cubit/upsert_correspondence_cubit.dart';
 import '../../features/home/side_menu/cubit/side_menu_cubit.dart';
@@ -75,6 +76,13 @@ void registerCubits() {
 
   getIt.registerFactoryParam<CorrespondenceAttachmentsCubit, String, void>(
     (correspondenceId, _) => CorrespondenceAttachmentsCubit(
+      repository: getIt<CorrespondenceRepository>(),
+      correspondenceId: correspondenceId,
+    ),
+  );
+
+  getIt.registerFactoryParam<CorrespondenceDocumentActionsCubit, String, void>(
+    (correspondenceId, _) => CorrespondenceDocumentActionsCubit(
       repository: getIt<CorrespondenceRepository>(),
       correspondenceId: correspondenceId,
     ),

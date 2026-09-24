@@ -6,6 +6,7 @@ import 'package:correspondencia_sipe_sipe/features/correspondence/derive_corresp
 import 'package:correspondencia_sipe_sipe/features/correspondence/derive_correspondence/helpers/derive_correspondence_inherited.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/derive_correspondence/views/derive_correspondence_view.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/detail/cubit/correspondence_detail_cubit.dart';
+import 'package:correspondencia_sipe_sipe/features/correspondence/detail/cubit/correspondence_document_actions_cubit.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/detail/views/correspondence_detail_body.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/detail/widgets/correspondence_info_section.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/detail/widgets/correspondence_movements_section.dart';
@@ -65,6 +66,9 @@ void main() {
       if (getIt.isRegistered<CorrespondenceAttachmentsCubit>()) {
         getIt.unregister<CorrespondenceAttachmentsCubit>();
       }
+      if (getIt.isRegistered<CorrespondenceDocumentActionsCubit>()) {
+        getIt.unregister<CorrespondenceDocumentActionsCubit>();
+      }
       getIt.registerFactoryParam<DeriveCorrespondenceCubit, String, void>(
         (correspondenceId, _) => DeriveCorrespondenceCubit(
           correspondenceRepository: _FakeCorrespondenceRepository(),
@@ -74,6 +78,12 @@ void main() {
       );
       getIt.registerFactoryParam<CorrespondenceAttachmentsCubit, String, void>(
         (correspondenceId, _) => CorrespondenceAttachmentsCubit(
+          repository: _FakeCorrespondenceRepository(),
+          correspondenceId: correspondenceId,
+        ),
+      );
+      getIt.registerFactoryParam<CorrespondenceDocumentActionsCubit, String, void>(
+        (correspondenceId, _) => CorrespondenceDocumentActionsCubit(
           repository: _FakeCorrespondenceRepository(),
           correspondenceId: correspondenceId,
         ),
@@ -88,11 +98,15 @@ void main() {
       if (getIt.isRegistered<CorrespondenceAttachmentsCubit>()) {
         getIt.unregister<CorrespondenceAttachmentsCubit>();
       }
+      if (getIt.isRegistered<CorrespondenceDocumentActionsCubit>()) {
+        getIt.unregister<CorrespondenceDocumentActionsCubit>();
+      }
     });
 
     Future<void> pumpBody(
       WidgetTester tester, {
       Size size = const Size(900, 1200),
+      bool settle = true,
     }) async {
       await tester.binding.setSurfaceSize(size);
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -101,17 +115,30 @@ void main() {
         MaterialApp(
           builder: ResponsiveBreakpointsConfig.builder,
           home: Scaffold(
-            body: BlocProvider<CorrespondenceDetailCubit>.value(
-              value: cubit,
-              child: const CorrespondenceDetailBody(
-                correspondenceId: 'corr-1',
+            body: SizedBox(
+              width: size.width,
+              height: size.height,
+              child: MultiBlocProvider(
+                providers: [
+                  BlocProvider<CorrespondenceDetailCubit>.value(value: cubit),
+                  BlocProvider(
+                    create: (_) => getIt<CorrespondenceDocumentActionsCubit>(
+                      param1: 'corr-1',
+                    ),
+                  ),
+                ],
+                child: const CorrespondenceDetailBody(
+                  correspondenceId: 'corr-1',
+                ),
               ),
             ),
           ),
         ),
       );
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 200));
+      if (settle) {
+        await tester.pumpAndSettle();
+      }
     }
 
     testWidgets('muestra info, adjuntos, movements y derive', (tester) async {
@@ -119,9 +146,12 @@ void main() {
 
       expect(find.byType(CorrespondenceInfoSection), findsOneWidget);
       expect(find.text('Adjuntos'), findsOneWidget);
+      expect(find.text('Ver encadenamiento'), findsOneWidget);
+      expect(find.text('Hoja de Ruta'), findsOneWidget);
       expect(find.byType(CorrespondenceMovementsSection), findsOneWidget);
       expect(find.byType(DeriveCorrespondencePage), findsOneWidget);
       expect(find.text('Derivar trámite'), findsOneWidget);
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('no contiene controllers de derive embebidos en Detail', (
@@ -131,23 +161,89 @@ void main() {
 
       expect(find.byType(DeriveCorrespondenceInherited), findsOneWidget);
       expect(find.text('Unidad destino'), findsOneWidget);
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('loading cuando correspondence es null', (tester) async {
       cubit.emit(const CorrespondenceDetailState());
 
-      await pumpBody(tester);
+      await pumpBody(tester, settle: false);
 
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
       expect(find.byType(CorrespondenceInfoSection), findsNothing);
     });
 
-    testWidgets('usable en mobile 390px', (tester) async {
-      await pumpBody(tester, size: const Size(390, 900));
+    testWidgets('INFORME no muestra acción Encadenamiento', (tester) async {
+      cubit.emit(
+        cubit.state.copyWith(
+          correspondence: internalCorrespondence,
+          movements: [vigenteMovement],
+        ),
+      );
 
-      expect(find.text('Detalle de correspondencia'), findsOneWidget);
-      expect(find.text('Solicitud externa'), findsOneWidget);
+      await pumpBody(tester, size: const Size(1366, 900));
+
+      expect(find.byIcon(Icons.picture_as_pdf_outlined), findsNothing);
       expect(tester.takeException(), isNull);
+    });
+
+    group('responsive', () {
+      Future<void> expectDetailWithoutOverflow(
+        WidgetTester tester,
+        Size size,
+      ) async {
+        await pumpBody(tester, size: size);
+
+        expect(find.text('Detalle de correspondencia'), findsOneWidget);
+        expect(find.text('Movimientos'), findsOneWidget);
+        expect(find.text('Derivar trámite'), findsOneWidget);
+        expect(find.text('Adjuntos'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      }
+
+      testWidgets('390x844 sin overflow y con scroll mobile', (tester) async {
+        await expectDetailWithoutOverflow(tester, const Size(390, 844));
+
+        expect(
+          find.byKey(CorrespondenceDetailBody.mobileScrollKey),
+          findsOneWidget,
+        );
+        expect(find.byIcon(Icons.picture_as_pdf_outlined), findsOneWidget);
+
+        await tester.drag(
+          find.byKey(CorrespondenceDetailBody.mobileScrollKey),
+          const Offset(0, -400),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Unidad destino'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      });
+
+      testWidgets('430x932 sin overflow', (tester) async {
+        await expectDetailWithoutOverflow(tester, const Size(430, 932));
+        expect(
+          find.byKey(CorrespondenceDetailBody.mobileScrollKey),
+          findsOneWidget,
+        );
+      });
+
+      testWidgets('768x1024 sin overflow layout desktop', (tester) async {
+        await expectDetailWithoutOverflow(tester, const Size(768, 1024));
+        expect(
+          find.byKey(CorrespondenceDetailBody.mobileScrollKey),
+          findsNothing,
+        );
+      });
+
+      testWidgets('1366x900 sin overflow layout desktop', (tester) async {
+        await expectDetailWithoutOverflow(tester, const Size(1366, 900));
+        expect(find.text('Ver encadenamiento'), findsOneWidget);
+        expect(
+          find.byKey(CorrespondenceDetailBody.mobileScrollKey),
+          findsNothing,
+        );
+      });
     });
   });
 }

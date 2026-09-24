@@ -7,30 +7,35 @@ import 'package:flutter/material.dart';
 class CorrespondenceDeriveSection extends StatelessWidget {
   const CorrespondenceDeriveSection({
     required this.correspondenceId,
+    this.expandVertically = true,
     super.key,
   });
 
   final String correspondenceId;
+  final bool expandVertically;
 
   @override
   Widget build(BuildContext context) {
+    final content = Container(
+      width: double.infinity,
+      decoration: AppDecorations.surfaceCard(elevated: false),
+      clipBehavior: Clip.antiAlias,
+      child: DeriveCorrespondencePage(
+        correspondenceId: correspondenceId,
+        scrollable: expandVertically,
+      ),
+    );
+
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: expandVertically ? MainAxisSize.max : MainAxisSize.min,
       children: [
         const Text(
           'Derivar trámite',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 12),
-        Expanded(
-          child: Container(
-            decoration: AppDecorations.surfaceCard(elevated: false),
-            clipBehavior: Clip.antiAlias,
-            child: DeriveCorrespondencePage(
-              correspondenceId: correspondenceId,
-            ),
-          ),
-        ),
+        if (expandVertically) Expanded(child: content) else content,
       ],
     );
   }
