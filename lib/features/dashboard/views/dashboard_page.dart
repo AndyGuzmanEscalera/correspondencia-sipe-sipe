@@ -33,9 +33,10 @@ class DashboardBody extends StatelessWidget {
     final counts = store.inboxCounts();
 
     return AdminContent(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           const SectionHeader(
             title: 'Panel de control',
             subtitle: 'Visión general del flujo de correspondencia institucional',
@@ -93,6 +94,7 @@ class DashboardBody extends StatelessWidget {
           ),
         ],
       ),
+      ),
     );
   }
 }
@@ -117,10 +119,10 @@ class _OverviewPanel extends StatelessWidget {
           'en curso dentro de la institución.',
         ),
         const SizedBox(height: 20),
-        Wrap(
+        const Wrap(
           spacing: 10,
           runSpacing: 10,
-          children: const [
+          children: [
             _FeatureChip('Consulta pública'),
             _FeatureChip('Bandejas operativas'),
             _FeatureChip('Registro de trámites'),

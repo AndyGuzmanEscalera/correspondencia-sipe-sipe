@@ -1,3 +1,5 @@
+import 'package:correspondencia_sipe_sipe/core/theme/app_decorations.dart';
+import 'package:correspondencia_sipe_sipe/core/theme/ui_colors.dart';
 import 'package:flutter/material.dart';
 
 extension DialogContext on BuildContext {
@@ -6,12 +8,34 @@ extension DialogContext on BuildContext {
       context: this,
       barrierDismissible: false,
       builder: (_) => AlertDialog(
-        content: Row(
-          children: [
-            const CircularProgressIndicator(),
-            const SizedBox(width: 16),
-            Expanded(child: Text(message)),
-          ],
+        shape: RoundedRectangleBorder(
+          borderRadius: AppDecorations.borderRadiusLg,
+        ),
+        content: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+          child: Row(
+            children: [
+              const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  valueColor: AlwaysStoppedAnimation<Color>(UiColors.primary),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  message,
+                  style: const TextStyle(
+                    color: UiColors.textPrimary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

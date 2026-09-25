@@ -67,8 +67,13 @@ class _TitleBlock extends StatelessWidget {
               ),
         ),
         if (subtitle != null) ...[
-          const SizedBox(height: 6),
-          Text(subtitle!, style: Theme.of(context).textTheme.bodyMedium),
+          const SizedBox(height: 4),
+          Text(
+            subtitle!,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: UiColors.textSecondary,
+                ),
+          ),
         ],
       ],
     );
@@ -85,13 +90,13 @@ class AdminContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final padding = context.isSmallScreen ? 16.0 : 32.0;
+    final padding = context.isSmallScreen ? 16.0 : 28.0;
 
     return Expanded(
       child: Container(
         color: UiColors.background,
         child: Padding(
-          padding: EdgeInsets.fromLTRB(padding, padding - 4, padding, padding),
+          padding: EdgeInsets.fromLTRB(padding, 20, padding, padding),
           child: child,
         ),
       ),

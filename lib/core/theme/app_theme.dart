@@ -128,6 +128,11 @@ class AppTheme {
           borderRadius: AppDecorations.borderRadiusLg,
         ),
       ),
+      progressIndicatorTheme: const ProgressIndicatorThemeData(
+        color: UiColors.primary,
+        linearTrackColor: UiColors.borderLight,
+        circularTrackColor: Colors.transparent,
+      ),
     );
   }
 

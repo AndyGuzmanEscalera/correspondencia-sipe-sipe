@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:correspondencia_sipe_sipe/core/theme/ui_colors.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/data_grid/app_data_grid_action.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/data_grid/app_data_grid_column.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/data_grid/app_data_grid_desktop_table.dart';
@@ -103,7 +104,16 @@ class _AppDataGridState<T> extends State<AppDataGrid<T>> {
         final isMobile = AppDataGridBreakpoints.isMobile(width);
 
         if (widget.isLoading && widget.items.isEmpty) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(
+            child: SizedBox(
+              width: 28,
+              height: 28,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                valueColor: AlwaysStoppedAnimation<Color>(UiColors.primary),
+              ),
+            ),
+          );
         }
 
         if (!widget.isLoading && widget.items.isEmpty) {
@@ -157,7 +167,11 @@ class _AppDataGridState<T> extends State<AppDataGrid<T>> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (widget.isLoading && widget.items.isNotEmpty)
-              const LinearProgressIndicator(minHeight: 2),
+              const LinearProgressIndicator(
+                minHeight: 2.5,
+                color: UiColors.primary,
+                backgroundColor: UiColors.borderLight,
+              ),
             if (widget.shrinkWrap)
               content
             else
