@@ -33,6 +33,7 @@ class Correspondence extends Equatable {
     this.currentUnitId,
     this.currentUserId,
     this.createdByUsername,
+    this.lastSentAt,
   });
 
   final String id;
@@ -66,6 +67,7 @@ class Correspondence extends Equatable {
   final String? currentUnitId;
   final String? currentUserId;
   final String? createdByUsername;
+  final DateTime? lastSentAt;
 
   String get displayCite => cite ?? routeNumber;
 
@@ -102,6 +104,7 @@ class Correspondence extends Equatable {
         currentUnitId,
         currentUserId,
         createdByUsername,
+        lastSentAt,
       ];
 }
 

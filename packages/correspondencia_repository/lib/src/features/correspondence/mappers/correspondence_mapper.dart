@@ -7,6 +7,7 @@ import '../entities/create_correspondence_input.dart';
 import '../entities/document_type.dart';
 import '../entities/employee_option.dart';
 import '../entities/inbox_counts.dart';
+import '../entities/sent_count.dart';
 
 extension DocumentTypeResponseMapper on DocumentTypeResponse {
   DocumentType toEntity() => DocumentType(id: id, code: code, name: name);
@@ -56,7 +57,13 @@ extension CorrespondenceResponseMapper on CorrespondenceResponse {
         currentUnitId: currentUnitId,
         currentUserId: currentUserId,
         createdByUsername: createdByUsername,
+        lastSentAt: lastSentAt,
       );
+}
+
+extension CorrespondenceSentCountResponseMapper
+    on CorrespondenceSentCountResponse {
+  SentCount toEntity() => SentCount(total: total);
 }
 
 extension CorrespondenceListResponseMapper on CorrespondenceListResponse {

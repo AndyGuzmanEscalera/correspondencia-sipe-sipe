@@ -14,6 +14,7 @@ from app.modules.correspondence.schemas import (
     CorrespondenceDetail,
     CorrespondenceInboxCountsResponse,
     CorrespondenceListResponse,
+    CorrespondenceSentCountResponse,
     CorrespondenceMovementResponse,
     CreateCorrespondenceRequest,
     DeriveCorrespondenceRequest,
@@ -111,6 +112,32 @@ def get_inbox_counts(
     service: Annotated[CorrespondenceService, Depends(_service)],
 ) -> CorrespondenceInboxCountsResponse:
     return service.get_inbox_counts(user)
+
+
+@router.get("/sent", response_model=CorrespondenceListResponse)
+def list_sent(
+    user: Annotated[User, Depends(get_current_user)],
+    service: Annotated[CorrespondenceService, Depends(_service)],
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    search: str | None = Query(default=None),
+    status: str | None = Query(default=None),
+) -> CorrespondenceListResponse:
+    return service.list_sent(
+        user,
+        page=page,
+        page_size=page_size,
+        search=search,
+        status_filter=status,
+    )
+
+
+@router.get("/sent/count", response_model=CorrespondenceSentCountResponse)
+def get_sent_count(
+    user: Annotated[User, Depends(get_current_user)],
+    service: Annotated[CorrespondenceService, Depends(_service)],
+) -> CorrespondenceSentCountResponse:
+    return service.get_sent_count(user)
 
 
 @router.get("/{correspondence_id}", response_model=CorrespondenceDetail)

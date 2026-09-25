@@ -86,6 +86,7 @@ class CorrespondenceListItem(BaseModel):
     current_user_is_active: bool | None
     cite: str | None
     registered_at: datetime
+    last_sent_at: datetime | None = None
 
 
 class CorrespondenceListResponse(BaseModel):
@@ -99,6 +100,10 @@ class CorrespondenceListResponse(BaseModel):
 class CorrespondenceInboxCountsResponse(BaseModel):
     mine: int
     unit: int
+
+
+class CorrespondenceSentCountResponse(BaseModel):
+    total: int
 
 
 class CorrespondenceDetail(CorrespondenceListItem):

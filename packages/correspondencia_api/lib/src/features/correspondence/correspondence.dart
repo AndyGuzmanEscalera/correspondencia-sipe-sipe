@@ -2,6 +2,7 @@ export 'api/correspondence_api.dart';
 export 'api/document_types_admin_api.dart';
 export 'models/correspondence_attachment_response.dart';
 export 'models/correspondence_inbox_counts_response.dart';
+export 'models/correspondence_sent_count_response.dart';
 export 'models/correspondence_list_response.dart';
 export 'models/correspondence_movement_response.dart';
 export 'models/correspondence_response.dart';

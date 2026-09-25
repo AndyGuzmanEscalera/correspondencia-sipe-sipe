@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
-from sqlalchemy import func, select
+from sqlalchemy import case, exists, func, or_, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
@@ -16,6 +16,7 @@ from app.modules.correspondence.constants import (
     MOVEMENT_DERIVED,
     ROUTE_NUMBER_PREFIX,
     STATUS_ACTIVE,
+    STATUS_CONCLUDED,
 )
 from app.modules.correspondence.correspondence import Correspondence
 from app.modules.correspondence.correspondence_movement import CorrespondenceMovement
@@ -36,6 +37,7 @@ from app.modules.correspondence.schemas import (
     CorrespondenceInboxCountsResponse,
     CorrespondenceListItem,
     CorrespondenceListResponse,
+    CorrespondenceSentCountResponse,
     CorrespondenceMovementResponse,
     CreateCorrespondenceRequest,
     DeriveCorrespondenceRequest,
@@ -79,6 +81,10 @@ class ResolvedOrigin:
     sender_document: str | None
     sender_contact: str | None
     origin_description: str | None
+
+
+_SENT_STATUS_VALUES = (STATUS_ACTIVE, STATUS_CONCLUDED)
+_SENT_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
 
 
 class CorrespondenceService:
@@ -177,6 +183,32 @@ class CorrespondenceService:
             .select_from(base.where(Correspondence.current_unit_id == context.unit_id).subquery())
         ) or 0
         return CorrespondenceInboxCountsResponse(mine=mine, unit=unit)
+
+    def list_sent(
+        self,
+        user: User,
+        *,
+        page: int,
+        page_size: int,
+        search: str | None,
+        status_filter: str | None = None,
+    ) -> CorrespondenceListResponse:
+        """Sent listing: correspondences initiated or derived by the session user."""
+        query = self._base_sent_query(user.id, status_filter=status_filter)
+        query = self._apply_search_filter(query, search)
+        return self._paginate_sent_correspondences(
+            query,
+            user_id=user.id,
+            page=page,
+            page_size=page_size,
+        )
+
+    def get_sent_count(self, user: User) -> CorrespondenceSentCountResponse:
+        query = self._base_sent_query(user.id, status_filter=None)
+        total = self._db.scalar(
+            select(func.count()).select_from(query.subquery())
+        ) or 0
+        return CorrespondenceSentCountResponse(total=total)
 
     def get_correspondence(
         self,
@@ -440,6 +472,59 @@ class CorrespondenceService:
         return InboxInstitutionalContext(user_id=user.id, unit_id=employee.unit_id)
 
     @staticmethod
+    def _sent_ownership_clause(user_id: uuid.UUID):
+        derived_by_me = exists(
+            select(1).where(
+                CorrespondenceMovement.correspondence_id == Correspondence.id,
+                CorrespondenceMovement.movement_type == MOVEMENT_DERIVED,
+                CorrespondenceMovement.created_by_user_id == user_id,
+            )
+        )
+        return or_(
+            Correspondence.created_by_user_id == user_id,
+            derived_by_me,
+        )
+
+    @staticmethod
+    def _sent_last_sent_at_expr(user_id: uuid.UUID):
+        created_part = case(
+            (Correspondence.created_by_user_id == user_id, Correspondence.created_at),
+            else_=_SENT_EPOCH,
+        )
+        derived_at = (
+            select(func.max(CorrespondenceMovement.created_at))
+            .where(
+                CorrespondenceMovement.correspondence_id == Correspondence.id,
+                CorrespondenceMovement.movement_type == MOVEMENT_DERIVED,
+                CorrespondenceMovement.created_by_user_id == user_id,
+            )
+            .correlate(Correspondence)
+            .scalar_subquery()
+        )
+        return func.greatest(created_part, func.coalesce(derived_at, _SENT_EPOCH))
+
+    @classmethod
+    def _base_sent_query(
+        cls,
+        user_id: uuid.UUID,
+        *,
+        status_filter: str | None,
+    ):
+        if status_filter is not None and status_filter not in _SENT_STATUS_VALUES:
+            allowed = ", ".join(_SENT_STATUS_VALUES)
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"status must be one of: {allowed}",
+            )
+        query = cls._base_correspondence_query(active_only=True).where(
+            cls._sent_ownership_clause(user_id),
+            Correspondence.status.in_(_SENT_STATUS_VALUES),
+        )
+        if status_filter:
+            query = query.where(Correspondence.status == status_filter)
+        return query
+
+    @staticmethod
     def _base_correspondence_query(*, active_only: bool):
         query = select(Correspondence)
         if active_only:
@@ -494,6 +579,45 @@ class CorrespondenceService:
         ).all()
 
         items = [self._to_list_item(row) for row in rows]
+        return CorrespondenceListResponse(
+            items=items,
+            page=page,
+            page_size=page_size,
+            total=total,
+            total_pages=total_pages,
+        )
+
+    def _paginate_sent_correspondences(
+        self,
+        filtered_query,
+        *,
+        user_id: uuid.UUID,
+        page: int,
+        page_size: int,
+    ) -> CorrespondenceListResponse:
+        filtered_subq = filtered_query.subquery()
+        total = self._db.scalar(
+            select(func.count()).select_from(filtered_subq)
+        ) or 0
+        total_pages = max(1, math.ceil(total / page_size)) if total else 0
+        offset = (page - 1) * page_size
+        last_sent_at = self._sent_last_sent_at_expr(user_id).label("last_sent_at")
+
+        rows = self._db.execute(
+            select(Correspondence, last_sent_at)
+            .where(Correspondence.id.in_(select(filtered_subq.c.id)))
+            .order_by(last_sent_at.desc(), Correspondence.id.desc())
+            .offset(offset)
+            .limit(page_size)
+        ).all()
+
+        items = [
+            self._to_list_item(
+                correspondence,
+                last_sent_at=activity_at,
+            )
+            for correspondence, activity_at in rows
+        ]
         return CorrespondenceListResponse(
             items=items,
             page=page,
@@ -949,7 +1073,12 @@ class CorrespondenceService:
             )
         return doc_type
 
-    def _to_list_item(self, correspondence: Correspondence) -> CorrespondenceListItem:
+    def _to_list_item(
+        self,
+        correspondence: Correspondence,
+        *,
+        last_sent_at: datetime | None = None,
+    ) -> CorrespondenceListItem:
         doc_type = self._document_type(correspondence.document_type_id)
         return CorrespondenceListItem(
             id=correspondence.id,
@@ -973,6 +1102,7 @@ class CorrespondenceService:
             current_user_is_active=self._user_is_active(correspondence.current_user_id),
             cite=correspondence.cite,
             registered_at=correspondence.created_at,
+            last_sent_at=last_sent_at,
         )
 
     def _to_detail(self, correspondence: Correspondence) -> CorrespondenceDetail:

@@ -272,6 +272,63 @@ void main() {
       expect(capturedScope, 'unit');
     });
 
+    test('getSent maps paginated response', () async {
+      final repo = CorrespondenceRepository(
+        correspondenceApi: _apiWithHandler(
+          (options) async => Response<dynamic>(
+            requestOptions: options,
+            statusCode: 200,
+            data: {
+              'items': [
+                {
+                  'id': 'corr-sent-1',
+                  'route_number': 'HR-2026-000010',
+                  'route_year': 2026,
+                  'route_sequence': 10,
+                  'correspondence_type': 'EXTERNAL',
+                  'document_type_code': 'CARTA',
+                  'document_type_name': 'Carta',
+                  'subject': 'Enviado',
+                  'priority': 'LOW',
+                  'status': 'ACTIVE',
+                  'registered_at': '2026-01-15T10:00:00Z',
+                  'last_sent_at': '2026-01-16T12:00:00Z',
+                },
+              ],
+              'page': 1,
+              'page_size': 20,
+              'total': 1,
+              'total_pages': 1,
+            },
+          ),
+        ),
+      );
+
+      final result = await repo.getSent(search: 'HR');
+
+      expect(result.isOk, isTrue);
+      final page = result.valueOrNull();
+      expect(page?.items.single.lastSentAt, isNotNull);
+      expect(page?.items.single.routeNumber, 'HR-2026-000010');
+    });
+
+    test('getSentCount maps response', () async {
+      final repo = CorrespondenceRepository(
+        correspondenceApi: _apiWithHandler(
+          (options) async => Response<dynamic>(
+            requestOptions: options,
+            statusCode: 200,
+            data: {'total': 12},
+          ),
+        ),
+      );
+
+      final result = await repo.getSentCount();
+
+      expect(result.isOk, isTrue);
+      expect(result.valueOrNull()?.total, 12);
+    });
+
     test('getInboxCounts maps response', () async {
       final repo = CorrespondenceRepository(
         correspondenceApi: _apiWithHandler(

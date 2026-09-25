@@ -9,6 +9,7 @@ import '../entities/document_type.dart';
 import '../entities/employee_option.dart';
 import '../entities/inbox_counts.dart';
 import '../entities/inbox_scope.dart';
+import '../entities/sent_count.dart';
 import '../mappers/correspondence_mapper.dart';
 
 class CorrespondenceRepository {
@@ -66,6 +67,35 @@ class CorrespondenceRepository {
           (await _correspondenceApi.getInboxCounts()).toEntity(),
       feature: 'correspondence',
       operation: 'getInboxCounts',
+    );
+  }
+
+  Future<Result<CorrespondencePage, Failure>> getSent({
+    int page = 1,
+    int pageSize = 50,
+    String? search,
+    String? status,
+  }) {
+    return handleExceptions<CorrespondencePage>(
+      () async {
+        final response = await _correspondenceApi.getSent(
+          page: page,
+          pageSize: pageSize,
+          search: search,
+          status: status,
+        );
+        return response.toEntity();
+      },
+      feature: 'correspondence',
+      operation: 'getSent',
+    );
+  }
+
+  Future<Result<SentCount, Failure>> getSentCount() {
+    return handleExceptions<SentCount>(
+      () async => (await _correspondenceApi.getSentCount()).toEntity(),
+      feature: 'correspondence',
+      operation: 'getSentCount',
     );
   }
 

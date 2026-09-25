@@ -36,6 +36,7 @@ class CorrespondenceResponse {
     this.reopenedAt,
     this.createdByUserId,
     this.createdByUsername,
+    this.lastSentAt,
   });
 
   factory CorrespondenceResponse.fromJson(Map<String, dynamic> json) {
@@ -80,6 +81,9 @@ class CorrespondenceResponse {
           : null,
       createdByUserId: json['created_by_user_id'] as String?,
       createdByUsername: json['created_by_username'] as String?,
+      lastSentAt: json['last_sent_at'] != null
+          ? DateTime.parse(json['last_sent_at'] as String)
+          : null,
     );
   }
 
@@ -119,4 +123,5 @@ class CorrespondenceResponse {
   final DateTime? reopenedAt;
   final String? createdByUserId;
   final String? createdByUsername;
+  final DateTime? lastSentAt;
 }
