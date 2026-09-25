@@ -3,6 +3,7 @@ import 'package:correspondencia_sipe_sipe/core/util/form/models/form_option.dart
 import 'package:correspondencia_sipe_sipe/core/util/form/validator_field/valid.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/cubit/upsert_correspondence_cubit.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/helpers/upsert_correspondence_inherited.dart';
+import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/widgets/upsert_form_section.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/form/app_dropdown.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/form/app_text_field.dart';
 import 'package:flutter/material.dart';
@@ -46,10 +47,12 @@ class DestinationSection extends StatelessWidget {
       ),
     ];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (unitItems.isEmpty)
+    return UpsertFormSection(
+      title: 'Destino e instrucción',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (unitItems.isEmpty)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 8),
             child: Text('No hay unidades organizacionales activas.'),
@@ -83,11 +86,12 @@ class DestinationSection extends StatelessWidget {
             items: userItems,
           ),
         ],
-        AppTextField(
-          controller: inherited.initialInstruction,
-          label: 'Instrucción inicial / proveído (opcional)',
-        ),
-      ],
+          AppTextField(
+            controller: inherited.initialInstruction,
+            label: 'Instrucción inicial / proveído (opcional)',
+          ),
+        ],
+      ),
     );
   }
 }

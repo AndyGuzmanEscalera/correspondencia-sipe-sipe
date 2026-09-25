@@ -86,43 +86,74 @@ class CorrespondenceAttachmentsBody extends StatelessWidget {
     await cubit.uploadMultiple(uploads);
   }
 
+  Widget _buildAddButton(
+    BuildContext context,
+    CorrespondenceAttachmentsState state, {
+    bool expanded = false,
+  }) {
+    final button = OutlinedButton.icon(
+      onPressed: state.uploading ? null : () => _pickAndUpload(context),
+      icon: state.uploading
+          ? const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(Icons.upload_file_outlined),
+      label: Text(state.uploading ? 'Subiendo...' : 'Agregar archivos'),
+    );
+
+    if (expanded) {
+      return SizedBox(width: double.infinity, child: button);
+    }
+
+    return button;
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<CorrespondenceAttachmentsCubit,
         CorrespondenceAttachmentsState>(
       builder: (context, state) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: state.uploading ? null : () => _pickAndUpload(context),
-                icon: state.uploading
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.upload_file),
-                label: Text(
-                  state.uploading ? 'Subiendo...' : 'Agregar archivos',
-                ),
-              ),
+        if (state.isRefreshing && state.attachments.isEmpty) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: CircularProgressIndicator(strokeWidth: 2),
             ),
-            if (state.isRefreshing && state.attachments.isEmpty)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(16),
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
+          );
+        }
+
+        final hasAttachments = state.attachments.isNotEmpty;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (hasAttachments)
+              Align(
+                alignment: Alignment.centerRight,
+                child: _buildAddButton(context, state),
               )
             else
+              Column(
+                children: [
+                  Text(
+                    'No hay adjuntos registrados.',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildAddButton(context, state, expanded: true),
+                ],
+              ),
+            if (hasAttachments) ...[
+              const SizedBox(height: 12),
               CorrespondenceAttachmentsList(
                 attachments: state.attachments,
                 downloadingAttachmentId: state.downloadingAttachmentId,
                 deactivatingAttachmentId: state.deactivatingAttachmentId,
               ),
+            ],
           ],
         );
       },

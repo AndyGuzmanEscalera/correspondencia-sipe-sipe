@@ -18,6 +18,7 @@ import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_corresp
 import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/widgets/technical_report_fields.dart';
 import 'package:correspondencia_sipe_sipe/features/home/side_menu/cubit/side_menu_cubit.dart';
 import 'package:correspondencia_sipe_sipe/injection/injection_bloc.dart';
+import 'package:correspondencia_sipe_sipe/shared/widgets/app_form_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -110,7 +111,8 @@ class _UpsertCorrespondenceBodyState extends State<UpsertCorrespondenceBody> {
       if (type.id == state.defaultDocumentTypeId) {
         defaultOption = FormOption<String>(
           id: type.id.hashCode,
-          text: '${type.name} (${type.code})',
+          text: type.code,
+          description: type.name,
           value: type.id,
         );
         _profile = resolveDocumentFormProfile(type.code);
@@ -158,33 +160,27 @@ class _UpsertCorrespondenceBodyState extends State<UpsertCorrespondenceBody> {
     return BlocBuilder<UpsertCorrespondenceCubit, UpsertCorrespondenceState>(
       builder: (context, state) {
         if (!state.catalogLoaded) {
-          return const AlertDialog(
-            title: Text('Nueva correspondencia'),
-            content: SizedBox(
-              width: 480,
-              child: Center(
-                child: SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
+          return const AppFormDialog(
+            title: 'Nueva correspondencia',
+            maxWidth: 640,
+            child: Center(
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
               ),
             ),
           );
         }
 
         if (!state.hasBaseCatalog) {
-          return AlertDialog(
-            title: const Text('Nueva correspondencia'),
-            content: const Text(
+          return const AppFormDialog(
+            title: 'Nueva correspondencia',
+            maxWidth: 640,
+            onSubmit: null,
+            child: Text(
               'No se pudieron cargar los catálogos necesarios.',
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cerrar'),
-              ),
-            ],
           );
         }
 
@@ -195,64 +191,52 @@ class _UpsertCorrespondenceBodyState extends State<UpsertCorrespondenceBody> {
           profile: _profile,
           isExternal: _isExternal,
         );
-        final canSubmit =
-            catalogReady && !isLoading && !state.unitUsersLoading;
+        final canSubmit = catalogReady && !isLoading && !state.unitUsersLoading;
 
-        return AlertDialog(
-          title: const Text('Nueva correspondencia'),
-          content: SizedBox(
-            width: 520,
-            child: SingleChildScrollView(
-              child: Form(
-                key: inherited.formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    DocumentTypeSection(
-                      documentTypes: state.documentTypes,
-                      onDocumentTypeChanged: _onDocumentTypeChanged,
-                    ),
-                    OriginSection(
-                      profile: _profile,
-                      employees: state.employees,
-                      isExternal: _isExternal,
-                      onTypeChanged: _onTypeChanged,
-                    ),
-                    if (_profile == DocumentFormProfile.chaining)
-                      const ChainingFields(),
-                    if (_profile == DocumentFormProfile.technicalReport)
-                      const TechnicalReportFields(),
-                    if (_profile == DocumentFormProfile.internalNote)
-                      const InternalNoteFields(),
-                    if (_profile == DocumentFormProfile.generic)
-                      const GenericFields(),
-                    DestinationSection(
-                      organizationalUnits: state.organizationalUnits,
-                      unitUsers: state.unitUsers,
-                      unitUsersLoading: state.unitUsersLoading,
-                    ),
-                    const AttachmentsSection(),
-                  ],
+        return AppFormDialog(
+          title: 'Nueva correspondencia',
+          subtitle: 'Registro y clasificación institucional de trámite',
+          maxWidth: 640,
+          contentPadding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+          isLoading: isLoading,
+          isSubmitDisabled: !canSubmit,
+          submitLabel: 'Registrar',
+          cancelLabel: 'Cancelar',
+          onSubmit: canSubmit ? () => _submit(upsertCubit, inherited) : null,
+          onCancel: isLoading ? null : () => Navigator.pop(context),
+          child: Form(
+            key: inherited.formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DocumentTypeSection(
+                  documentTypes: state.documentTypes,
+                  onDocumentTypeChanged: _onDocumentTypeChanged,
                 ),
-              ),
+                OriginSection(
+                  profile: _profile,
+                  employees: state.employees,
+                  isExternal: _isExternal,
+                  onTypeChanged: _onTypeChanged,
+                ),
+                if (_profile == DocumentFormProfile.chaining)
+                  const ChainingFields(),
+                if (_profile == DocumentFormProfile.technicalReport)
+                  const TechnicalReportFields(),
+                if (_profile == DocumentFormProfile.internalNote)
+                  const InternalNoteFields(),
+                if (_profile == DocumentFormProfile.generic)
+                  const GenericFields(),
+                DestinationSection(
+                  organizationalUnits: state.organizationalUnits,
+                  unitUsers: state.unitUsers,
+                  unitUsersLoading: state.unitUsersLoading,
+                ),
+                const AttachmentsSection(),
+              ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: isLoading ? null : () => Navigator.pop(context),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: canSubmit ? () => _submit(upsertCubit, inherited) : null,
-              child: isLoading
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('Registrar'),
-            ),
-          ],
         );
       },
     );
@@ -292,9 +276,8 @@ class _UpsertCorrespondenceBodyState extends State<UpsertCorrespondenceBody> {
       priorityLabel: priority,
       documentTypeId: documentTypeId,
       initialToUnitId: toUnitId,
-      initialToUserId: selectedUser != null && selectedUser.isNotEmpty
-          ? selectedUser
-          : null,
+      initialToUserId:
+          selectedUser != null && selectedUser.isNotEmpty ? selectedUser : null,
       initialInstruction: inherited.initialInstruction.getValue(),
       senderName: inherited.senderName.getValue(),
       senderDocument: inherited.senderDocument.getValue(),

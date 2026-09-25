@@ -4,6 +4,7 @@ import 'package:correspondencia_sipe_sipe/core/util/form/models/form_option.dart
 import 'package:correspondencia_sipe_sipe/core/util/form/validator_field/valid.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/domain/document_type_profiles.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/helpers/upsert_correspondence_inherited.dart';
+import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/widgets/upsert_form_section.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/form/app_dropdown.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/form/app_text_field.dart';
 import 'package:flutter/material.dart';
@@ -52,10 +53,12 @@ class OriginSection extends StatelessWidget {
         )
         .toList();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (_showsCorrespondenceType)
+    return UpsertFormSection(
+      title: 'Origen',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (_showsCorrespondenceType)
           AppDropdown<CorrespondenceTypeCode>(
             controller: inherited.type,
             label: 'Tipo de correspondencia',
@@ -102,7 +105,8 @@ class OriginSection extends StatelessWidget {
             label: 'Descripción del origen (opcional)',
           ),
         ],
-      ],
+        ],
+      ),
     );
   }
 }

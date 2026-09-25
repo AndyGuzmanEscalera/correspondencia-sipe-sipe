@@ -146,6 +146,7 @@ void main() {
 
       expect(find.byType(CorrespondenceInfoSection), findsOneWidget);
       expect(find.text('Adjuntos'), findsOneWidget);
+      expect(find.text('Agregar archivos'), findsOneWidget);
       expect(find.text('Ver encadenamiento'), findsOneWidget);
       expect(find.text('Hoja de Ruta'), findsOneWidget);
       expect(find.byType(CorrespondenceMovementsSection), findsOneWidget);
@@ -198,6 +199,7 @@ void main() {
         expect(find.text('Movimientos'), findsOneWidget);
         expect(find.text('Derivar trámite'), findsOneWidget);
         expect(find.text('Adjuntos'), findsOneWidget);
+        expect(find.text('Agregar archivos'), findsOneWidget);
         expect(tester.takeException(), isNull);
       }
 
@@ -205,44 +207,68 @@ void main() {
         await expectDetailWithoutOverflow(tester, const Size(390, 844));
 
         expect(
-          find.byKey(CorrespondenceDetailBody.mobileScrollKey),
+          find.byKey(CorrespondenceDetailBody.contentScrollKey),
           findsOneWidget,
         );
         expect(find.byIcon(Icons.picture_as_pdf_outlined), findsOneWidget);
+        expect(find.text('Unidad destino'), findsOneWidget);
 
         await tester.drag(
-          find.byKey(CorrespondenceDetailBody.mobileScrollKey),
+          find.byKey(CorrespondenceDetailBody.contentScrollKey),
           const Offset(0, -400),
         );
         await tester.pumpAndSettle();
 
-        expect(find.text('Unidad destino'), findsOneWidget);
+        expect(find.text('Movimientos'), findsOneWidget);
         expect(tester.takeException(), isNull);
       });
 
       testWidgets('430x932 sin overflow', (tester) async {
         await expectDetailWithoutOverflow(tester, const Size(430, 932));
         expect(
-          find.byKey(CorrespondenceDetailBody.mobileScrollKey),
+          find.byKey(CorrespondenceDetailBody.contentScrollKey),
           findsOneWidget,
         );
+        expect(find.text('Unidad destino'), findsOneWidget);
       });
 
       testWidgets('768x1024 sin overflow layout desktop', (tester) async {
         await expectDetailWithoutOverflow(tester, const Size(768, 1024));
         expect(
-          find.byKey(CorrespondenceDetailBody.mobileScrollKey),
-          findsNothing,
+          find.byKey(CorrespondenceDetailBody.contentScrollKey),
+          findsOneWidget,
         );
+        expect(find.text('Unidad destino'), findsOneWidget);
+      });
+
+      testWidgets('1024x768 sin overflow layout desktop', (tester) async {
+        await expectDetailWithoutOverflow(tester, const Size(1024, 768));
+        expect(find.text('Ver encadenamiento'), findsOneWidget);
+        expect(
+          find.byKey(CorrespondenceDetailBody.contentScrollKey),
+          findsOneWidget,
+        );
+        expect(find.text('Unidad destino'), findsOneWidget);
+      });
+
+      testWidgets('1366x768 sin overflow layout desktop', (tester) async {
+        await expectDetailWithoutOverflow(tester, const Size(1366, 768));
+        expect(find.text('Ver encadenamiento'), findsOneWidget);
+        expect(
+          find.byKey(CorrespondenceDetailBody.contentScrollKey),
+          findsOneWidget,
+        );
+        expect(find.text('Unidad destino'), findsOneWidget);
       });
 
       testWidgets('1366x900 sin overflow layout desktop', (tester) async {
         await expectDetailWithoutOverflow(tester, const Size(1366, 900));
         expect(find.text('Ver encadenamiento'), findsOneWidget);
         expect(
-          find.byKey(CorrespondenceDetailBody.mobileScrollKey),
-          findsNothing,
+          find.byKey(CorrespondenceDetailBody.contentScrollKey),
+          findsOneWidget,
         );
+        expect(find.text('Unidad destino'), findsOneWidget);
       });
     });
   });

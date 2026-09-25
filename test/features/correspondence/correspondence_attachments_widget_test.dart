@@ -76,7 +76,7 @@ CorrespondenceAttachmentsCubit _buildCubit({
 
 void main() {
   group('CorrespondenceAttachments widgets', () {
-    testWidgets('lista vacía muestra mensaje', (tester) async {
+    testWidgets('lista vacía no renderiza filas', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -89,7 +89,31 @@ void main() {
         ),
       );
 
+      expect(find.byType(CorrespondenceAttachmentsList), findsOneWidget);
+      expect(find.text('No hay adjuntos registrados.'), findsNothing);
+    });
+
+    testWidgets('vista vacía muestra mensaje y botón agregar', (tester) async {
+      final cubit = _buildCubit(
+        repository: _FakeCorrespondenceRepository(),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: BlocProvider.value(
+              value: cubit,
+              child: const CorrespondenceAttachmentsView(),
+            ),
+          ),
+        ),
+      );
+      await cubit.init();
+      await tester.pumpAndSettle();
+
       expect(find.text('No hay adjuntos registrados.'), findsOneWidget);
+      expect(find.text('Agregar archivos'), findsOneWidget);
+      await cubit.close();
     });
 
     testWidgets('lista muestra adjuntos recién creados al montar', (tester) async {

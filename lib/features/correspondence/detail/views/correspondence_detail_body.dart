@@ -22,18 +22,23 @@ class CorrespondenceDetailBody extends StatelessWidget {
 
   final String correspondenceId;
 
-  static const _mobileScrollMaxWidth = 767.0;
+  static const _compactMaxWidth = 767.0;
 
-  /// Scroll principal del detalle en mobile; usado en tests responsive.
-  static const mobileScrollKey = Key('correspondence-detail-mobile-scroll');
+  /// Scroll del bloque superior (info y movimientos en mobile).
+  static const contentScrollKey = Key('correspondence-detail-content-scroll');
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final useMobileScroll = constraints.maxWidth <= _mobileScrollMaxWidth;
-        final padding = useMobileScroll ? 16.0 : 32.0;
-        final sectionGap = useMobileScroll ? 16.0 : 24.0;
+        final isCompact = constraints.maxWidth <= _compactMaxWidth;
+        final isShort = constraints.maxHeight <= 820;
+        final padding = isCompact
+            ? 16.0
+            : (isShort ? 18.0 : 32.0);
+        final sectionGap = isCompact
+            ? 16.0
+            : (isShort ? 12.0 : 24.0);
 
         return Container(
           color: UiColors.background,
@@ -47,8 +52,8 @@ class CorrespondenceDetailBody extends StatelessWidget {
                 return const Center(child: CircularProgressIndicator());
               }
 
-              if (useMobileScroll) {
-                return _MobileDetailScrollLayout(
+              if (isCompact) {
+                return _CompactDetailLayout(
                   correspondenceId: correspondenceId,
                   item: item,
                   movements: state.movements,
@@ -56,11 +61,12 @@ class CorrespondenceDetailBody extends StatelessWidget {
                 );
               }
 
-              return _DesktopDetailLayout(
+              return _WideDetailLayout(
                 correspondenceId: correspondenceId,
                 item: item,
                 movements: state.movements,
                 sectionGap: sectionGap,
+                isShort: isShort,
               );
             },
           ),
@@ -70,8 +76,8 @@ class CorrespondenceDetailBody extends StatelessWidget {
   }
 }
 
-class _DesktopDetailLayout extends StatelessWidget {
-  const _DesktopDetailLayout({
+class _CompactDetailLayout extends StatelessWidget {
+  const _CompactDetailLayout({
     required this.correspondenceId,
     required this.item,
     required this.movements,
@@ -86,80 +92,107 @@ class _DesktopDetailLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         CorrespondenceDetailHeader(
           item: item,
           onBack: () => Navigator.pop(context),
         ),
         SizedBox(height: sectionGap - 4),
-        CorrespondenceInfoSection(item: item, expandInParent: true),
+        Expanded(
+          child: SingleChildScrollView(
+            key: CorrespondenceDetailBody.contentScrollKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CorrespondenceInfoSection(item: item),
+                SizedBox(height: sectionGap),
+                CorrespondenceMovementsSection(
+                  movements: movements,
+                  expandVertically: false,
+                ),
+              ],
+            ),
+          ),
+        ),
         SizedBox(height: sectionGap),
         CorrespondenceAttachmentsSection(
           correspondenceId: correspondenceId,
         ),
         SizedBox(height: sectionGap),
-        Expanded(
-          child: CorrespondenceMovementsSection(
-            movements: movements,
-            expandVertically: true,
-          ),
-        ),
-        SizedBox(height: sectionGap),
-        Expanded(
-          child: CorrespondenceDeriveSection(
-            correspondenceId: correspondenceId,
-            expandVertically: true,
-          ),
+        CorrespondenceDeriveSection(
+          correspondenceId: correspondenceId,
+          expandVertically: false,
         ),
       ],
     );
   }
 }
 
-class _MobileDetailScrollLayout extends StatelessWidget {
-  const _MobileDetailScrollLayout({
+class _WideDetailLayout extends StatelessWidget {
+  const _WideDetailLayout({
     required this.correspondenceId,
     required this.item,
     required this.movements,
     required this.sectionGap,
+    this.isShort = false,
   });
 
   final String correspondenceId;
   final CorrespondenceEntity item;
   final List<CorrespondenceMovementEntity> movements;
   final double sectionGap;
+  final bool isShort;
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      key: CorrespondenceDetailBody.mobileScrollKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          CorrespondenceDetailHeader(
-            item: item,
-            onBack: () => Navigator.pop(context),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        CorrespondenceDetailHeader(
+          item: item,
+          onBack: () => Navigator.pop(context),
+        ),
+        SizedBox(height: sectionGap - 4),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Flexible(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: isShort ? 96 : 180,
+                  ),
+                  child: SingleChildScrollView(
+                    key: CorrespondenceDetailBody.contentScrollKey,
+                    child: CorrespondenceInfoSection(
+                      item: item,
+                      expandInParent: false,
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(height: sectionGap),
+              Expanded(
+                child: CorrespondenceMovementsSection(
+                  movements: movements,
+                  expandVertically: true,
+                ),
+              ),
+            ],
           ),
-          SizedBox(height: sectionGap - 4),
-          CorrespondenceInfoSection(item: item, expandInParent: false),
-          SizedBox(height: sectionGap),
-          CorrespondenceAttachmentsSection(
-            correspondenceId: correspondenceId,
-          ),
-          SizedBox(height: sectionGap),
-          CorrespondenceMovementsSection(
-            movements: movements,
-            expandVertically: false,
-          ),
-          SizedBox(height: sectionGap),
-          CorrespondenceDeriveSection(
-            correspondenceId: correspondenceId,
-            expandVertically: false,
-          ),
-        ],
-      ),
+        ),
+        SizedBox(height: sectionGap),
+        CorrespondenceAttachmentsSection(
+          correspondenceId: correspondenceId,
+        ),
+        SizedBox(height: sectionGap),
+        CorrespondenceDeriveSection(
+          correspondenceId: correspondenceId,
+          expandVertically: false,
+        ),
+      ],
     );
   }
 }

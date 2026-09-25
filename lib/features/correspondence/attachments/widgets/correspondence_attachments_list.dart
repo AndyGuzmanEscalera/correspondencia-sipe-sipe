@@ -20,10 +20,7 @@ class CorrespondenceAttachmentsList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (attachments.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 8),
-        child: Text('No hay adjuntos registrados.'),
-      );
+      return const SizedBox.shrink();
     }
 
     final dateFormat = DateFormat('dd/MM/yyyy HH:mm');

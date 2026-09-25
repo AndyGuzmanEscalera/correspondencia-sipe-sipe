@@ -62,11 +62,26 @@ class AppDropdown<T> extends StatelessWidget {
             icon: const Icon(Icons.keyboard_arrow_down_rounded),
             style: AppFormFieldStyle.fieldText,
             decoration: AppFormFieldStyle.dropdownDecoration(label: label),
+            selectedItemBuilder: (context) {
+              return items
+                  .map(
+                    (item) => Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        item.text,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppFormFieldStyle.fieldText,
+                      ),
+                    ),
+                  )
+                  .toList();
+            },
             items: items
                 .map(
                   (item) => DropdownMenuItem<FormOption<T>>(
                     value: item,
-                    child: Text(item.text),
+                    child: _DropdownOptionLabel(item: item),
                   ),
                 )
                 .toList(),
@@ -78,6 +93,45 @@ class AppDropdown<T> extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _DropdownOptionLabel<T> extends StatelessWidget {
+  const _DropdownOptionLabel({required this.item});
+
+  final FormOption<T> item;
+
+  @override
+  Widget build(BuildContext context) {
+    if (item.description == null || item.description!.isEmpty) {
+      return Text(
+        item.text,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          item.text,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: AppFormFieldStyle.fieldText.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          item.description!,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+      ],
     );
   }
 }

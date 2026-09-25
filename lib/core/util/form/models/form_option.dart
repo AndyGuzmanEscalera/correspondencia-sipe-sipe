@@ -4,11 +4,13 @@ class FormOption<T> {
     this.id = 0,
     this.text = '',
     this.value,
+    this.description,
   });
 
   final int id;
   final String text;
   final T? value;
+  final String? description;
 
   @override
   bool operator ==(Object other) {

@@ -281,6 +281,18 @@ void main() {
       expect(find.text('Nueva correspondencia'), findsOneWidget);
     });
 
+    testWidgets('mobile 390x844 renderiza sin overflow', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      await pumpCreateDialog(tester);
+
+      expect(find.text('Nueva correspondencia'), findsOneWidget);
+      expect(find.text('Registrar'), findsOneWidget);
+      expect(find.text('Cancelar'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('success refresca list y muestra confirmación', (tester) async {
       await pumpCreateDialog(tester);
       await _fillMinimumExternalForm(tester);
