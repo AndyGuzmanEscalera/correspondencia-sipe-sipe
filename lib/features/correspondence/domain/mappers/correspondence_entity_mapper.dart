@@ -36,6 +36,7 @@ extension CorrespondenceToEntity on repo.Correspondence {
         originUserName: originUserName,
         senderDocument: senderDocument,
         senderContact: senderContact,
+        lastSentAt: lastSentAt,
       );
 }
 

@@ -31,6 +31,7 @@ class CorrespondenceEntity extends Equatable {
     this.originUserName,
     this.senderDocument,
     this.senderContact,
+    this.lastSentAt,
   });
 
   final String id;
@@ -61,6 +62,7 @@ class CorrespondenceEntity extends Equatable {
   final String? originUserName;
   final String? senderDocument;
   final String? senderContact;
+  final DateTime? lastSentAt;
 
   String get documentTypeLabel => documentTypeName;
 
@@ -111,6 +113,7 @@ class CorrespondenceEntity extends Equatable {
 
   CorrespondenceEntity copyWith({
     String? statusLabel,
+    DateTime? lastSentAt,
   }) {
     return CorrespondenceEntity(
       id: id,
@@ -141,6 +144,7 @@ class CorrespondenceEntity extends Equatable {
       originUserName: originUserName,
       senderDocument: senderDocument,
       senderContact: senderContact,
+      lastSentAt: lastSentAt ?? this.lastSentAt,
     );
   }
 
@@ -174,5 +178,6 @@ class CorrespondenceEntity extends Equatable {
         originUserName,
         senderDocument,
         senderContact,
+        lastSentAt,
       ];
 }

@@ -26,6 +26,9 @@ class SideMenuCubit extends Cubit<SideMenuState> {
   /// Último count real de inbox (mine). Nunca se rellena desde LocalStore.
   int? _lastInboxMineCount;
 
+  /// Último count real de enviados. Nunca se rellena desde LocalStore.
+  int? _lastSentCount;
+
   void init({List<String> permissions = const []}) {
     _emitMenus(
       counts: _buildMenuCounts(),
@@ -40,9 +43,17 @@ class SideMenuCubit extends Cubit<SideMenuState> {
   }
 
   Future<void> refreshBadges({List<String> permissions = const []}) async {
-    final inboxMineCount = await _fetchInboxMineCount();
+    final results = await Future.wait([
+      _fetchInboxMineCount(),
+      _fetchSentCount(),
+    ]);
+    final inboxMineCount = results[0];
+    final sentCount = results[1];
     if (inboxMineCount != null) {
       _lastInboxMineCount = inboxMineCount;
+    }
+    if (sentCount != null) {
+      _lastSentCount = sentCount;
     }
     _emitMenus(counts: _buildMenuCounts(), permissions: permissions);
   }
@@ -58,12 +69,23 @@ class SideMenuCubit extends Cubit<SideMenuState> {
     );
   }
 
+  Future<int?> _fetchSentCount() async {
+    final repository = _correspondenceRepository;
+    if (repository == null) return null;
+
+    final result = await repository.getSentCount();
+    return result.when(
+      ok: (count) => count.total,
+      err: (_) => null,
+    );
+  }
+
   Map<String, int?> _buildMenuCounts() {
     final mock = _store.inboxCounts();
     return {
       'inbox': _lastInboxMineCount,
       'received': mock['received'],
-      'sent': mock['sent'],
+      'sent': _lastSentCount,
     };
   }
 

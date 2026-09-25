@@ -45,7 +45,7 @@ class MenuOptions {
         menu: MenuEnum.sent,
         title: 'Enviados',
         icon: Icons.send_outlined,
-        badge: counts['sent'],
+        badge: inboxBadge(counts['sent']),
       ),
       MenuItemData(
         menu: MenuEnum.observed,

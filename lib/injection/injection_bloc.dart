@@ -21,6 +21,7 @@ import '../../features/correspondence/list_correspondence/cubit/correspondence_c
 import '../../features/correspondence/upsert_correspondence/cubit/upsert_correspondence_cubit.dart';
 import '../../features/home/side_menu/cubit/side_menu_cubit.dart';
 import '../../features/inbox/cubit/inbox_entry_cubit.dart';
+import '../../features/inbox/cubit/sent_entry_cubit.dart';
 import '../../features/splash/cubit/splash_cubit.dart';
 
 /// Global GetIt instance.
@@ -49,6 +50,9 @@ void registerCubits() {
 
   getIt.registerFactory<InboxEntryCubit>(
     () => InboxEntryCubit(getIt<CorrespondenceRepository>()),
+  );
+  getIt.registerFactory<SentEntryCubit>(
+    () => SentEntryCubit(getIt<CorrespondenceRepository>()),
   );
   getIt.registerFactory<SplashCubit>(
     () => SplashCubit(authRepository: getIt<AuthenticationRepository>()),
