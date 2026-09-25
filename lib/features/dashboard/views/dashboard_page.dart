@@ -1,17 +1,28 @@
-import 'package:correspondencia_sipe_sipe/core/data/local_store.dart';
+import 'package:correspondencia_repository/correspondencia_repository.dart'
+    as repo;
 import 'package:correspondencia_sipe_sipe/core/helpers/extensions/extension_device.dart';
+import 'package:correspondencia_sipe_sipe/core/helpers/full_widget_generics.dart';
+import 'package:correspondencia_sipe_sipe/core/helpers/listener/listener_generic.dart';
 import 'package:correspondencia_sipe_sipe/core/theme/app_decorations.dart';
 import 'package:correspondencia_sipe_sipe/core/theme/ui_colors.dart';
+import 'package:correspondencia_sipe_sipe/core/util/enums.dart';
+import 'package:correspondencia_sipe_sipe/features/dashboard/cubit/dashboard_cubit.dart';
+import 'package:correspondencia_sipe_sipe/features/home/side_menu/cubit/side_menu_cubit.dart';
+import 'package:correspondencia_sipe_sipe/injection/injection_bloc.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/metric_tile.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/section_header.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const DashboardView();
+    return BlocProvider(
+      create: (_) => getIt<DashboardCubit>(),
+      child: const DashboardView(),
+    );
   }
 }
 
@@ -20,7 +31,17 @@ class DashboardView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const DashboardBody();
+    return MultiBlocListener(
+      listeners: [
+        ListenerPro<DashboardCubit, DashboardState>().listen(
+          showSuccess: false,
+        ),
+      ],
+      child: FullWidgetGeneric(
+        onInit: () => context.read<DashboardCubit>().init(),
+        child: const DashboardBody(),
+      ),
+    );
   }
 }
 
@@ -29,71 +50,96 @@ class DashboardBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final store = LocalStore.instance;
-    final counts = store.inboxCounts();
-
     return AdminContent(
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-          const SectionHeader(
-            title: 'Panel de control',
-            subtitle: 'Visión general del flujo de correspondencia institucional',
-          ),
-          const SizedBox(height: 28),
-          Wrap(
-            spacing: 18,
-            runSpacing: 18,
-            children: [
-              MetricTile(
-                title: 'Correspondencias',
-                value: '${store.correspondences.length}',
-                icon: Icons.description_outlined,
-                color: UiColors.primary,
-                softColor: UiColors.primarySoft,
-              ),
-              MetricTile(
-                title: 'Recibidos',
-                value: '${counts['received'] ?? 0}',
-                icon: Icons.move_to_inbox_outlined,
-                color: UiColors.info,
-                softColor: UiColors.infoSoft,
-              ),
-              MetricTile(
-                title: 'Enviados',
-                value: '${counts['sent'] ?? 0}',
-                icon: Icons.send_outlined,
-                color: UiColors.success,
-                softColor: UiColors.successSoft,
-              ),
-              MetricTile(
-                title: 'Funcionarios',
-                value: '${store.employees.length}',
-                icon: Icons.badge_outlined,
-                color: UiColors.warning,
-                softColor: UiColors.warningSoft,
-              ),
-            ],
-          ),
-          const SizedBox(height: 28),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(28),
-            decoration: AppDecorations.surfaceCard(),
-            child: context.isSmallScreen
-                ? const _OverviewPanel()
-                : const Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(child: _OverviewPanel()),
-                      SizedBox(width: 24),
-                      _OverviewIcon(),
-                    ],
-                  ),
-          ),
-        ],
-      ),
+            SectionHeader(
+              title: 'Panel de control',
+              subtitle:
+                  'Visión general del flujo de correspondencia institucional',
+              actions: [
+                IconButton(
+                  tooltip: 'Actualizar',
+                  onPressed: () => context.read<DashboardCubit>().refresh(),
+                  icon: const Icon(Icons.refresh_rounded),
+                ),
+              ],
+            ),
+            const SizedBox(height: 28),
+            BlocBuilder<DashboardCubit, DashboardState>(
+              builder: (context, state) {
+                final isLoading =
+                    state.generalStatus == GeneralStatus.loading &&
+                        state.mineCount == null &&
+                        state.unitCount == null &&
+                        state.sentCount == null;
+                final sideMenu = context.read<SideMenuCubit>();
+
+                return Wrap(
+                  spacing: 18,
+                  runSpacing: 18,
+                  children: [
+                    MetricTile(
+                      title: 'Asignados a mí',
+                      value: state.displayCount(
+                        state.mineCount,
+                        isLoading: isLoading,
+                      ),
+                      icon: Icons.inbox_outlined,
+                      color: UiColors.info,
+                      softColor: UiColors.infoSoft,
+                      onTap: () => sideMenu.navigateToInbox(
+                        scope: repo.InboxScope.mine,
+                      ),
+                    ),
+                    MetricTile(
+                      title: 'De mi unidad',
+                      value: state.displayCount(
+                        state.unitCount,
+                        isLoading: isLoading,
+                      ),
+                      icon: Icons.groups_outlined,
+                      color: UiColors.primary,
+                      softColor: UiColors.primarySoft,
+                      onTap: () => sideMenu.navigateToInbox(
+                        scope: repo.InboxScope.unit,
+                      ),
+                    ),
+                    MetricTile(
+                      title: 'Enviados',
+                      value: state.displayCount(
+                        state.sentCount,
+                        isLoading: isLoading,
+                      ),
+                      icon: Icons.send_outlined,
+                      color: UiColors.success,
+                      softColor: UiColors.successSoft,
+                      onTap: sideMenu.navigateToSent,
+                    ),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 28),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(28),
+              decoration: AppDecorations.surfaceCard(),
+              child: context.isSmallScreen
+                  ? const _OverviewPanel()
+                  : const Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: _OverviewPanel()),
+                        SizedBox(width: 24),
+                        _OverviewIcon(),
+                      ],
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }

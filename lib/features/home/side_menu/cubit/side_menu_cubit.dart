@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:correspondencia_repository/correspondencia_repository.dart'
     as repo;
-import 'package:correspondencia_sipe_sipe/core/data/local_store.dart';
 import 'package:correspondencia_sipe_sipe/core/util/enums.dart';
 import 'package:correspondencia_sipe_sipe/features/home/side_menu/helpers/menu_options.dart';
 import 'package:correspondencia_sipe_sipe/features/home/side_menu/widgets/menu_item_data.dart';
@@ -14,13 +13,10 @@ part 'side_menu_state.dart';
 
 class SideMenuCubit extends Cubit<SideMenuState> {
   SideMenuCubit({
-    LocalStore? store,
     repo.CorrespondenceRepository? correspondenceRepository,
-  })  : _store = store ?? LocalStore.instance,
-        _correspondenceRepository = correspondenceRepository,
+  })  : _correspondenceRepository = correspondenceRepository,
         super(const SideMenuState());
 
-  final LocalStore _store;
   final repo.CorrespondenceRepository? _correspondenceRepository;
 
   /// Último count real de inbox (mine). Nunca se rellena desde LocalStore.
@@ -28,6 +24,8 @@ class SideMenuCubit extends Cubit<SideMenuState> {
 
   /// Último count real de enviados. Nunca se rellena desde LocalStore.
   int? _lastSentCount;
+
+  repo.InboxScope? _pendingInboxScope;
 
   void init({List<String> permissions = const []}) {
     _emitMenus(
@@ -37,9 +35,27 @@ class SideMenuCubit extends Cubit<SideMenuState> {
     unawaited(refreshBadges(permissions: permissions));
   }
 
-  void select(MenuItemData menu) {
+  void select(MenuItemData menu, {bool preservePendingInboxScope = false}) {
     if (menu.isSection) return;
+    if (!preservePendingInboxScope) {
+      _pendingInboxScope = null;
+    }
     emit(state.copyWith(selected: menu));
+  }
+
+  void navigateToInbox({required repo.InboxScope scope}) {
+    _pendingInboxScope = scope;
+    _selectMenu(MenuEnum.inbox, preservePendingInboxScope: true);
+  }
+
+  void navigateToSent() {
+    _selectMenu(MenuEnum.sent);
+  }
+
+  repo.InboxScope? consumePendingInboxScope() {
+    final scope = _pendingInboxScope;
+    _pendingInboxScope = null;
+    return scope;
   }
 
   Future<void> refreshBadges({List<String> permissions = const []}) async {
@@ -81,12 +97,24 @@ class SideMenuCubit extends Cubit<SideMenuState> {
   }
 
   Map<String, int?> _buildMenuCounts() {
-    final mock = _store.inboxCounts();
     return {
       'inbox': _lastInboxMineCount,
-      'received': mock['received'],
       'sent': _lastSentCount,
     };
+  }
+
+  void _selectMenu(
+    MenuEnum menu, {
+    bool preservePendingInboxScope = false,
+  }) {
+    final selectable = state.menus.where((item) => !item.isSection).toList();
+    if (selectable.isEmpty) return;
+
+    final selected = selectable.firstWhere(
+      (item) => item.menu == menu,
+      orElse: () => selectable.first,
+    );
+    select(selected, preservePendingInboxScope: preservePendingInboxScope);
   }
 
   void _emitMenus({

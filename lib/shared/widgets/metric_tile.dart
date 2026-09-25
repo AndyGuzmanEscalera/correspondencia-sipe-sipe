@@ -9,6 +9,7 @@ class MetricTile extends StatelessWidget {
     required this.icon,
     required this.color,
     required this.softColor,
+    this.onTap,
     super.key,
   });
 
@@ -17,10 +18,11 @@ class MetricTile extends StatelessWidget {
   final IconData icon;
   final Color color;
   final Color softColor;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final content = Container(
       width: double.infinity,
       constraints: const BoxConstraints(maxWidth: 280),
       padding: const EdgeInsets.all(22),
@@ -54,6 +56,17 @@ class MetricTile extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+
+    if (onTap == null) return content;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: AppDecorations.borderRadiusLg,
+        child: content,
       ),
     );
   }

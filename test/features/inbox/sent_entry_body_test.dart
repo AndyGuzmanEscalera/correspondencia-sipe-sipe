@@ -65,7 +65,16 @@ class _StubSideMenuCubit extends Cubit<SideMenuState> implements SideMenuCubit {
   }
 
   @override
-  void select(MenuItemData menu) {}
+  void select(MenuItemData menu, {bool preservePendingInboxScope = false}) {}
+
+  @override
+  void navigateToInbox({required repo.InboxScope scope}) {}
+
+  @override
+  void navigateToSent() {}
+
+  @override
+  repo.InboxScope? consumePendingInboxScope() => null;
 }
 
 final sentCorrespondence = externalCorrespondence.copyWith(

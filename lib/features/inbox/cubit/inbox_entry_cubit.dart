@@ -19,7 +19,11 @@ class InboxEntryCubit extends Cubit<InboxEntryState> {
   final repo.CorrespondenceRepository _repository;
   Timer? _searchDebounce;
 
-  Future<void> init() async {
+  Future<void> init({repo.InboxScope? scope}) async {
+    if (scope != null && scope != state.scope) {
+      emit(state.copyWith(scope: scope, page: 1));
+    }
+
     await Future.wait([
       _loadCounts(),
       _loadInbox(

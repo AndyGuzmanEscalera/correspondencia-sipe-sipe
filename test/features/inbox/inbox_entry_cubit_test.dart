@@ -153,6 +153,28 @@ void main() {
       await cubit.close();
     });
 
+    test('init con scope unit abre bandeja de unidad', () async {
+      final repository = _FakeCorrespondenceRepository();
+      final cubit = InboxEntryCubit(repository);
+
+      await cubit.init(scope: repo.InboxScope.unit);
+
+      expect(cubit.state.scope, repo.InboxScope.unit);
+      expect(repository.lastInboxScope, repo.InboxScope.unit);
+      await cubit.close();
+    });
+
+    test('init sin scope pendiente usa mine por default', () async {
+      final repository = _FakeCorrespondenceRepository();
+      final cubit = InboxEntryCubit(repository);
+
+      await cubit.init();
+
+      expect(cubit.state.scope, repo.InboxScope.mine);
+      expect(repository.lastInboxScope, repo.InboxScope.mine);
+      await cubit.close();
+    });
+
     test('refresh conserva scope actual', () async {
       final repository = _FakeCorrespondenceRepository();
       final cubit = InboxEntryCubit(repository);

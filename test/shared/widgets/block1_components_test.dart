@@ -188,8 +188,10 @@ void main() {
         // Items
         expect(find.text('Panel'), findsOneWidget);
         expect(find.text('Bandeja de entrada'), findsOneWidget);
-        expect(find.text('Recibidos'), findsOneWidget);
         expect(find.text('Enviados'), findsOneWidget);
+        expect(find.text('Recibidos'), findsNothing);
+        expect(find.text('Observados'), findsNothing);
+        expect(find.text('Archivados'), findsNothing);
         expect(find.text('Unidades organizacionales'), findsOneWidget);
         expect(find.text('Tipos de documento'), findsOneWidget);
       },

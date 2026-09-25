@@ -36,26 +36,10 @@ class MenuOptions {
         badge: inboxBadge(counts['inbox']),
       ),
       MenuItemData(
-        menu: MenuEnum.received,
-        title: 'Recibidos',
-        icon: Icons.move_to_inbox_outlined,
-        badge: counts['received'],
-      ),
-      MenuItemData(
         menu: MenuEnum.sent,
         title: 'Enviados',
         icon: Icons.send_outlined,
         badge: inboxBadge(counts['sent']),
-      ),
-      MenuItemData(
-        menu: MenuEnum.observed,
-        title: 'Observados',
-        icon: Icons.report_problem_outlined,
-      ),
-      MenuItemData(
-        menu: MenuEnum.archived,
-        title: 'Archivados',
-        icon: Icons.archive_outlined,
       ),
       MenuItemData(
         menu: MenuEnum.reports,

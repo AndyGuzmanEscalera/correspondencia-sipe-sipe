@@ -27,7 +27,7 @@ class _StubInboxEntryCubit extends Cubit<InboxEntryState>
   int refreshCalls = 0;
 
   @override
-  Future<void> init() async {}
+  Future<void> init({repo.InboxScope? scope}) async {}
 
   @override
   Future<void> refresh() async {
@@ -69,7 +69,16 @@ class _StubSideMenuCubit extends Cubit<SideMenuState> implements SideMenuCubit {
   }
 
   @override
-  void select(MenuItemData menu) {}
+  void select(MenuItemData menu, {bool preservePendingInboxScope = false}) {}
+
+  @override
+  void navigateToInbox({required repo.InboxScope scope}) {}
+
+  @override
+  void navigateToSent() {}
+
+  @override
+  repo.InboxScope? consumePendingInboxScope() => null;
 }
 
 Widget _buildSubject({

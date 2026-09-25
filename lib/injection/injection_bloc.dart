@@ -19,6 +19,7 @@ import '../../features/correspondence/detail/cubit/correspondence_detail_cubit.d
 import '../../features/correspondence/detail/cubit/correspondence_document_actions_cubit.dart';
 import '../../features/correspondence/list_correspondence/cubit/correspondence_cubit.dart';
 import '../../features/correspondence/upsert_correspondence/cubit/upsert_correspondence_cubit.dart';
+import '../../features/dashboard/cubit/dashboard_cubit.dart';
 import '../../features/home/side_menu/cubit/side_menu_cubit.dart';
 import '../../features/inbox/cubit/inbox_entry_cubit.dart';
 import '../../features/inbox/cubit/sent_entry_cubit.dart';
@@ -53,6 +54,9 @@ void registerCubits() {
   );
   getIt.registerFactory<SentEntryCubit>(
     () => SentEntryCubit(getIt<CorrespondenceRepository>()),
+  );
+  getIt.registerFactory<DashboardCubit>(
+    () => DashboardCubit(getIt<CorrespondenceRepository>()),
   );
   getIt.registerFactory<SplashCubit>(
     () => SplashCubit(authRepository: getIt<AuthenticationRepository>()),

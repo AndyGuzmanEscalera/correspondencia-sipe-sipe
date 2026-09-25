@@ -35,7 +35,9 @@ class InboxEntryView extends StatelessWidget {
       ],
       child: FullWidgetGeneric(
         onInit: () {
-          context.read<InboxEntryCubit>().init();
+          final pendingScope =
+              context.read<SideMenuCubit>().consumePendingInboxScope();
+          context.read<InboxEntryCubit>().init(scope: pendingScope);
         },
         child: const InboxEntryBody(),
       ),

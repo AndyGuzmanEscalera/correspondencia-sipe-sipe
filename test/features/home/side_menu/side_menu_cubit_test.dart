@@ -1,6 +1,5 @@
 import 'package:correspondencia_repository/correspondencia_repository.dart'
     as repo;
-import 'package:correspondencia_sipe_sipe/core/data/local_store.dart';
 import 'package:correspondencia_sipe_sipe/core/util/enums.dart';
 import 'package:correspondencia_sipe_sipe/features/home/side_menu/cubit/side_menu_cubit.dart';
 import 'package:failures/failures.dart';
@@ -35,24 +34,18 @@ int? _badgeFor(SideMenuState state, MenuEnum menu) {
       .badge;
 }
 
+bool _hasMenu(SideMenuState state, MenuEnum menu) {
+  return state.menus.any((item) => item.menu == menu && !item.isSection);
+}
+
 void main() {
   group('SideMenuCubit badges', () {
-    late LocalStore store;
-
-    setUp(() {
-      store = LocalStore.instance;
-      store.seed();
-    });
-
     test('inbox y sent usan API real', () async {
       final repository = _FakeCorrespondenceRepository(
         inboxCountsResult: const Ok(repo.InboxCounts(mine: 4, unit: 9)),
         sentCountResult: const Ok(repo.SentCount(total: 7)),
       );
-      final cubit = SideMenuCubit(
-        store: store,
-        correspondenceRepository: repository,
-      );
+      final cubit = SideMenuCubit(correspondenceRepository: repository);
 
       cubit.init();
       await cubit.refreshBadges();
@@ -62,21 +55,21 @@ void main() {
       await cubit.close();
     });
 
-    test('received sigue usando mock LocalStore', () async {
-      final mockReceived = store.inboxCounts()['received'];
+    test('oculta bandejas mock del menú visible', () async {
       final repository = _FakeCorrespondenceRepository(
         inboxCountsResult: const Ok(repo.InboxCounts(mine: 1, unit: 2)),
         sentCountResult: const Ok(repo.SentCount(total: 3)),
       );
-      final cubit = SideMenuCubit(
-        store: store,
-        correspondenceRepository: repository,
-      );
+      final cubit = SideMenuCubit(correspondenceRepository: repository);
 
       cubit.init();
       await cubit.refreshBadges();
 
-      expect(_badgeFor(cubit.state, MenuEnum.received), mockReceived);
+      expect(_hasMenu(cubit.state, MenuEnum.inbox), isTrue);
+      expect(_hasMenu(cubit.state, MenuEnum.sent), isTrue);
+      expect(_hasMenu(cubit.state, MenuEnum.received), isFalse);
+      expect(_hasMenu(cubit.state, MenuEnum.observed), isFalse);
+      expect(_hasMenu(cubit.state, MenuEnum.archived), isFalse);
       await cubit.close();
     });
 
@@ -85,10 +78,7 @@ void main() {
         inboxCountsResult: const Ok(repo.InboxCounts(mine: 2, unit: 5)),
         sentCountResult: const Ok(repo.SentCount(total: 8)),
       );
-      final cubit = SideMenuCubit(
-        store: store,
-        correspondenceRepository: repository,
-      );
+      final cubit = SideMenuCubit(correspondenceRepository: repository);
 
       cubit.init();
       await cubit.refreshBadges();
@@ -105,10 +95,7 @@ void main() {
       final repository = _FakeCorrespondenceRepository(
         sentCountResult: const Err(ServerFailure('falló sent count')),
       );
-      final cubit = SideMenuCubit(
-        store: store,
-        correspondenceRepository: repository,
-      );
+      final cubit = SideMenuCubit(correspondenceRepository: repository);
 
       cubit.init();
       await cubit.refreshBadges();
@@ -122,10 +109,7 @@ void main() {
         inboxCountsResult: const Ok(repo.InboxCounts(mine: 6, unit: 10)),
         sentCountResult: const Ok(repo.SentCount(total: 1)),
       );
-      final cubit = SideMenuCubit(
-        store: store,
-        correspondenceRepository: repository,
-      );
+      final cubit = SideMenuCubit(correspondenceRepository: repository);
 
       cubit.init();
       await cubit.refreshBadges();
@@ -136,6 +120,56 @@ void main() {
       await cubit.refreshBadges();
 
       expect(_badgeFor(cubit.state, MenuEnum.inbox), 6);
+      await cubit.close();
+    });
+
+    test('navigateToInbox deja scope pendiente para InboxEntryView', () async {
+      final repository = _FakeCorrespondenceRepository();
+      final cubit = SideMenuCubit(correspondenceRepository: repository);
+
+      cubit.init();
+      await cubit.refreshBadges();
+      cubit.navigateToInbox(scope: repo.InboxScope.unit);
+
+      expect(cubit.state.selected.menu, MenuEnum.inbox);
+      expect(cubit.consumePendingInboxScope(), repo.InboxScope.unit);
+      expect(cubit.consumePendingInboxScope(), isNull);
+      await cubit.close();
+    });
+
+    test('pending scope se consume una sola vez', () async {
+      final repository = _FakeCorrespondenceRepository();
+      final cubit = SideMenuCubit(correspondenceRepository: repository);
+
+      cubit.init();
+      await cubit.refreshBadges();
+      cubit.navigateToInbox(scope: repo.InboxScope.unit);
+
+      expect(cubit.consumePendingInboxScope(), repo.InboxScope.unit);
+      expect(cubit.consumePendingInboxScope(), isNull);
+      expect(cubit.consumePendingInboxScope(), isNull);
+      await cubit.close();
+    });
+
+    test('sidebar bandeja limpia pending stale y abre default mine', () async {
+      final repository = _FakeCorrespondenceRepository();
+      final cubit = SideMenuCubit(correspondenceRepository: repository);
+
+      cubit.init();
+      await cubit.refreshBadges();
+
+      cubit.navigateToInbox(scope: repo.InboxScope.unit);
+      final panel = cubit.state.menus.firstWhere(
+        (item) => item.menu == MenuEnum.dashboard && !item.isSection,
+      );
+      cubit.select(panel);
+
+      final inbox = cubit.state.menus.firstWhere(
+        (item) => item.menu == MenuEnum.inbox && !item.isSection,
+      );
+      cubit.select(inbox);
+
+      expect(cubit.consumePendingInboxScope(), isNull);
       await cubit.close();
     });
   });
