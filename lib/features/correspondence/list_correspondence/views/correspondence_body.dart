@@ -26,13 +26,16 @@ class CorrespondenceBody extends StatelessWidget {
             actions: [
               ElevatedButton.icon(
                 onPressed: () {
+                  final ownerContext = context;
                   showDialog<void>(
                     context: context,
-                    builder: (_) {
+                    builder: (dialogContext) {
                       return BlocProvider.value(
                         value: BlocProvider.of<CorrespondenceCubit>(context),
-                        child: const UpsertCorrespondencePage(
+                        child: UpsertCorrespondencePage(
                           typeOperation: TypeOperation.create,
+                          hostDialogContext: dialogContext,
+                          ownerContext: ownerContext,
                         ),
                       );
                     },

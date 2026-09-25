@@ -1,4 +1,5 @@
 import 'package:correspondencia_repository/correspondencia_repository.dart';
+import 'package:correspondencia_sipe_sipe/core/helpers/extensions/extension_context.dart';
 import 'package:correspondencia_sipe_sipe/core/helpers/full_widget_generics.dart';
 import 'package:correspondencia_sipe_sipe/core/helpers/listener/listener_generic.dart';
 import 'package:correspondencia_sipe_sipe/core/util/enums.dart';
@@ -23,9 +24,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class UpsertCorrespondencePage extends StatelessWidget {
-  const UpsertCorrespondencePage({super.key, required this.typeOperation});
+  const UpsertCorrespondencePage({
+    super.key,
+    required this.typeOperation,
+    this.hostDialogContext,
+    this.ownerContext,
+  });
 
   final TypeOperation typeOperation;
+
+  /// Context del [showDialog] que abrió este formulario (cierra la ruta modal).
+  final BuildContext? hostDialogContext;
+
+  /// Context de la pantalla que abrió el modal (lista / caller).
+  final BuildContext? ownerContext;
 
   @override
   Widget build(BuildContext context) {
@@ -33,14 +45,44 @@ class UpsertCorrespondencePage extends StatelessWidget {
       typeOperation: typeOperation,
       child: BlocProvider(
         create: (context) => getIt<UpsertCorrespondenceCubit>(),
-        child: const UpsertCorrespondenceView(),
+        child: UpsertCorrespondenceView(
+          hostDialogContext: hostDialogContext,
+          ownerContext: ownerContext,
+        ),
       ),
     );
   }
 }
 
 class UpsertCorrespondenceView extends StatelessWidget {
-  const UpsertCorrespondenceView({super.key});
+  const UpsertCorrespondenceView({
+    super.key,
+    this.hostDialogContext,
+    this.ownerContext,
+  });
+
+  final BuildContext? hostDialogContext;
+  final BuildContext? ownerContext;
+
+  void _closeCreateDialog() {
+    final host = hostDialogContext;
+    if (host != null && host.mounted) {
+      Navigator.of(host).pop();
+    }
+  }
+
+  void _openDetailIfNeeded(Correspondence? created) {
+    if (created == null) return;
+    final owner = ownerContext;
+    if (owner == null || !owner.mounted) return;
+    Navigator.of(owner, rootNavigator: true).push(
+      MaterialPageRoute<void>(
+        builder: (_) => CorrespondenceDetailPage(
+          correspondenceId: created.id,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,20 +91,42 @@ class UpsertCorrespondenceView extends StatelessWidget {
 
     return MultiBlocListener(
       listeners: [
-        ListenerPro<UpsertCorrespondenceCubit, UpsertCorrespondenceState>()
-            .listen(
-          onPressedSuccess: () {
-            final created = upsertCubit.state.createdCorrespondence;
-            final navigator = Navigator.of(context, rootNavigator: true);
-            navigator.pop();
-            if (created != null) {
-              navigator.push(
-                MaterialPageRoute<void>(
-                  builder: (_) => CorrespondenceDetailPage(
-                    correspondenceId: created.id,
-                  ),
-                ),
-              );
+        BlocListener<UpsertCorrespondenceCubit, UpsertCorrespondenceState>(
+          listenWhen: (previous, current) =>
+              previous.generalStatus != current.generalStatus,
+          listener: (context, state) {
+            final message = state.dialogMessage;
+            switch (state.generalStatus) {
+              case GeneralStatus.loading:
+                if (message.showLoading) {
+                  context.showAppLoading(message: message.message);
+                }
+              case GeneralStatus.error:
+                context.popDialog();
+                if (message.showError) {
+                  context.showAppError(
+                    message: message.message,
+                    title: message.title ?? 'Error',
+                  );
+                }
+              case GeneralStatus.success:
+                context.popDialog();
+                final created = state.createdCorrespondence;
+                _closeCreateDialog();
+                final owner = ownerContext;
+                final feedbackContext =
+                    owner != null && owner.mounted ? owner : context;
+                if (message.showSuccess) {
+                  feedbackContext.showAppSuccess(
+                    message: message.message,
+                    title: message.title ?? 'Éxito',
+                    onClose: () => _openDetailIfNeeded(created),
+                  );
+                } else {
+                  _openDetailIfNeeded(created);
+                }
+              case GeneralStatus.initial:
+                break;
             }
           },
         ),
@@ -250,16 +314,40 @@ class _UpsertCorrespondenceBodyState extends State<UpsertCorrespondenceBody> {
       profile: _profile,
       isExternal: _isExternal,
     );
-    if (!validResult.isPassed) return;
+    if (!validResult.isPassed) {
+      inherited.focusFirstInvalidField(
+        profile: _profile,
+        isExternal: _isExternal,
+      );
+      return;
+    }
 
     final type = inherited.type.get() ?? CorrespondenceTypeCode.ci;
     final priority = inherited.priority.get();
     final documentTypeId = inherited.documentType.get();
     final toUnitId = inherited.toUnit.get();
-    if (priority == null ||
-        documentTypeId == null ||
-        toUnitId == null ||
-        toUnitId.isEmpty) {
+    if (priority == null) {
+      inherited.priority.fieldKey.currentState?.validate();
+      inherited.focusFirstInvalidField(
+        profile: _profile,
+        isExternal: _isExternal,
+      );
+      return;
+    }
+    if (documentTypeId == null) {
+      inherited.documentType.fieldKey.currentState?.validate();
+      inherited.focusFirstInvalidField(
+        profile: _profile,
+        isExternal: _isExternal,
+      );
+      return;
+    }
+    if (toUnitId == null || toUnitId.isEmpty) {
+      inherited.toUnit.fieldKey.currentState?.validate();
+      inherited.focusFirstInvalidField(
+        profile: _profile,
+        isExternal: _isExternal,
+      );
       return;
     }
 

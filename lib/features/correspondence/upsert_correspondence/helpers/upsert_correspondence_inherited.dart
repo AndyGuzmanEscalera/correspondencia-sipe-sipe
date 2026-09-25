@@ -39,6 +39,11 @@ class UpsertCorrespondenceInherited extends InheritedWidget {
     value: '',
   );
 
+  static const chainingErrorKey = 'chaining';
+
+  static const chainingSubjectReferenceError =
+      'Complete al menos el asunto o la referencia.';
+
   final TypeOperation typeOperation;
   final formKey = GlobalKey<FormState>();
   final subject = ControllerFieldPro();
@@ -131,7 +136,11 @@ class UpsertCorrespondenceInherited extends InheritedWidget {
 
     switch (profile) {
       case DocumentFormProfile.chaining:
-        fieldKeys.addAll([type.fieldKey]);
+        fieldKeys.addAll([
+          type.fieldKey,
+          subject.fieldKey,
+          reference.fieldKey,
+        ]);
         if (isExternal) {
           fieldKeys.add(senderName.fieldKey);
         } else {
@@ -150,17 +159,62 @@ class UpsertCorrespondenceInherited extends InheritedWidget {
 
     final result = formKey.validateAndGetErrors(fieldKeys);
 
-    if (result.isPassed &&
-        profile == DocumentFormProfile.chaining &&
+    if (profile == DocumentFormProfile.chaining &&
         subject.getValue().trim().isEmpty &&
         reference.getValue().trim().isEmpty) {
-      return const ResultValidate(
+      return ResultValidate(
         isPassed: false,
-        errors: {'chaining': 'El asunto o la referencia es obligatorio'},
+        errors: {
+          ...result.errors,
+          chainingErrorKey: chainingSubjectReferenceError,
+        },
       );
     }
 
     return result;
+  }
+
+  void focusFirstInvalidField({
+    required DocumentFormProfile profile,
+    required bool isExternal,
+  }) {
+    final candidates = <({GlobalKey<FormFieldState<Object?>> key, FocusNode focusNode})>[
+      (key: documentType.fieldKey, focusNode: documentType.focusNode),
+      (key: priority.fieldKey, focusNode: priority.focusNode),
+      (key: type.fieldKey, focusNode: type.focusNode),
+      if (profile == DocumentFormProfile.chaining) ...[
+        if (isExternal)
+          (key: senderName.fieldKey, focusNode: senderName.focusNode)
+        else
+          (key: originEmployee.fieldKey, focusNode: originEmployee.focusNode),
+        (key: subject.fieldKey, focusNode: subject.focusNode),
+        (key: reference.fieldKey, focusNode: reference.focusNode),
+      ],
+      if (profile == DocumentFormProfile.technicalReport ||
+          profile == DocumentFormProfile.internalNote) ...[
+        (key: description.fieldKey, focusNode: description.focusNode),
+        (key: originEmployee.fieldKey, focusNode: originEmployee.focusNode),
+      ],
+      if (profile == DocumentFormProfile.generic) ...[
+        (key: subject.fieldKey, focusNode: subject.focusNode),
+        if (isExternal)
+          (key: senderName.fieldKey, focusNode: senderName.focusNode),
+      ],
+      (key: toUnit.fieldKey, focusNode: toUnit.focusNode),
+    ];
+
+    for (final field in candidates) {
+      final fieldState = field.key.currentState;
+      if (fieldState != null && !fieldState.isValid) {
+        field.focusNode.requestFocus();
+        Scrollable.ensureVisible(
+          fieldState.context,
+          duration: const Duration(milliseconds: 200),
+          alignment: 0.3,
+        );
+        return;
+      }
+    }
   }
 
   void dispose() {

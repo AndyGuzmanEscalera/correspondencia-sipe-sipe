@@ -31,3 +31,21 @@ class NumericValid extends AbstractValid {
     return null;
   }
 }
+
+/// Requiere que este campo u [otherValue] tenga contenido (regla "al menos uno").
+class AtLeastOneOfValid extends AbstractValid {
+  AtLeastOneOfValid({
+    required this.otherValue,
+    required this.error,
+  });
+
+  final String Function() otherValue;
+  final String error;
+
+  @override
+  String? valid(String? value) {
+    if (InputValidators.isRequired(value)) return null;
+    if (InputValidators.isRequired(otherValue())) return null;
+    return error;
+  }
+}

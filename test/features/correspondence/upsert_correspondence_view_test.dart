@@ -6,6 +6,7 @@ import 'package:correspondencia_sipe_sipe/core/util/enums.dart';
 import 'package:correspondencia_sipe_sipe/core/util/form/models/form_option.dart';
 import 'package:correspondencia_sipe_sipe/core/presentation/widget/responsive_breakpoints.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/detail/cubit/correspondence_detail_cubit.dart';
+import 'package:correspondencia_sipe_sipe/features/correspondence/detail/cubit/correspondence_document_actions_cubit.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/list_correspondence/cubit/correspondence_cubit.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/cubit/upsert_correspondence_cubit.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/helpers/upsert_correspondence_inherited.dart';
@@ -33,11 +34,13 @@ class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
 
   Result<repo.Correspondence, Failure>? createResult;
   Completer<void>? createGate;
+  int createCalls = 0;
 
   @override
   Future<Result<repo.Correspondence, Failure>> createCorrespondence(
     repo.CreateCorrespondenceInput input,
   ) async {
+    createCalls++;
     if (createGate != null) {
       await createGate!.future;
     }
@@ -174,6 +177,16 @@ void main() {
           correspondenceId: correspondenceId,
         ),
       );
+      if (getIt.isRegistered<CorrespondenceDocumentActionsCubit>()) {
+        getIt.unregister<CorrespondenceDocumentActionsCubit>();
+      }
+      getIt.registerFactoryParam<CorrespondenceDocumentActionsCubit, String,
+          void>(
+        (correspondenceId, _) => CorrespondenceDocumentActionsCubit(
+          repository: _FakeDetailCorrespondenceRepository(),
+          correspondenceId: correspondenceId,
+        ),
+      );
     });
 
     tearDown(() async {
@@ -181,6 +194,9 @@ void main() {
       await sideMenuCubit.close();
       if (getIt.isRegistered<CorrespondenceDetailCubit>()) {
         getIt.unregister<CorrespondenceDetailCubit>();
+      }
+      if (getIt.isRegistered<CorrespondenceDocumentActionsCubit>()) {
+        getIt.unregister<CorrespondenceDocumentActionsCubit>();
       }
     });
 
@@ -198,13 +214,13 @@ void main() {
               BlocProvider<SideMenuCubit>.value(value: sideMenuCubit),
             ],
             child: Builder(
-              builder: (context) {
+              builder: (ownerContext) {
                 return Scaffold(
                   body: ElevatedButton(
                     onPressed: () {
                       showDialog<void>(
-                        context: context,
-                        builder: (_) => MultiBlocProvider(
+                        context: ownerContext,
+                        builder: (dialogContext) => MultiBlocProvider(
                           providers: [
                             BlocProvider<CorrespondenceCubit>.value(
                               value: listCubit,
@@ -222,7 +238,10 @@ void main() {
                                 organizationRepository:
                                     organizationRepository,
                               ),
-                              child: const UpsertCorrespondenceView(),
+                              child: UpsertCorrespondenceView(
+                                hostDialogContext: dialogContext,
+                                ownerContext: ownerContext,
+                              ),
                             ),
                           ),
                         ),
@@ -303,6 +322,57 @@ void main() {
       expect(listCubit.getCallCount, 1);
       expect(find.text('Registro exitoso'), findsOneWidget);
     });
+
+    testWidgets('success cierra diálogo de creación al confirmar', (tester) async {
+      await pumpCreateDialog(tester);
+      await _fillMinimumExternalForm(tester);
+      await tester.tap(find.text('Registrar'));
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(find.text('Registro exitoso'), findsOneWidget);
+      expect(find.text('Nueva correspondencia'), findsNothing);
+    });
+
+    testWidgets(
+      'EDIE externa sin asunto ni referencia muestra error y no crea',
+      (tester) async {
+        correspondenceRepository.createCalls = 0;
+
+        await pumpCreateDialog(tester);
+        await _fillExternalFormWithoutSubject(tester);
+        await tester.tap(find.text('Registrar'));
+        await tester.pump();
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text(
+            UpsertCorrespondenceInherited.chainingSubjectReferenceError,
+          ),
+          findsWidgets,
+        );
+        expect(correspondenceRepository.createCalls, 0);
+        expect(find.text('Nueva correspondencia'), findsOneWidget);
+        expect(find.text('Registrando correspondencia...'), findsNothing);
+
+        correspondenceRepository.createGate = Completer<void>();
+
+        await tester.enterText(
+          find.byType(TextFormField).at(4),
+          'Solicitud externa',
+        );
+        await tester.tap(find.text('Registrar'));
+        await tester.pump();
+
+        expect(correspondenceRepository.createCalls, 1);
+        expect(find.byType(CircularProgressIndicator), findsWidgets);
+
+        correspondenceRepository.createGate!.complete();
+        await tester.pumpAndSettle();
+
+        expect(find.text('Registro exitoso'), findsOneWidget);
+      },
+    );
   });
 }
 
@@ -314,30 +384,36 @@ class _FakeListRepository implements repo.CorrespondenceRepository {
 Future<void> _fillMinimumExternalForm(WidgetTester tester) async {
   await tester.enterText(find.byType(TextFormField).at(0), 'Ciudadano');
   await tester.enterText(find.byType(TextFormField).at(4), 'Solicitud externa');
-  await _selectStringDropdown(
-    tester,
-    dropdownIndex: 2,
-    optionText: 'Sistemas',
-  );
-  await tester.pumpAndSettle();
+  await _selectDestinationUnit(tester, unitName: 'Sistemas');
 }
 
-Future<void> _selectStringDropdown(
-  WidgetTester tester, {
-  required int dropdownIndex,
-  required String optionText,
-}) async {
-  final dropdown =
-      find.byType(DropdownButtonFormField<FormOption<String>>).at(dropdownIndex);
+Future<void> _fillExternalFormWithoutSubject(WidgetTester tester) async {
+  await tester.enterText(find.byType(TextFormField).at(0), 'Ciudadano');
   await tester.scrollUntilVisible(
-    dropdown,
+    find.text('Asunto'),
     48,
     scrollable: find.byType(Scrollable).first,
   );
   await tester.pumpAndSettle();
-  await tester.tap(dropdown);
+  await _selectDestinationUnit(tester, unitName: 'Sistemas');
+}
+
+Future<void> _selectDestinationUnit(
+  WidgetTester tester, {
+  required String unitName,
+}) async {
+  final unitLabel = find.text('Unidad destino');
+  await tester.scrollUntilVisible(
+    unitLabel,
+    48,
+    scrollable: find.byType(Scrollable).first,
+  );
   await tester.pumpAndSettle();
-  await tester.tap(find.text(optionText).last);
+  await tester.tap(
+    find.byType(DropdownButtonFormField<FormOption<String>>).at(2),
+  );
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(unitName).last);
   await tester.pumpAndSettle();
 }
 
