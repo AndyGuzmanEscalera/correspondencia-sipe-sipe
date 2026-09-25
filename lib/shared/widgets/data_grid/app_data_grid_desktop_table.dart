@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:correspondencia_sipe_sipe/core/theme/ui_colors.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/data_grid/app_data_grid_action.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/data_grid/app_data_grid_actions_bar.dart';
@@ -51,11 +53,19 @@ class AppDataGridDesktopTable<T> extends StatelessWidget {
                 AppDataGridValueUtils.defaultAlignment(column.type),
             child: Text(
               column.label,
-              style: const TextStyle(fontWeight: FontWeight.w600),
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 12.5,
+                color: UiColors.textPrimary,
+                letterSpacing: 0.2,
+              ),
             ),
           ),
           size: _columnSize(column),
           fixedWidth: column.width,
+          tooltip: !allowSorting || !column.sortable
+              ? null
+              : 'Ordenar por ${column.label}',
           onSort: !allowSorting || !column.sortable
               ? null
               : (_, ascending) => onSort(column.key, ascending),
@@ -63,20 +73,45 @@ class AppDataGridDesktopTable<T> extends StatelessWidget {
       }),
       if (showActions)
         const DataColumn2(
-          label: Text('Acciones'),
+          label: Align(
+            alignment: Alignment.center,
+            child: Text(
+              'Acciones',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 12.5,
+                color: UiColors.textPrimary,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ),
           fixedWidth: 112,
         ),
     ];
 
     return DataTable2(
-      columnSpacing: 12,
-      horizontalMargin: 12,
+      columnSpacing: 16,
+      horizontalMargin: 16,
       minWidth: _minTableWidth(visibleColumns, showActions),
       headingRowHeight: 46,
-      dataRowHeight: 46,
+      dataRowHeight: 48,
       sortColumnIndex: sortIndex,
       sortAscending: sortAscending,
       headingRowColor: WidgetStateProperty.all(UiColors.background),
+      dataRowColor: WidgetStateProperty.resolveWith<Color?>((states) {
+        if (states.contains(WidgetState.hovered)) {
+          return UiColors.primarySoft.withOpacity(0.18);
+        }
+        if (states.contains(WidgetState.selected)) {
+          return UiColors.primarySoft.withOpacity(0.35);
+        }
+        return null;
+      }),
+      dividerThickness: 1,
+      border: const TableBorder(
+        bottom: BorderSide(color: UiColors.borderLight, width: 1.5),
+        horizontalInside: BorderSide(color: UiColors.borderLight, width: 1),
+      ),
       columns: tableColumns,
       rows: items.map((item) {
         return DataRow2(
@@ -87,19 +122,23 @@ class AppDataGridDesktopTable<T> extends StatelessWidget {
             ...visibleColumns.map(
               (column) => DataCell(
                 Align(
-                  alignment:
-                      column.alignment ?? AppDataGridValueUtils.defaultAlignment(column.type),
+                  alignment: column.alignment ??
+                      AppDataGridValueUtils.defaultAlignment(column.type),
                   child: _buildCell(context, column, item),
                 ),
               ),
             ),
             if (showActions)
               DataCell(
-                rowActionsBuilder?.call(context, item) ??
-                    AppDataGridActionsBar<T>(
-                      item: item,
-                      actions: actions,
-                    ),
+                Align(
+                  alignment: Alignment.center,
+                  child: rowActionsBuilder?.call(context, item) ??
+                      AppDataGridActionsBar<T>(
+                        item: item,
+                        actions: actions,
+                        iconButtonSize: 36,
+                      ),
+                ),
               ),
           ],
         );
@@ -117,6 +156,13 @@ class AppDataGridDesktopTable<T> extends StatelessWidget {
         column: column,
         value: value,
         nullLabel: nullLabel,
+      ),
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+      style: const TextStyle(
+        fontSize: 13,
+        color: UiColors.textPrimary,
+        height: 1.3,
       ),
     );
   }
@@ -141,15 +187,18 @@ class AppDataGridDesktopTable<T> extends StatelessWidget {
       width += column.width ?? column.minWidth ?? 140;
     }
     if (showActions) width += 112;
-    return width < 640 ? 640 : width;
+    return math.max(640, width);
   }
 
-  double _minTableWidth(List<AppDataGridColumn<T>> visibleColumns, bool showActions) {
+  double _minTableWidth(
+    List<AppDataGridColumn<T>> visibleColumns,
+    bool showActions,
+  ) {
     var width = 0.0;
     for (final column in visibleColumns) {
       width += column.width ?? column.minWidth ?? 140;
     }
     if (showActions) width += 112;
-    return width < 640 ? 640 : width;
+    return math.max(640, width);
   }
 }

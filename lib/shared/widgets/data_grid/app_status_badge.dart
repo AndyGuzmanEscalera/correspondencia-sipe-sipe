@@ -7,6 +7,7 @@ enum AppStatusBadgeVariant {
   warning,
   info,
   neutral,
+  danger,
 }
 
 class AppStatusBadge extends StatelessWidget {
@@ -28,6 +29,12 @@ class AppStatusBadge extends StatelessWidget {
   const AppStatusBadge.info(String label, {Key? key})
       : this(label: label, variant: AppStatusBadgeVariant.info, key: key);
 
+  const AppStatusBadge.danger(String label, {Key? key})
+      : this(label: label, variant: AppStatusBadgeVariant.danger, key: key);
+
+  const AppStatusBadge.neutral(String label, {Key? key})
+      : this(label: label, variant: AppStatusBadgeVariant.neutral, key: key);
+
   final String label;
   final AppStatusBadgeVariant variant;
 
@@ -37,10 +44,14 @@ class AppStatusBadge extends StatelessWidget {
     return Semantics(
       label: label,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
         decoration: BoxDecoration(
           color: colors.background,
           borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: colors.foreground.withOpacity(0.18),
+            width: 1,
+          ),
         ),
         child: Text(
           label.toUpperCase(),
@@ -58,13 +69,15 @@ class AppStatusBadge extends StatelessWidget {
   _BadgeColors _colorsForVariant(AppStatusBadgeVariant value) {
     return switch (value) {
       AppStatusBadgeVariant.success =>
-        const _BadgeColors(UiColors.successSoft, UiColors.success),
+        const _BadgeColors(UiColors.successSoft, Color(0xFF047857)),
       AppStatusBadgeVariant.inactive =>
-        const _BadgeColors(Color(0xFFF1F5F9), Color(0xFF64748B)),
+        const _BadgeColors(Color(0xFFF1F5F9), Color(0xFF475569)),
       AppStatusBadgeVariant.warning =>
-        const _BadgeColors(UiColors.warningSoft, UiColors.warning),
+        const _BadgeColors(UiColors.warningSoft, Color(0xFFB45309)),
       AppStatusBadgeVariant.info =>
-        const _BadgeColors(UiColors.infoSoft, UiColors.info),
+        const _BadgeColors(UiColors.infoSoft, Color(0xFF1D4ED8)),
+      AppStatusBadgeVariant.danger =>
+        const _BadgeColors(Color(0xFFFEE2E2), Color(0xFFB91C1C)),
       AppStatusBadgeVariant.neutral =>
         const _BadgeColors(Color(0xFFF8FAFC), UiColors.textSecondary),
     };

@@ -176,6 +176,29 @@ void main() {
 
       expect(find.text('Sin movimientos registrados.'), findsOneWidget);
     });
+
+    testWidgets('mobile cards render long instruction without overflow at 390px', (tester) async {
+      final longMovement = CorrespondenceMovementEntity(
+        id: 'm-long',
+        sequenceNumber: 99,
+        movementType: 'DERIVED',
+        movementTypeLabel: 'Derivación Urgente Municipal',
+        fromUnitName: 'Dirección General de Planificación y Gestión Territorial',
+        fromUserName: 'Lic. Roberto Carlos Fernández Mendizábal',
+        toUnitName: 'Unidad de Obras Públicas, Mantenimiento e Infraestructura Vial',
+        toUserName: 'Ing. María Elena Rodríguez Zurita de Cochabamba',
+        instruction: 'Proceder con la inspección inmediata en el sector de Sipe Sipe para verificar las obras y emitir el informe técnico correspondiente en un plazo improrrogable de 48 horas hábiles.',
+        createdByUsername: 'rfernandez',
+        createdAt: DateTime(2026, 4, 15, 11, 45),
+      );
+
+      await _pumpGrid(tester, width: 390, items: [longMovement]);
+
+      expect(tester.takeException(), isNull);
+      expect(find.textContaining('Derivación Urgente'), findsOneWidget);
+      expect(find.textContaining('Dirección General'), findsOneWidget);
+      expect(find.textContaining('inspección inmediata'), findsOneWidget);
+    });
   });
 
   testWidgets('correspondence list exposes updated search hint', (tester) async {

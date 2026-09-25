@@ -105,13 +105,27 @@ class _AppDataGridState<T> extends State<AppDataGrid<T>> {
 
         if (widget.isLoading && widget.items.isEmpty) {
           return const Center(
-            child: SizedBox(
-              width: 28,
-              height: 28,
-              child: CircularProgressIndicator(
-                strokeWidth: 2.5,
-                valueColor: AlwaysStoppedAnimation<Color>(UiColors.primary),
-              ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    valueColor: AlwaysStoppedAnimation<Color>(UiColors.primary),
+                  ),
+                ),
+                SizedBox(height: 14),
+                Text(
+                  'Cargando registros...',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: UiColors.textSecondary,
+                  ),
+                ),
+              ],
             ),
           );
         }
@@ -121,7 +135,7 @@ class _AppDataGridState<T> extends State<AppDataGrid<T>> {
               EmptyState(
                 title: 'Sin registros',
                 message: widget.emptyMessage,
-                icon: Icons.table_rows_outlined,
+                icon: Icons.inbox_outlined,
               );
         }
 

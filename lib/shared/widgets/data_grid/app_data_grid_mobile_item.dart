@@ -58,7 +58,7 @@ class AppDataGridMobileItem<T> extends StatelessWidget {
         borderRadius: AppDecorations.borderRadiusMd,
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
             borderRadius: AppDecorations.borderRadiusMd,
             border: Border.all(color: UiColors.borderLight),
@@ -91,14 +91,24 @@ class AppDataGridMobileItem<T> extends StatelessWidget {
                       ),
                     ),
                   if (actions.isNotEmpty)
-                    AppDataGridActionsBar<T>(
-                      item: item,
-                      actions: actions,
-                      compact: true,
+                    Padding(
+                      padding: const EdgeInsets.only(left: 6),
+                      child: AppDataGridActionsBar<T>(
+                        item: item,
+                        actions: actions,
+                        compact: true,
+                        iconButtonSize: 36,
+                      ),
                     ),
                 ],
               ),
               if (detailColumns.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                const Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: UiColors.borderLight,
+                ),
                 const SizedBox(height: 10),
                 ...detailColumns.map(
                   (column) => Padding(
@@ -142,9 +152,12 @@ class _PrimaryValue<T> extends StatelessWidget {
         value: value,
         nullLabel: nullLabel,
       ),
-      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
+      style: const TextStyle(
+        fontSize: 14.5,
+        fontWeight: FontWeight.w700,
+        color: UiColors.textPrimary,
+        height: 1.25,
+      ),
     );
   }
 }
@@ -173,7 +186,12 @@ class _CellValue<T> extends StatelessWidget {
               value: value,
               nullLabel: nullLabel,
             ),
-            style: const TextStyle(fontWeight: FontWeight.w500),
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: UiColors.textPrimary,
+              height: 1.35,
+            ),
           );
 
     if (!showLabel) return content;
@@ -182,15 +200,29 @@ class _CellValue<T> extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          width: 92,
+          width: 96,
           child: Text(
             column.mobileDisplayLabel(),
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: UiColors.textSecondary,
-                ),
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: UiColors.textSecondary,
+              height: 1.35,
+            ),
           ),
         ),
-        Expanded(child: content),
+        const SizedBox(width: 8),
+        Expanded(
+          child: DefaultTextStyle.merge(
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: UiColors.textPrimary,
+              height: 1.35,
+            ),
+            child: content,
+          ),
+        ),
       ],
     );
   }

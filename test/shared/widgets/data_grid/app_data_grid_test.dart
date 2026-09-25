@@ -512,5 +512,95 @@ void main() {
       expect(find.byType(DataTable2), findsNothing);
       expect(find.text('Cantidad'), findsWidgets);
     });
+
+    testWidgets('mobile cards render long text without overflow at 390px', (tester) async {
+      final longItems = [
+        const _Row(
+          id: 'long-1',
+          name: 'Este es un nombre sumamente largo para comprobar que no ocurra ningún desborde ni RenderFlex overflow en pantallas estrechas',
+          note: 'Nota extremadamente detallada con múltiples líneas de texto explicativo sobre el estado del trámite en la municipalidad de Sipe Sipe',
+          count: 99999,
+          amount: 1234567.89,
+          active: true,
+        ),
+      ];
+
+      await _pumpGrid(
+        tester,
+        width: 390,
+        child: AppDataGrid<_Row>(
+          items: longItems,
+          columns: _sampleColumns(
+            customBuilder: (context, item, value) => Text(value?.toString() ?? '-'),
+          ),
+          actions: [
+            AppDataGridAction<_Row>(
+              icon: Icons.edit_outlined,
+              tooltip: 'Editar',
+              onPressed: (_) {},
+            ),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.textContaining('sumamente largo'), findsOneWidget);
+    });
+
+    testWidgets('mobile pagination renders page numbers and total items cleanly', (tester) async {
+      var requestedPage = 0;
+      await _pumpGrid(
+        tester,
+        width: 390,
+        child: AppDataGrid<_Row>(
+          items: _items,
+          columns: _sampleColumns(),
+          currentPage: 2,
+          pageSize: 10,
+          totalItems: 45,
+          totalPages: 5,
+          onPageChanged: (page) => requestedPage = page,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Página 2 de 5'), findsOneWidget);
+      expect(find.text('45 registros'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Página siguiente'));
+      await tester.pumpAndSettle();
+      expect(requestedPage, 3);
+    });
+
+    testWidgets('desktop pagination renders page size dropdown and info text', (tester) async {
+      var requestedSize = 0;
+      await _pumpGrid(
+        tester,
+        width: 1024,
+        child: AppDataGrid<_Row>(
+          items: _items,
+          columns: _sampleColumns(),
+          currentPage: 1,
+          pageSize: 10,
+          totalItems: 45,
+          totalPages: 5,
+          onPageChanged: (_) {},
+          onPageSizeChanged: (size) => requestedSize = size,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Mostrando 1'), findsOneWidget);
+      expect(find.textContaining('45 registros'), findsOneWidget);
+      expect(find.text('Por página:'), findsOneWidget);
+
+      await tester.tap(find.text('10').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('20').last);
+      await tester.pumpAndSettle();
+
+      expect(requestedSize, 20);
+    });
   });
 }

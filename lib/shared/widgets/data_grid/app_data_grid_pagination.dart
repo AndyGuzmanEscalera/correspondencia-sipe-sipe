@@ -24,13 +24,20 @@ class AppDataGridPagination extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (totalPages <= 1 && totalItems <= pageSize) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: const BoxDecoration(
+          border: Border(
+            top: BorderSide(color: UiColors.borderLight, width: 1.5),
+          ),
+        ),
         child: Text(
           '$totalItems registro${totalItems == 1 ? '' : 's'}',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: UiColors.textSecondary,
-              ),
+          style: const TextStyle(
+            fontSize: 12,
+            color: UiColors.textSecondary,
+          ),
         ),
       );
     }
@@ -39,8 +46,13 @@ class AppDataGridPagination extends StatelessWidget {
     final canNext = currentPage < totalPages;
 
     if (compact) {
-      return Padding(
-        padding: const EdgeInsets.fromLTRB(8, 8, 8, 12),
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        decoration: const BoxDecoration(
+          border: Border(
+            top: BorderSide(color: UiColors.borderLight, width: 1.5),
+          ),
+        ),
         child: Row(
           children: [
             _NavButton(
@@ -48,12 +60,31 @@ class AppDataGridPagination extends StatelessWidget {
               tooltip: 'Página anterior',
               enabled: canPrev,
               onPressed: () => onPageChanged(currentPage - 1),
+              size: 44,
+              iconSize: 22,
             ),
             Expanded(
-              child: Text(
-                'Página $currentPage de ${totalPages == 0 ? 1 : totalPages}',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Página $currentPage de ${totalPages == 0 ? 1 : totalPages}',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: UiColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '$totalItems registros',
+                    style: const TextStyle(
+                      fontSize: 11.5,
+                      color: UiColors.textSecondary,
+                    ),
+                  ),
+                ],
               ),
             ),
             _NavButton(
@@ -61,44 +92,78 @@ class AppDataGridPagination extends StatelessWidget {
               tooltip: 'Página siguiente',
               enabled: canNext,
               onPressed: () => onPageChanged(currentPage + 1),
+              size: 44,
+              iconSize: 22,
             ),
           ],
         ),
       );
     }
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: const BoxDecoration(
+        border: Border(
+          top: BorderSide(color: UiColors.borderLight, width: 1.5),
+        ),
+      ),
       child: Row(
         children: [
           Text(
             'Mostrando ${totalItems == 0 ? 0 : ((currentPage - 1) * pageSize) + 1}'
-            '–${((currentPage - 1) * pageSize) + _visibleCount()} de $totalItems',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: UiColors.textSecondary,
-                ),
+            '–${((currentPage - 1) * pageSize) + _visibleCount()} de $totalItems registros',
+            style: const TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w500,
+              color: UiColors.textSecondary,
+            ),
           ),
           const Spacer(),
           if (onPageSizeChanged != null) ...[
-            Text(
-              'Por página',
-              style: Theme.of(context).textTheme.bodySmall,
+            const Text(
+              'Por página:',
+              style: TextStyle(
+                fontSize: 12.5,
+                color: UiColors.textSecondary,
+                fontWeight: FontWeight.w500,
+              ),
             ),
             const SizedBox(width: 8),
-            DropdownButton<int>(
-              value: pageSize,
-              underline: const SizedBox.shrink(),
-              items: const [10, 20, 50, 100]
-                  .map(
-                    (size) => DropdownMenuItem(
-                      value: size,
-                      child: Text('$size'),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (value) {
-                if (value != null) onPageSizeChanged!(value);
-              },
+            Container(
+              height: 32,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              decoration: BoxDecoration(
+                color: UiColors.background,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: UiColors.borderLight),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<int>(
+                  value: pageSize,
+                  isDense: true,
+                  icon: const Icon(
+                    Icons.arrow_drop_down_rounded,
+                    size: 20,
+                    color: UiColors.textSecondary,
+                  ),
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: UiColors.textPrimary,
+                  ),
+                  items: const [10, 20, 50, 100]
+                      .map(
+                        (size) => DropdownMenuItem(
+                          value: size,
+                          child: Text('$size'),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) {
+                    if (value != null) onPageSizeChanged!(value);
+                  },
+                ),
+              ),
             ),
             const SizedBox(width: 16),
           ],
@@ -107,16 +172,27 @@ class AppDataGridPagination extends StatelessWidget {
             tooltip: 'Página anterior',
             enabled: canPrev,
             onPressed: () => onPageChanged(currentPage - 1),
+            size: 36,
+            iconSize: 20,
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Text('Página $currentPage de ${totalPages == 0 ? 1 : totalPages}'),
+            child: Text(
+              'Página $currentPage de ${totalPages == 0 ? 1 : totalPages}',
+              style: const TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: UiColors.textPrimary,
+              ),
+            ),
           ),
           _NavButton(
             icon: Icons.chevron_right_rounded,
             tooltip: 'Página siguiente',
             enabled: canNext,
             onPressed: () => onPageChanged(currentPage + 1),
+            size: 36,
+            iconSize: 20,
           ),
         ],
       ),
@@ -137,20 +213,26 @@ class _NavButton extends StatelessWidget {
     required this.tooltip,
     required this.enabled,
     required this.onPressed,
+    this.size = 40,
+    this.iconSize = 20,
   });
 
   final IconData icon;
   final String tooltip;
   final bool enabled;
   final VoidCallback onPressed;
+  final double size;
+  final double iconSize;
 
   @override
   Widget build(BuildContext context) {
     return IconButton(
       tooltip: tooltip,
       onPressed: enabled ? onPressed : null,
-      icon: Icon(icon),
-      constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+      icon: Icon(icon, size: iconSize),
+      constraints: BoxConstraints(minWidth: size, minHeight: size),
+      splashRadius: size / 2,
+      color: enabled ? UiColors.textPrimary : UiColors.textMuted,
     );
   }
 }

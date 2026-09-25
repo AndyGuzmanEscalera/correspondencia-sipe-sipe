@@ -1,3 +1,4 @@
+import 'package:correspondencia_sipe_sipe/core/theme/ui_colors.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/data_grid/app_data_grid_action.dart';
 import 'package:flutter/material.dart';
 
@@ -6,7 +7,7 @@ class AppDataGridActionsBar<T> extends StatelessWidget {
     required this.item,
     required this.actions,
     this.compact = false,
-    this.iconButtonSize = 40,
+    this.iconButtonSize = 36,
     super.key,
   });
 
@@ -38,23 +39,52 @@ class AppDataGridActionsBar<T> extends StatelessWidget {
 
     return PopupMenuButton<int>(
       tooltip: 'Acciones',
-      icon: const Icon(Icons.more_vert_rounded),
+      icon: const Icon(
+        Icons.more_vert_rounded,
+        size: 20,
+        color: UiColors.textSecondary,
+      ),
+      padding: EdgeInsets.zero,
+      constraints: BoxConstraints(
+        minWidth: iconButtonSize,
+        minHeight: iconButtonSize,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: const BorderSide(color: UiColors.borderLight),
+      ),
+      elevation: 3,
       itemBuilder: (context) {
         return visible
             .asMap()
             .entries
             .map(
-              (entry) => PopupMenuItem<int>(
-                value: entry.key,
-                enabled: entry.value.isEnabled(item),
-                child: Row(
-                  children: [
-                    Icon(entry.value.icon, size: 20, color: entry.value.color),
-                    const SizedBox(width: 10),
-                    Text(entry.value.tooltip),
-                  ],
-                ),
-              ),
+              (entry) {
+                final isEnabled = entry.value.isEnabled(item);
+                final color = isEnabled
+                    ? (entry.value.color ?? UiColors.textPrimary)
+                    : UiColors.textMuted;
+                return PopupMenuItem<int>(
+                  value: entry.key,
+                  enabled: isEnabled,
+                  child: Row(
+                    children: [
+                      Icon(entry.value.icon, size: 18, color: color),
+                      const SizedBox(width: 10),
+                      Text(
+                        entry.value.tooltip,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: isEnabled
+                              ? UiColors.textPrimary
+                              : UiColors.textMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
             )
             .toList();
       },
@@ -80,11 +110,17 @@ class _ActionIconButton<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final enabled = action.isEnabled(item);
+    final color = enabled
+        ? (action.color ?? UiColors.textSecondary)
+        : UiColors.textMuted;
+
     return IconButton(
       tooltip: action.tooltip,
       onPressed: enabled ? () => action.onPressed(item) : null,
-      icon: Icon(action.icon, color: action.color),
+      icon: Icon(action.icon, size: 19, color: color),
+      splashRadius: size / 2,
       constraints: BoxConstraints(minWidth: size, minHeight: size),
+      padding: EdgeInsets.zero,
     );
   }
 }
