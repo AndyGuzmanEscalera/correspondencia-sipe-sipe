@@ -18,20 +18,20 @@ class InboxRow extends Equatable {
   List<Object?> get props => [derivation, correspondence];
 }
 
-class InboxState extends Equatable {
-  const InboxState({
+class MockInboxState extends Equatable {
+  const MockInboxState({
     this.rows = const [],
-    this.inboxType = InboxType.inbox,
+    this.inboxType = InboxType.received,
   });
 
   final List<InboxRow> rows;
   final InboxType inboxType;
 
-  InboxState copyWith({
+  MockInboxState copyWith({
     List<InboxRow>? rows,
     InboxType? inboxType,
   }) {
-    return InboxState(
+    return MockInboxState(
       rows: rows ?? this.rows,
       inboxType: inboxType ?? this.inboxType,
     );
@@ -41,10 +41,11 @@ class InboxState extends Equatable {
   List<Object?> get props => [rows, inboxType];
 }
 
-class InboxCubit extends Cubit<InboxState> {
-  InboxCubit({LocalStore? store, required InboxType inboxType})
+/// Bandejas mock (Recibidos, Enviados, Observados, Archivados).
+class MockInboxCubit extends Cubit<MockInboxState> {
+  MockInboxCubit({LocalStore? store, required InboxType inboxType})
       : _store = store ?? LocalStore.instance,
-        super(InboxState(inboxType: inboxType));
+        super(MockInboxState(inboxType: inboxType));
 
   final LocalStore _store;
 

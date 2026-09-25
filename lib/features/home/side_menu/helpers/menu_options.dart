@@ -5,9 +5,13 @@ import 'package:flutter/material.dart';
 
 class MenuOptions {
   static List<MenuItemData> build({
-    required Map<String, int> counts,
+    required Map<String, int?> counts,
     List<String> permissions = const [],
   }) {
+    int? inboxBadge(int? count) {
+      if (count == null || count <= 0) return null;
+      return count;
+    }
     final all = [
       MenuItemData(
         menu: MenuEnum.dashboard,
@@ -29,7 +33,7 @@ class MenuOptions {
         menu: MenuEnum.inbox,
         title: 'Bandeja de entrada',
         icon: Icons.inbox_outlined,
-        badge: counts['inbox'],
+        badge: inboxBadge(counts['inbox']),
       ),
       MenuItemData(
         menu: MenuEnum.received,
