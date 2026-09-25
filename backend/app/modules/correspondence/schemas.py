@@ -64,6 +64,10 @@ class DeriveCorrespondenceRequest(BaseModel):
     observation: str | None = None
 
 
+class CorrespondenceLifecycleRequest(BaseModel):
+    observation: str | None = None
+
+
 class CorrespondenceListItem(BaseModel):
     id: uuid.UUID
     route_number: str

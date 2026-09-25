@@ -16,6 +16,7 @@ import 'package:flutter_test/flutter_test.dart';
 class _TrackingDetailCubit extends CorrespondenceDetailCubit {
   _TrackingDetailCubit({
     required super.repository,
+    required super.authRepository,
     required super.correspondenceId,
   });
 
@@ -65,6 +66,22 @@ class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
   noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
+class _FakeAuthRepository implements repo.AuthenticationRepository {
+  @override
+  Future<Result<repo.UserSession, Failure>> currentUser() async {
+    return const Ok(
+      repo.UserSession(
+        id: 'user-1',
+        username: 'tester',
+        isActive: true,
+      ),
+    );
+  }
+
+  @override
+  noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 class _FakeOrganizationRepository implements repo.OrganizationRepository {
   @override
   Future<Result<List<repo.OrganizationalUnit>, Failure>>
@@ -103,6 +120,7 @@ void main() {
       organizationRepository = _FakeOrganizationRepository();
       detailCubit = _TrackingDetailCubit(
         repository: _FakeListRepository(),
+        authRepository: _FakeAuthRepository(),
         correspondenceId: 'corr-1',
       );
       sideMenuCubit = SideMenuCubit();

@@ -45,3 +45,9 @@ class DeriveCorrespondenceInput {
   final String? instruction;
   final String? observation;
 }
+
+class CorrespondenceLifecycleInput {
+  const CorrespondenceLifecycleInput({this.observation});
+
+  final String? observation;
+}

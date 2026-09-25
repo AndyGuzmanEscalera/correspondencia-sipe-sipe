@@ -141,6 +141,27 @@ class _FakeDetailCorrespondenceRepository
   }
 
   @override
+  Future<Result<List<repo.EmployeeOption>, Failure>> listEmployees() async {
+    return const Ok([]);
+  }
+
+  @override
+  noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _FakeAuthRepository implements repo.AuthenticationRepository {
+  @override
+  Future<Result<repo.UserSession, Failure>> currentUser() async {
+    return const Ok(
+      repo.UserSession(
+        id: 'user-1',
+        username: 'tester',
+        isActive: true,
+      ),
+    );
+  }
+
+  @override
   noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
@@ -174,6 +195,7 @@ void main() {
       getIt.registerFactoryParam<CorrespondenceDetailCubit, String, void>(
         (correspondenceId, _) => CorrespondenceDetailCubit(
           repository: _FakeDetailCorrespondenceRepository(),
+          authRepository: _FakeAuthRepository(),
           correspondenceId: correspondenceId,
         ),
       );

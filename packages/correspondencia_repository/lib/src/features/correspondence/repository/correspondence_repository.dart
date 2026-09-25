@@ -157,6 +157,36 @@ class CorrespondenceRepository {
     );
   }
 
+  Future<Result<Correspondence, Failure>> concludeCorrespondence(
+    String id,
+    CorrespondenceLifecycleInput input,
+  ) {
+    return handleExceptions<Correspondence>(
+      () async => (await _correspondenceApi.concludeCorrespondence(
+            id,
+            input.toRequest(),
+          ))
+          .toEntity(),
+      feature: 'correspondence',
+      operation: 'concludeCorrespondence',
+    );
+  }
+
+  Future<Result<Correspondence, Failure>> reopenCorrespondence(
+    String id,
+    CorrespondenceLifecycleInput input,
+  ) {
+    return handleExceptions<Correspondence>(
+      () async => (await _correspondenceApi.reopenCorrespondence(
+            id,
+            input.toRequest(),
+          ))
+          .toEntity(),
+      feature: 'correspondence',
+      operation: 'reopenCorrespondence',
+    );
+  }
+
   Future<Result<List<CorrespondenceMovement>, Failure>> listMovements(
     String id,
   ) {

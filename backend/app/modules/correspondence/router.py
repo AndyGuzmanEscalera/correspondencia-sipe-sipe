@@ -16,6 +16,7 @@ from app.modules.correspondence.schemas import (
     CorrespondenceListResponse,
     CorrespondenceSentCountResponse,
     CorrespondenceMovementResponse,
+    CorrespondenceLifecycleRequest,
     CreateCorrespondenceRequest,
     DeriveCorrespondenceRequest,
     DocumentTypeResponse,
@@ -158,6 +159,26 @@ def derive_correspondence(
     service: Annotated[CorrespondenceService, Depends(_service)],
 ) -> CorrespondenceDetail:
     return service.derive_correspondence(user, correspondence_id, body)
+
+
+@router.post("/{correspondence_id}/conclude", response_model=CorrespondenceDetail)
+def conclude_correspondence(
+    correspondence_id: uuid.UUID,
+    body: CorrespondenceLifecycleRequest,
+    user: Annotated[User, Depends(get_current_user)],
+    service: Annotated[CorrespondenceService, Depends(_service)],
+) -> CorrespondenceDetail:
+    return service.conclude_correspondence(user, correspondence_id, body)
+
+
+@router.post("/{correspondence_id}/reopen", response_model=CorrespondenceDetail)
+def reopen_correspondence(
+    correspondence_id: uuid.UUID,
+    body: CorrespondenceLifecycleRequest,
+    user: Annotated[User, Depends(get_current_user)],
+    service: Annotated[CorrespondenceService, Depends(_service)],
+) -> CorrespondenceDetail:
+    return service.reopen_correspondence(user, correspondence_id, body)
 
 
 @router.get("/{correspondence_id}/encadenamiento.pdf")

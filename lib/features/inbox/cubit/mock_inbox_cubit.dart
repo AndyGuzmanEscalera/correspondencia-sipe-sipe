@@ -69,6 +69,7 @@ class MockInboxCubit extends Cubit<MockInboxState> {
               currentUnitName: 'N/D',
               currentUserName: 'N/D',
               registeredAt: DateTime.now(),
+              status: 'ACTIVE',
               statusLabel: derivation.statusLabel,
               documentTypeCode: 'N/D',
               documentTypeName: 'N/D',

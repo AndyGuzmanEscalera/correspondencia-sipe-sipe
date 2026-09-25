@@ -23,6 +23,7 @@ extension CorrespondenceToEntity on repo.Correspondence {
         currentUserName: currentUserName,
         currentUserIsActive: currentUserIsActive,
         registeredAt: registeredAt,
+        status: status,
         statusLabel: _statusLabel(status),
         documentTypeCode: documentTypeCode,
         documentTypeName: documentTypeName,
@@ -67,14 +68,16 @@ String _priorityLabel(String code) => switch (code) {
     };
 
 String _statusLabel(String code) => switch (code) {
-      'ACTIVE' => 'Activo',
-      'CONCLUDED' => 'Concluido',
+      'ACTIVE' => 'Activa',
+      'CONCLUDED' => 'Concluida',
       _ => code,
     };
 
 String _movementLabel(String code) => switch (code) {
-      'CREATED' => 'Registro',
-      'DERIVED' => 'Derivación',
+      'CREATED' => 'Creada',
+      'DERIVED' => 'Derivada',
+      'CONCLUDED' => 'Concluida',
+      'REOPENED' => 'Reabierta',
       _ => code,
     };
 

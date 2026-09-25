@@ -79,6 +79,7 @@ void registerCubits() {
   getIt.registerFactoryParam<CorrespondenceDetailCubit, String, void>(
     (correspondenceId, _) => CorrespondenceDetailCubit(
       repository: getIt<CorrespondenceRepository>(),
+      authRepository: getIt<AuthenticationRepository>(),
       correspondenceId: correspondenceId,
     ),
   );

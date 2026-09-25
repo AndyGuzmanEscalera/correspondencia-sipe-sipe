@@ -8,6 +8,7 @@ import '../models/correspondence_sent_count_response.dart';
 import '../models/correspondence_list_response.dart';
 import '../models/correspondence_movement_response.dart';
 import '../models/correspondence_response.dart';
+import '../models/correspondence_lifecycle_request.dart';
 import '../models/create_correspondence_request.dart';
 import '../models/derive_correspondence_request.dart';
 import '../models/document_type_response.dart';
@@ -136,6 +137,30 @@ class CorrespondenceApi {
       Endpoints.correspondenceDerive(id),
       data: request.toJson(),
       operation: 'correspondence.derive',
+    );
+    return CorrespondenceResponse.fromJson(json);
+  }
+
+  Future<CorrespondenceResponse> concludeCorrespondence(
+    String id,
+    CorrespondenceLifecycleRequest request,
+  ) async {
+    final json = await _mainApi.post(
+      Endpoints.correspondenceConclude(id),
+      data: request.toJson(),
+      operation: 'correspondence.conclude',
+    );
+    return CorrespondenceResponse.fromJson(json);
+  }
+
+  Future<CorrespondenceResponse> reopenCorrespondence(
+    String id,
+    CorrespondenceLifecycleRequest request,
+  ) async {
+    final json = await _mainApi.post(
+      Endpoints.correspondenceReopen(id),
+      data: request.toJson(),
+      operation: 'correspondence.reopen',
     );
     return CorrespondenceResponse.fromJson(json);
   }

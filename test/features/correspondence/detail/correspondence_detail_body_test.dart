@@ -26,6 +26,28 @@ class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
   }
 
   @override
+  Future<Result<List<repo.EmployeeOption>, Failure>> listEmployees() async {
+    return const Ok([]);
+  }
+
+  @override
+  noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _FakeAuthRepository implements repo.AuthenticationRepository {
+  @override
+  Future<Result<repo.UserSession, Failure>> currentUser() async {
+    return const Ok(
+      repo.UserSession(
+        id: 'user-1',
+        username: 'tester',
+        isActive: true,
+        employeeId: 'emp-1',
+      ),
+    );
+  }
+
+  @override
   noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
@@ -51,12 +73,14 @@ void main() {
       organizationRepository = _FakeOrganizationRepository();
       cubit = CorrespondenceDetailCubit(
         repository: _FakeCorrespondenceRepository(),
+        authRepository: _FakeAuthRepository(),
         correspondenceId: 'corr-1',
       );
       cubit.emit(
         cubit.state.copyWith(
           correspondence: externalCorrespondence,
           movements: [vigenteMovement],
+          viewerUnitId: 'unit-sistemas',
         ),
       );
 
@@ -140,6 +164,15 @@ void main() {
         await tester.pumpAndSettle();
       }
     }
+
+    testWidgets('ACTIVE autorizado muestra Concluir y no Reabrir', (
+      tester,
+    ) async {
+      await pumpBody(tester);
+
+      expect(find.text('Concluir'), findsOneWidget);
+      expect(find.text('Reabrir'), findsNothing);
+    });
 
     testWidgets('muestra info, adjuntos, movements y derive', (tester) async {
       await pumpBody(tester);

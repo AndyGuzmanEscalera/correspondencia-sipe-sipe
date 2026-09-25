@@ -51,6 +51,12 @@ List<AppDataGridColumn<CorrespondenceMovementEntity>>
       mobilePriority: 35,
     ),
     AppDataGridColumn<CorrespondenceMovementEntity>(
+      key: 'observation',
+      label: 'Observación',
+      value: (movement) => movement.observation,
+      mobilePriority: 36,
+    ),
+    AppDataGridColumn<CorrespondenceMovementEntity>(
       key: 'createdAt',
       label: 'Fecha',
       type: AppDataGridCellType.dateTime,

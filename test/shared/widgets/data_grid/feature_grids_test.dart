@@ -232,7 +232,7 @@ void main() {
       expect(find.text('Encadenamiento'), findsOneWidget);
       expect(find.text('Informe Técnico'), findsOneWidget);
       expect(find.textContaining('Carlos Pérez · Inactivo'), findsOneWidget);
-      expect(find.text('ACTIVO'), findsWidgets);
+      expect(find.text('ACTIVA'), findsWidgets);
 
       // Mobile 390
       await pumpGridWidget(

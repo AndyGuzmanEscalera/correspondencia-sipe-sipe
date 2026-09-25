@@ -142,3 +142,9 @@ extension DeriveCorrespondenceInputMapper on DeriveCorrespondenceInput {
         observation: observation,
       );
 }
+
+extension CorrespondenceLifecycleInputMapper on CorrespondenceLifecycleInput {
+  CorrespondenceLifecycleRequest toRequest() => CorrespondenceLifecycleRequest(
+        observation: observation,
+      );
+}

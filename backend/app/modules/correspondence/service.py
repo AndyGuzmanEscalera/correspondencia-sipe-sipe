@@ -12,8 +12,10 @@ from app.core.config import get_settings
 from app.modules.correspondence.constants import (
     CORRESPONDENCE_TYPE_EXTERNAL,
     CORRESPONDENCE_TYPE_INTERNAL,
+    MOVEMENT_CONCLUDED,
     MOVEMENT_CREATED,
     MOVEMENT_DERIVED,
+    MOVEMENT_REOPENED,
     ROUTE_NUMBER_PREFIX,
     STATUS_ACTIVE,
     STATUS_CONCLUDED,
@@ -39,6 +41,7 @@ from app.modules.correspondence.schemas import (
     CorrespondenceListResponse,
     CorrespondenceSentCountResponse,
     CorrespondenceMovementResponse,
+    CorrespondenceLifecycleRequest,
     CreateCorrespondenceRequest,
     DeriveCorrespondenceRequest,
     DocumentTypeResponse,
@@ -348,6 +351,96 @@ class CorrespondenceService:
         self._db.refresh(correspondence)
         return self._to_detail(correspondence)
 
+    def conclude_correspondence(
+        self,
+        user: User,
+        correspondence_id: uuid.UUID,
+        body: CorrespondenceLifecycleRequest,
+    ) -> CorrespondenceDetail:
+        correspondence = self._db.scalar(
+            select(Correspondence)
+            .where(Correspondence.id == correspondence_id)
+            .with_for_update()
+        )
+        if correspondence is None or not correspondence.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Correspondencia no encontrada",
+            )
+        if correspondence.status != STATUS_ACTIVE:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Solo se pueden concluir trámites activos",
+            )
+
+        self._assert_current_unit_operator(user, correspondence)
+
+        next_sequence = self._next_movement_sequence(correspondence.id)
+        self._add_movement(
+            correspondence=correspondence,
+            sequence_number=next_sequence,
+            movement_type=MOVEMENT_CONCLUDED,
+            from_unit_id=correspondence.current_unit_id,
+            from_user_id=correspondence.current_user_id,
+            to_unit_id=None,
+            to_user_id=None,
+            instruction=None,
+            observation=self._normalize_optional_text(body.observation),
+            created_by_user_id=user.id,
+        )
+
+        correspondence.status = STATUS_CONCLUDED
+        correspondence.updated_at = datetime.now(timezone.utc)
+
+        self._db.commit()
+        self._db.refresh(correspondence)
+        return self._to_detail(correspondence)
+
+    def reopen_correspondence(
+        self,
+        user: User,
+        correspondence_id: uuid.UUID,
+        body: CorrespondenceLifecycleRequest,
+    ) -> CorrespondenceDetail:
+        correspondence = self._db.scalar(
+            select(Correspondence)
+            .where(Correspondence.id == correspondence_id)
+            .with_for_update()
+        )
+        if correspondence is None or not correspondence.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Correspondencia no encontrada",
+            )
+        if correspondence.status != STATUS_CONCLUDED:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Solo se pueden reabrir trámites concluidos",
+            )
+
+        self._assert_current_unit_operator(user, correspondence)
+
+        next_sequence = self._next_movement_sequence(correspondence.id)
+        self._add_movement(
+            correspondence=correspondence,
+            sequence_number=next_sequence,
+            movement_type=MOVEMENT_REOPENED,
+            from_unit_id=correspondence.current_unit_id,
+            from_user_id=correspondence.current_user_id,
+            to_unit_id=None,
+            to_user_id=None,
+            instruction=None,
+            observation=self._normalize_optional_text(body.observation),
+            created_by_user_id=user.id,
+        )
+
+        correspondence.status = STATUS_ACTIVE
+        correspondence.updated_at = datetime.now(timezone.utc)
+
+        self._db.commit()
+        self._db.refresh(correspondence)
+        return self._to_detail(correspondence)
+
     def generate_encadenamiento_pdf_bytes(
         self,
         correspondence_id: uuid.UUID,
@@ -456,6 +549,30 @@ class CorrespondenceService:
                 detail="Correspondencia no encontrada",
             )
         return correspondence
+
+    def _assert_current_unit_operator(
+        self,
+        user: User,
+        correspondence: Correspondence,
+    ) -> InboxInstitutionalContext:
+        context = self._resolve_inbox_context(user)
+        if context is None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=(
+                    "El usuario no tiene contexto institucional válido "
+                    "para operar esta correspondencia"
+                ),
+            )
+        if correspondence.current_unit_id != context.unit_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=(
+                    "Solo la unidad responsable actual puede concluir "
+                    "o reabrir esta correspondencia"
+                ),
+            )
+        return context
 
     def _resolve_inbox_context(self, user: User) -> InboxInstitutionalContext | None:
         """Institutional identity for inbox queries (session-derived, never from client)."""

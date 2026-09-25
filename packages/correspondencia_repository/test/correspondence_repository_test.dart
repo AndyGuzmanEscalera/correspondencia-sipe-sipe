@@ -329,6 +329,82 @@ void main() {
       expect(result.valueOrNull()?.total, 12);
     });
 
+    test('concludeCorrespondence posts observation body', () async {
+      Map<String, dynamic>? capturedBody;
+      final repo = CorrespondenceRepository(
+        correspondenceApi: _apiWithHandler(
+          (options) async {
+            if (options.method == 'POST' &&
+                options.path.endsWith('/conclude')) {
+              capturedBody = options.data as Map<String, dynamic>?;
+              return Response<dynamic>(
+                requestOptions: options,
+                statusCode: 200,
+                data: {
+                  'id': 'corr-1',
+                  'route_number': 'HR-2026-000001',
+                  'route_year': 2026,
+                  'route_sequence': 1,
+                  'correspondence_type': 'EXTERNAL',
+                  'document_type_code': 'CARTA',
+                  'document_type_name': 'Carta',
+                  'subject': 'Prueba',
+                  'priority': 'HIGH',
+                  'status': 'CONCLUDED',
+                  'registered_at': '2026-01-15T00:00:00Z',
+                },
+              );
+            }
+            return Response<dynamic>(
+              requestOptions: options,
+              statusCode: 404,
+            );
+          },
+        ),
+      );
+
+      final result = await repo.concludeCorrespondence(
+        'corr-1',
+        const CorrespondenceLifecycleInput(observation: 'Cierre QA'),
+      );
+
+      expect(result.isOk, isTrue);
+      expect(result.valueOrNull()?.status, 'CONCLUDED');
+      expect(capturedBody?['observation'], 'Cierre QA');
+    });
+
+    test('reopenCorrespondence maps success', () async {
+      final repo = CorrespondenceRepository(
+        correspondenceApi: _apiWithHandler(
+          (options) async => Response<dynamic>(
+            requestOptions: options,
+            statusCode: 200,
+            data: {
+              'id': 'corr-1',
+              'route_number': 'HR-2026-000001',
+              'route_year': 2026,
+              'route_sequence': 1,
+              'correspondence_type': 'EXTERNAL',
+              'document_type_code': 'CARTA',
+              'document_type_name': 'Carta',
+              'subject': 'Prueba',
+              'priority': 'HIGH',
+              'status': 'ACTIVE',
+              'registered_at': '2026-01-15T00:00:00Z',
+            },
+          ),
+        ),
+      );
+
+      final result = await repo.reopenCorrespondence(
+        'corr-1',
+        const CorrespondenceLifecycleInput(),
+      );
+
+      expect(result.isOk, isTrue);
+      expect(result.valueOrNull()?.status, 'ACTIVE');
+    });
+
     test('getInboxCounts maps response', () async {
       final repo = CorrespondenceRepository(
         correspondenceApi: _apiWithHandler(

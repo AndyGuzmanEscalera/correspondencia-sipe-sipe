@@ -7,6 +7,7 @@ export 'models/correspondence_list_response.dart';
 export 'models/correspondence_movement_response.dart';
 export 'models/correspondence_response.dart';
 export 'models/create_correspondence_request.dart';
+export 'models/correspondence_lifecycle_request.dart';
 export 'models/derive_correspondence_request.dart';
 export 'models/document_type_admin_response.dart';
 export 'models/document_type_response.dart';

@@ -12,6 +12,7 @@ class CorrespondenceEntity extends Equatable {
     required this.priority,
     required this.subject,
     required this.registeredAt,
+    required this.status,
     required this.statusLabel,
     required this.documentTypeCode,
     required this.documentTypeName,
@@ -43,6 +44,7 @@ class CorrespondenceEntity extends Equatable {
   final String priority;
   final String subject;
   final DateTime registeredAt;
+  final String status;
   final String statusLabel;
   final String documentTypeCode;
   final String documentTypeName;
@@ -111,7 +113,20 @@ class CorrespondenceEntity extends Equatable {
 
   String get citizenPhone => senderContact ?? '';
 
+  bool get isActiveStatus => status == 'ACTIVE';
+
+  bool get isConcludedStatus => status == 'CONCLUDED';
+
+  bool canManageLifecycle(String? viewerUnitId) {
+    final unitId = currentUnitId;
+    if (viewerUnitId == null || unitId == null || unitId.isEmpty) {
+      return false;
+    }
+    return viewerUnitId == unitId;
+  }
+
   CorrespondenceEntity copyWith({
+    String? status,
     String? statusLabel,
     DateTime? lastSentAt,
   }) {
@@ -125,6 +140,7 @@ class CorrespondenceEntity extends Equatable {
       priority: priority,
       subject: subject,
       registeredAt: registeredAt,
+      status: status ?? this.status,
       statusLabel: statusLabel ?? this.statusLabel,
       documentTypeCode: documentTypeCode,
       documentTypeName: documentTypeName,
@@ -159,6 +175,7 @@ class CorrespondenceEntity extends Equatable {
         priority,
         subject,
         registeredAt,
+        status,
         statusLabel,
         documentTypeCode,
         documentTypeName,

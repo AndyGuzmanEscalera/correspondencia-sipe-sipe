@@ -1,7 +1,10 @@
+import 'dart:math' as math;
+
 import 'package:correspondencia_sipe_sipe/core/theme/ui_colors.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/detail/cubit/correspondence_detail_cubit.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/attachments/widgets/correspondence_attachments_section.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/detail/widgets/correspondence_derive_section.dart';
+import 'package:correspondencia_sipe_sipe/features/correspondence/detail/widgets/correspondence_lifecycle_section.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/detail/widgets/correspondence_detail_header.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/detail/widgets/correspondence_info_section.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/detail/widgets/correspondence_movements_section.dart';
@@ -58,6 +61,8 @@ class CorrespondenceDetailBody extends StatelessWidget {
                   item: item,
                   movements: state.movements,
                   sectionGap: sectionGap,
+                  canManageLifecycle: state.canManageLifecycle,
+                  lifecycleActionInProgress: state.lifecycleActionInProgress,
                 );
               }
 
@@ -67,6 +72,8 @@ class CorrespondenceDetailBody extends StatelessWidget {
                 movements: state.movements,
                 sectionGap: sectionGap,
                 isShort: isShort,
+                canManageLifecycle: state.canManageLifecycle,
+                lifecycleActionInProgress: state.lifecycleActionInProgress,
               );
             },
           ),
@@ -82,12 +89,16 @@ class _CompactDetailLayout extends StatelessWidget {
     required this.item,
     required this.movements,
     required this.sectionGap,
+    required this.canManageLifecycle,
+    required this.lifecycleActionInProgress,
   });
 
   final String correspondenceId;
   final CorrespondenceEntity item;
   final List<CorrespondenceMovementEntity> movements;
   final double sectionGap;
+  final bool canManageLifecycle;
+  final bool lifecycleActionInProgress;
 
   @override
   Widget build(BuildContext context) {
@@ -112,6 +123,12 @@ class _CompactDetailLayout extends StatelessWidget {
                   movements: movements,
                   expandVertically: false,
                 ),
+                SizedBox(height: sectionGap),
+                CorrespondenceLifecycleSection(
+                  item: item,
+                  canManage: canManageLifecycle,
+                  actionInProgress: lifecycleActionInProgress,
+                ),
               ],
             ),
           ),
@@ -120,11 +137,13 @@ class _CompactDetailLayout extends StatelessWidget {
         CorrespondenceAttachmentsSection(
           correspondenceId: correspondenceId,
         ),
-        SizedBox(height: sectionGap),
-        CorrespondenceDeriveSection(
-          correspondenceId: correspondenceId,
-          expandVertically: false,
-        ),
+        if (item.isActiveStatus) ...[
+          SizedBox(height: sectionGap),
+          CorrespondenceDeriveSection(
+            correspondenceId: correspondenceId,
+            expandVertically: false,
+          ),
+        ],
       ],
     );
   }
@@ -136,6 +155,8 @@ class _WideDetailLayout extends StatelessWidget {
     required this.item,
     required this.movements,
     required this.sectionGap,
+    required this.canManageLifecycle,
+    required this.lifecycleActionInProgress,
     this.isShort = false,
   });
 
@@ -143,6 +164,8 @@ class _WideDetailLayout extends StatelessWidget {
   final CorrespondenceEntity item;
   final List<CorrespondenceMovementEntity> movements;
   final double sectionGap;
+  final bool canManageLifecycle;
+  final bool lifecycleActionInProgress;
   final bool isShort;
 
   @override
@@ -184,15 +207,65 @@ class _WideDetailLayout extends StatelessWidget {
           ),
         ),
         SizedBox(height: sectionGap),
+        _WideFooterActions(
+          correspondenceId: correspondenceId,
+          item: item,
+          sectionGap: sectionGap,
+          canManageLifecycle: canManageLifecycle,
+          lifecycleActionInProgress: lifecycleActionInProgress,
+        ),
+      ],
+    );
+  }
+}
+
+class _WideFooterActions extends StatelessWidget {
+  const _WideFooterActions({
+    required this.correspondenceId,
+    required this.item,
+    required this.sectionGap,
+    required this.canManageLifecycle,
+    required this.lifecycleActionInProgress,
+  });
+
+  final String correspondenceId;
+  final CorrespondenceEntity item;
+  final double sectionGap;
+  final bool canManageLifecycle;
+  final bool lifecycleActionInProgress;
+
+  @override
+  Widget build(BuildContext context) {
+    final sections = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
         CorrespondenceAttachmentsSection(
           correspondenceId: correspondenceId,
         ),
         SizedBox(height: sectionGap),
-        CorrespondenceDeriveSection(
-          correspondenceId: correspondenceId,
-          expandVertically: false,
+        CorrespondenceLifecycleSection(
+          item: item,
+          canManage: canManageLifecycle,
+          actionInProgress: lifecycleActionInProgress,
         ),
+        if (item.isActiveStatus) ...[
+          SizedBox(height: sectionGap),
+          CorrespondenceDeriveSection(
+            correspondenceId: correspondenceId,
+            expandVertically: false,
+          ),
+        ],
       ],
+    );
+
+    final maxFooterHeight = math.min(220.0, MediaQuery.sizeOf(context).height * 0.28);
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: maxFooterHeight),
+      child: SingleChildScrollView(
+        child: sections,
+      ),
     );
   }
 }
