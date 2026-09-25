@@ -326,7 +326,9 @@ class CorrespondenceService:
                 detail="Solo se pueden derivar trámites activos",
             )
 
+        self._assert_current_unit_operator(user, correspondence)
         self._validate_destination(body.to_unit_id, body.to_user_id)
+        self._assert_derivation_changes_assignment(correspondence, body)
 
         next_sequence = self._next_movement_sequence(correspondence.id)
 
@@ -568,11 +570,24 @@ class CorrespondenceService:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=(
-                    "Solo la unidad responsable actual puede concluir "
-                    "o reabrir esta correspondencia"
+                    "Solo la unidad responsable actual puede operar "
+                    "esta correspondencia"
                 ),
             )
         return context
+
+    def _assert_derivation_changes_assignment(
+        self,
+        correspondence: Correspondence,
+        body: DeriveCorrespondenceRequest,
+    ) -> None:
+        same_unit = correspondence.current_unit_id == body.to_unit_id
+        same_user = correspondence.current_user_id == body.to_user_id
+        if same_unit and same_user:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="La derivación debe cambiar la asignación actual",
+            )
 
     def _resolve_inbox_context(self, user: User) -> InboxInstitutionalContext | None:
         """Institutional identity for inbox queries (session-derived, never from client)."""

@@ -21,10 +21,10 @@ class CorrespondenceDetailState extends Equatable implements StatusState {
   @override
   final DialogMessage dialogMessage;
 
-  bool get canManageLifecycle {
+  bool get canOperateCurrentUnit {
     final item = correspondence;
     if (item == null) return false;
-    return item.canManageLifecycle(viewerUnitId);
+    return item.canOperateCurrentUnit(viewerUnitId);
   }
 
   CorrespondenceDetailState copyWith({

@@ -117,7 +117,8 @@ class CorrespondenceEntity extends Equatable {
 
   bool get isConcludedStatus => status == 'CONCLUDED';
 
-  bool canManageLifecycle(String? viewerUnitId) {
+  /// Unidad del operador coincide con [currentUnitId] (Concluir/Reabrir/Derivar).
+  bool canOperateCurrentUnit(String? viewerUnitId) {
     final unitId = currentUnitId;
     if (viewerUnitId == null || unitId == null || unitId.isEmpty) {
       return false;

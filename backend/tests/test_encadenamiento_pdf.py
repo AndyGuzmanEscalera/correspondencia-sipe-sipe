@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.modules.correspondence.correspondence_attachment import CorrespondenceAttachment
 from app.modules.correspondence.correspondence_movement import CorrespondenceMovement
 from app.modules.correspondence.document_type import DocumentType
+from app.modules.identity.user import User
 from app.modules.correspondence.pdf.encadenamiento_pdf import (
     EncadenamientoMovementRow,
     EncadenamientoPdfContext,
@@ -204,6 +205,7 @@ def test_download_encadenamiento_pdf_reflects_new_derivation(
     encadenamiento_document_type: DocumentType,
     second_org_unit: OrganizationalUnit,
     org_unit: OrganizationalUnit,
+    second_user: User,
     db: Session,
 ) -> None:
     create = client.post(
@@ -218,9 +220,14 @@ def test_download_encadenamiento_pdf_reflects_new_derivation(
     )
     correspondence_id = create.json()["id"]
 
+    from app.core.security import create_access_token
+
+    second_headers = {
+        "Authorization": f"Bearer {create_access_token(second_user.id)[0]}"
+    }
     derive = client.post(
         f"/correspondences/{correspondence_id}/derive",
-        headers=auth_headers,
+        headers=second_headers,
         json={
             "to_unit_id": str(org_unit.id),
             "instruction": "Segunda derivación",

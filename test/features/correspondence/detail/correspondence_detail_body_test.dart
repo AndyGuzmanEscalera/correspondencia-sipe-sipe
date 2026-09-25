@@ -174,6 +174,22 @@ void main() {
       expect(find.text('Reabrir'), findsNothing);
     });
 
+    testWidgets('ACTIVE sin autorización oculta Derivar y Concluir', (
+      tester,
+    ) async {
+      cubit.emit(
+        cubit.state.copyWith(
+          correspondence: externalCorrespondence,
+          movements: [vigenteMovement],
+          viewerUnitId: 'unit-otra',
+        ),
+      );
+      await pumpBody(tester);
+
+      expect(find.text('Concluir'), findsNothing);
+      expect(find.text('Derivar trámite'), findsNothing);
+    });
+
     testWidgets('muestra info, adjuntos, movements y derive', (tester) async {
       await pumpBody(tester);
 

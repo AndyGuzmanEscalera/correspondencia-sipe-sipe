@@ -5,6 +5,7 @@ import 'package:correspondencia_sipe_sipe/features/correspondence/derive_corresp
 import 'package:correspondencia_sipe_sipe/features/correspondence/derive_correspondence/helpers/derive_correspondence_inherited.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/derive_correspondence/widgets/derive_correspondence_form_section.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/detail/cubit/correspondence_detail_cubit.dart';
+import 'package:correspondencia_sipe_sipe/features/home/side_menu/cubit/side_menu_cubit.dart';
 import 'package:correspondencia_sipe_sipe/injection/injection_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -56,6 +57,9 @@ class DeriveCorrespondenceView extends StatelessWidget {
             .event(
           onSuccess: (_) {
             context.read<CorrespondenceDetailCubit>().refresh();
+            try {
+              context.read<SideMenuCubit>().refreshBadges();
+            } catch (_) {}
           },
         ),
       ],
@@ -148,7 +152,10 @@ class DeriveCorrespondenceBody extends StatelessWidget {
     DeriveCorrespondenceInherited inherited,
   ) async {
     final validResult = inherited.valid();
-    if (!validResult.isPassed) return;
+    if (!validResult.isPassed) {
+      inherited.formKey.currentState?.validate();
+      return;
+    }
 
     final unitId = inherited.toUnit.get();
     if (unitId == null || unitId.isEmpty) return;

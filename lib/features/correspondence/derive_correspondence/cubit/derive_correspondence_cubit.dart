@@ -100,6 +100,10 @@ class DeriveCorrespondenceCubit extends Cubit<DeriveCorrespondenceState> {
     String? instruction,
     String? observation,
   }) async {
+    if (state.generalStatus == GeneralStatus.loading) {
+      return;
+    }
+
     emit(
       state.copyWith(
         generalStatus: GeneralStatus.loading,

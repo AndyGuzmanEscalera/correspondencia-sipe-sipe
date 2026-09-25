@@ -61,7 +61,7 @@ class CorrespondenceDetailBody extends StatelessWidget {
                   item: item,
                   movements: state.movements,
                   sectionGap: sectionGap,
-                  canManageLifecycle: state.canManageLifecycle,
+                  canOperateCurrentUnit: state.canOperateCurrentUnit,
                   lifecycleActionInProgress: state.lifecycleActionInProgress,
                 );
               }
@@ -72,7 +72,7 @@ class CorrespondenceDetailBody extends StatelessWidget {
                 movements: state.movements,
                 sectionGap: sectionGap,
                 isShort: isShort,
-                canManageLifecycle: state.canManageLifecycle,
+                canOperateCurrentUnit: state.canOperateCurrentUnit,
                 lifecycleActionInProgress: state.lifecycleActionInProgress,
               );
             },
@@ -89,7 +89,7 @@ class _CompactDetailLayout extends StatelessWidget {
     required this.item,
     required this.movements,
     required this.sectionGap,
-    required this.canManageLifecycle,
+    required this.canOperateCurrentUnit,
     required this.lifecycleActionInProgress,
   });
 
@@ -97,7 +97,7 @@ class _CompactDetailLayout extends StatelessWidget {
   final CorrespondenceEntity item;
   final List<CorrespondenceMovementEntity> movements;
   final double sectionGap;
-  final bool canManageLifecycle;
+  final bool canOperateCurrentUnit;
   final bool lifecycleActionInProgress;
 
   @override
@@ -126,7 +126,7 @@ class _CompactDetailLayout extends StatelessWidget {
                 SizedBox(height: sectionGap),
                 CorrespondenceLifecycleSection(
                   item: item,
-                  canManage: canManageLifecycle,
+                  canManage: canOperateCurrentUnit,
                   actionInProgress: lifecycleActionInProgress,
                 ),
               ],
@@ -137,7 +137,7 @@ class _CompactDetailLayout extends StatelessWidget {
         CorrespondenceAttachmentsSection(
           correspondenceId: correspondenceId,
         ),
-        if (item.isActiveStatus) ...[
+        if (item.isActiveStatus && canOperateCurrentUnit) ...[
           SizedBox(height: sectionGap),
           CorrespondenceDeriveSection(
             correspondenceId: correspondenceId,
@@ -155,7 +155,7 @@ class _WideDetailLayout extends StatelessWidget {
     required this.item,
     required this.movements,
     required this.sectionGap,
-    required this.canManageLifecycle,
+    required this.canOperateCurrentUnit,
     required this.lifecycleActionInProgress,
     this.isShort = false,
   });
@@ -164,7 +164,7 @@ class _WideDetailLayout extends StatelessWidget {
   final CorrespondenceEntity item;
   final List<CorrespondenceMovementEntity> movements;
   final double sectionGap;
-  final bool canManageLifecycle;
+  final bool canOperateCurrentUnit;
   final bool lifecycleActionInProgress;
   final bool isShort;
 
@@ -211,7 +211,7 @@ class _WideDetailLayout extends StatelessWidget {
           correspondenceId: correspondenceId,
           item: item,
           sectionGap: sectionGap,
-          canManageLifecycle: canManageLifecycle,
+          canOperateCurrentUnit: canOperateCurrentUnit,
           lifecycleActionInProgress: lifecycleActionInProgress,
         ),
       ],
@@ -224,14 +224,14 @@ class _WideFooterActions extends StatelessWidget {
     required this.correspondenceId,
     required this.item,
     required this.sectionGap,
-    required this.canManageLifecycle,
+    required this.canOperateCurrentUnit,
     required this.lifecycleActionInProgress,
   });
 
   final String correspondenceId;
   final CorrespondenceEntity item;
   final double sectionGap;
-  final bool canManageLifecycle;
+  final bool canOperateCurrentUnit;
   final bool lifecycleActionInProgress;
 
   @override
@@ -246,10 +246,10 @@ class _WideFooterActions extends StatelessWidget {
         SizedBox(height: sectionGap),
         CorrespondenceLifecycleSection(
           item: item,
-          canManage: canManageLifecycle,
+          canManage: canOperateCurrentUnit,
           actionInProgress: lifecycleActionInProgress,
         ),
-        if (item.isActiveStatus) ...[
+        if (item.isActiveStatus && canOperateCurrentUnit) ...[
           SizedBox(height: sectionGap),
           CorrespondenceDeriveSection(
             correspondenceId: correspondenceId,

@@ -575,9 +575,10 @@ def test_derive_concurrent_movement_sequences(
         ]
         responses = [future.result() for future in as_completed(futures)]
 
-    assert all(response.status_code == 200 for response in responses), [
-        response.text for response in responses
-    ]
+    success = [response for response in responses if response.status_code == 200]
+    forbidden = [response for response in responses if response.status_code == 403]
+    assert len(success) == 1, [response.text for response in responses]
+    assert len(forbidden) == 1
 
     from sqlalchemy import select
 
@@ -589,5 +590,5 @@ def test_derive_concurrent_movement_sequences(
 
     derived = [movement for movement in movements if movement.movement_type == "DERIVED"]
     sequences = [movement.sequence_number for movement in derived]
-    assert len(sequences) == 3
-    assert len(set(sequences)) == 3
+    assert len(sequences) == 2
+    assert len(set(sequences)) == 2
