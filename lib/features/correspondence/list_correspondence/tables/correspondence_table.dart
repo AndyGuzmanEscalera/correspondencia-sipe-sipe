@@ -2,7 +2,6 @@ import 'package:correspondencia_sipe_sipe/features/correspondence/domain/entitie
 import 'package:correspondencia_sipe_sipe/shared/widgets/data_grid/app_data_grid_cell_type.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/data_grid/app_data_grid_column.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/status_badge.dart';
-
 List<AppDataGridColumn<CorrespondenceEntity>> correspondenceTableColumns() {
   return [
     AppDataGridColumn<CorrespondenceEntity>(
@@ -14,16 +13,38 @@ List<AppDataGridColumn<CorrespondenceEntity>> correspondenceTableColumns() {
       mobilePriority: 1,
     ),
     AppDataGridColumn<CorrespondenceEntity>(
+      key: 'documentNumber',
+      label: 'N.º Doc',
+      width: 100,
+      value: (item) => item.documentNumber ?? '-',
+      mobilePriority: 35,
+      mobileVisible: false,
+    ),
+    AppDataGridColumn<CorrespondenceEntity>(
+      key: 'documentType',
+      label: 'Tipo documental',
+      value: (item) => item.documentTypeLabel,
+      mobilePriority: 30,
+    ),
+    AppDataGridColumn<CorrespondenceEntity>(
+      key: 'origin',
+      label: 'Origen',
+      width: 100,
+      value: (item) => item.originTypeLabel,
+      mobilePriority: 28,
+      mobileVisible: false,
+    ),
+    AppDataGridColumn<CorrespondenceEntity>(
       key: 'subject',
       label: 'Asunto',
       value: (item) => item.subject,
       mobilePriority: 10,
     ),
     AppDataGridColumn<CorrespondenceEntity>(
-      key: 'type',
-      label: 'Tipo',
-      value: (item) => item.typeLabel,
-      mobilePriority: 30,
+      key: 'reference',
+      label: 'Referencia',
+      value: (item) => item.reference ?? '-',
+      mobilePriority: 32,
       mobileVisible: false,
     ),
     AppDataGridColumn<CorrespondenceEntity>(
@@ -44,8 +65,15 @@ List<AppDataGridColumn<CorrespondenceEntity>> correspondenceTableColumns() {
     ),
     AppDataGridColumn<CorrespondenceEntity>(
       key: 'responsible',
-      label: 'Responsable',
-      value: (item) => item.currentResponsibleLabel,
+      label: 'Responsable actual',
+      width: 220,
+      value: (item) {
+        final hasUnit = item.currentUnitName?.isNotEmpty == true;
+        if (!hasUnit) {
+          return item.currentResponsibleUnitLabel;
+        }
+        return '${item.currentResponsibleUnitLabel} · ${item.currentResponsibleUserLabel}';
+      },
       mobilePriority: 20,
     ),
     AppDataGridColumn<CorrespondenceEntity>(

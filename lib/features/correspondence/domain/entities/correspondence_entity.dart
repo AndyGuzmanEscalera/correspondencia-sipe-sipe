@@ -11,16 +11,19 @@ class CorrespondenceEntity extends Equatable {
     required this.type,
     required this.priority,
     required this.subject,
-    required this.externalSender,
-    required this.externalRecipient,
-    required this.currentUserName,
     required this.registeredAt,
     required this.statusLabel,
     required this.documentTypeCode,
     required this.documentTypeName,
     this.documentNumber,
-    this.createdByUsername,
     this.reference,
+    this.senderName,
+    this.currentUnitId,
+    this.currentUnitName,
+    this.currentUserId,
+    this.currentUserName,
+    this.currentUserIsActive,
+    this.createdByUsername,
     this.description,
     this.originDescription,
     this.originEmployeeName,
@@ -38,16 +41,19 @@ class CorrespondenceEntity extends Equatable {
   final CorrespondenceTypeCode type;
   final String priority;
   final String subject;
-  final String externalSender;
-  final String externalRecipient;
-  final String currentUserName;
   final DateTime registeredAt;
   final String statusLabel;
   final String documentTypeCode;
   final String documentTypeName;
   final String? documentNumber;
-  final String? createdByUsername;
   final String? reference;
+  final String? senderName;
+  final String? currentUnitId;
+  final String? currentUnitName;
+  final String? currentUserId;
+  final String? currentUserName;
+  final bool? currentUserIsActive;
+  final String? createdByUsername;
   final String? description;
   final String? originDescription;
   final String? originEmployeeName;
@@ -56,20 +62,38 @@ class CorrespondenceEntity extends Equatable {
   final String? senderDocument;
   final String? senderContact;
 
+  String get documentTypeLabel => documentTypeName;
+
+  String get originTypeLabel => type == CorrespondenceTypeCode.ce
+      ? 'Externa'
+      : 'Interna';
+
+  /// Etiqueta larga para detalle (compatibilidad).
   String get typeLabel => type == CorrespondenceTypeCode.ce
       ? 'Correspondencia Externa (CE)'
       : 'Correspondencia Interna (CI)';
 
-  String get currentResponsibleLabel {
-    if (currentUserName.isNotEmpty) {
-      return '$externalRecipient / $currentUserName';
+  String get currentResponsibleUnitLabel =>
+      currentUnitName?.isNotEmpty == true
+          ? currentUnitName!
+          : 'Sin unidad asignada';
+
+  String get currentResponsibleUserLabel {
+    if (currentUserName == null || currentUserName!.isEmpty) {
+      return 'Sin responsable asignado';
     }
-    return externalRecipient;
+    if (currentUserIsActive == false) {
+      return '${currentUserName!} · Inactivo';
+    }
+    return currentUserName!;
   }
+
+  String get currentResponsibleLabel =>
+      '$currentResponsibleUnitLabel\n$currentResponsibleUserLabel';
 
   String get originLabel {
     if (type == CorrespondenceTypeCode.ce) {
-      return externalSender;
+      return senderName ?? '';
     }
     if (originEmployeeName != null && originEmployeeName!.isNotEmpty) {
       return originEmployeeName!;
@@ -79,7 +103,7 @@ class CorrespondenceEntity extends Equatable {
   }
 
   /// Compatibilidad con mocks de consulta pública / inbox.
-  String get citizenName => externalSender;
+  String get citizenName => senderName ?? '';
 
   String get citizenDocumentId => senderDocument ?? '';
 
@@ -97,16 +121,19 @@ class CorrespondenceEntity extends Equatable {
       type: type,
       priority: priority,
       subject: subject,
-      externalSender: externalSender,
-      externalRecipient: externalRecipient,
-      currentUserName: currentUserName,
       registeredAt: registeredAt,
       statusLabel: statusLabel ?? this.statusLabel,
       documentTypeCode: documentTypeCode,
       documentTypeName: documentTypeName,
       documentNumber: documentNumber,
-      createdByUsername: createdByUsername,
       reference: reference,
+      senderName: senderName,
+      currentUnitId: currentUnitId,
+      currentUnitName: currentUnitName,
+      currentUserId: currentUserId,
+      currentUserName: currentUserName,
+      currentUserIsActive: currentUserIsActive,
+      createdByUsername: createdByUsername,
       description: description,
       originDescription: originDescription,
       originEmployeeName: originEmployeeName,
@@ -127,16 +154,19 @@ class CorrespondenceEntity extends Equatable {
         type,
         priority,
         subject,
-        externalSender,
-        externalRecipient,
-        currentUserName,
         registeredAt,
         statusLabel,
         documentTypeCode,
         documentTypeName,
         documentNumber,
-        createdByUsername,
         reference,
+        senderName,
+        currentUnitId,
+        currentUnitName,
+        currentUserId,
+        currentUserName,
+        currentUserIsActive,
+        createdByUsername,
         description,
         originDescription,
         originEmployeeName,

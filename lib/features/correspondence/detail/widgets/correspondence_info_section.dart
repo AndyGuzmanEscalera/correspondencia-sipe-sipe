@@ -40,8 +40,8 @@ class CorrespondenceInfoSection extends StatelessWidget {
             value: item.documentTypeName,
           ),
           CorrespondenceInfoTile(
-            label: 'Tipo de correspondencia',
-            value: item.typeLabel,
+            label: 'Origen',
+            value: item.originTypeLabel,
           ),
           CorrespondenceInfoTile(label: 'Asunto', value: item.subject),
           if (item.description != null && item.description!.isNotEmpty)
@@ -67,13 +67,12 @@ class CorrespondenceInfoSection extends StatelessWidget {
             ),
           CorrespondenceInfoTile(
             label: 'Responsable actual',
-            value: item.currentResponsibleLabel,
+            value: item.currentResponsibleUnitLabel,
           ),
-          if (item.externalRecipient.isNotEmpty)
-            CorrespondenceInfoTile(
-              label: 'Unidad actual',
-              value: item.externalRecipient,
-            ),
+          CorrespondenceInfoTile(
+            label: 'Usuario responsable',
+            value: item.currentResponsibleUserLabel,
+          ),
           if (item.createdByUsername != null &&
               item.createdByUsername!.isNotEmpty)
             CorrespondenceInfoTile(

@@ -72,16 +72,17 @@ void main() {
       expect(find.text('14:30'), findsOneWidget);
     });
 
-    testWidgets('renderiza responsable y unidad actual', (tester) async {
+    testWidgets('renderiza responsable institucional y usuario', (tester) async {
       await pumpSection(
         tester,
         CorrespondenceInfoSection(item: externalCorrespondence),
       );
 
       expect(find.text('Responsable actual'), findsOneWidget);
-      expect(find.text('Sistemas / Usuario Destino'), findsOneWidget);
-      expect(find.text('Unidad actual'), findsOneWidget);
-      expect(find.text('Sistemas'), findsWidgets);
+      expect(find.text('Unidad de Sistemas'), findsOneWidget);
+      expect(find.text('Usuario responsable'), findsOneWidget);
+      expect(find.text('Usuario Destino'), findsOneWidget);
+      expect(find.text('Unidad actual'), findsNothing);
     });
   });
 }

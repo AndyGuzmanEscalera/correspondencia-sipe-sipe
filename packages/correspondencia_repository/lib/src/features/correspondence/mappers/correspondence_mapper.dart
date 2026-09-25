@@ -37,6 +37,7 @@ extension CorrespondenceResponseMapper on CorrespondenceResponse {
         status: status,
         currentUnitName: currentUnitName,
         currentUserName: currentUserName,
+        currentUserIsActive: currentUserIsActive,
         cite: cite,
         registeredAt: registeredAt,
         reference: reference,

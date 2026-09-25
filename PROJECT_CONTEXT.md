@@ -29,9 +29,21 @@ Flutter Web usa packages internos:
 - Login / logout conectados al backend.
 - Splash distingue: sin sesión (401 refresh) vs backend caído (Network/Timeout/Server).
 
+**Features con backend real (API):**
+
+- Autenticación, datos básicos (unidades, cargos, funcionarios, usuarios, tipos documentales).
+- Correspondencia: listado, detalle, registro, derivación, movimientos, adjuntos.
+
 **Features que siguen en mock (`LocalStore`):**
 
-- Consulta pública, correspondencias, bandejas, empleados, dashboard, reportes.
+- Consulta pública, bandejas (inbox/recibidos/enviados/observados/archivados), empleados legacy UI, dashboard, reportes.
+
+**Ownership operativo de correspondencia (Fase 0):**
+
+- `current_unit_id` = unidad institucional responsable (obligatoria al crear/derivar).
+- `current_user_id` = asignación personal opcional dentro de la unidad.
+- El list item API expone IDs de unidad/usuario y `current_user_is_active`.
+- Usuario destino inactivo no es seleccionable; trámites con responsable inactivo permanecen visibles por unidad.
 
 **Rutas GoRouter:**
 

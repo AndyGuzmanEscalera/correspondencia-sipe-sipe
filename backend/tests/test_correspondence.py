@@ -169,6 +169,97 @@ def test_create_user_not_in_unit_fails(
     assert "no pertenece" in response.json()["detail"]
 
 
+def test_create_inactive_user_fails(
+    client: TestClient,
+    db: Session,
+    auth_headers: dict[str, str],
+    document_type: DocumentType,
+    second_org_unit: OrganizationalUnit,
+    second_user: User,
+) -> None:
+    second_user.is_active = False
+    db.commit()
+
+    response = client.post(
+        "/correspondences",
+        headers=auth_headers,
+        json=_create_payload(
+            document_type,
+            "Usuario inactivo",
+            unit_id=second_org_unit.id,
+            user_id=second_user.id,
+        ),
+    )
+    assert response.status_code == 422
+    assert "inactivo" in response.json()["detail"]
+
+
+def test_correspondence_with_inactive_current_user_still_listed(
+    client: TestClient,
+    db: Session,
+    auth_headers: dict[str, str],
+    document_type: DocumentType,
+    second_org_unit: OrganizationalUnit,
+    second_user: User,
+) -> None:
+    created = client.post(
+        "/correspondences",
+        headers=auth_headers,
+        json=_create_payload(
+            document_type,
+            "Responsable luego inactivo",
+            unit_id=second_org_unit.id,
+            user_id=second_user.id,
+        ),
+    ).json()
+
+    second_user.is_active = False
+    db.commit()
+
+    response = client.get("/correspondences", headers=auth_headers)
+    assert response.status_code == 200
+    listed = next(item for item in response.json()["items"] if item["id"] == created["id"])
+    assert listed["current_unit_id"] == str(second_org_unit.id)
+    assert listed["current_user_id"] == str(second_user.id)
+    assert listed["current_user_is_active"] is False
+    assert listed["current_user_name"] is not None
+
+
+def test_movements_preserve_inactive_user_names(
+    client: TestClient,
+    db: Session,
+    auth_headers: dict[str, str],
+    document_type: DocumentType,
+    second_org_unit: OrganizationalUnit,
+    second_user: User,
+) -> None:
+    created = client.post(
+        "/correspondences",
+        headers=auth_headers,
+        json=_create_payload(
+            document_type,
+            "Histórico usuario inactivo",
+            unit_id=second_org_unit.id,
+            user_id=second_user.id,
+        ),
+    ).json()
+
+    movements_before = client.get(
+        f"/correspondences/{created['id']}/movements",
+        headers=auth_headers,
+    ).json()
+    assert movements_before[-1]["to_user_name"] is not None
+
+    second_user.is_active = False
+    db.commit()
+
+    movements_after = client.get(
+        f"/correspondences/{created['id']}/movements",
+        headers=auth_headers,
+    ).json()
+    assert movements_after[-1]["to_user_name"] == movements_before[-1]["to_user_name"]
+
+
 def test_create_inactive_unit_fails(
     client: TestClient,
     db: Session,
@@ -260,17 +351,34 @@ def test_list_correspondences(
     auth_headers: dict[str, str],
     document_type: DocumentType,
     second_org_unit: OrganizationalUnit,
+    second_user: User,
 ) -> None:
-    client.post(
+    created = client.post(
         "/correspondences",
         headers=auth_headers,
-        json=_create_payload(document_type, "Para listado", unit_id=second_org_unit.id),
-    )
+        json=_create_payload(
+            document_type,
+            "Para listado",
+            unit_id=second_org_unit.id,
+            user_id=second_user.id,
+            reference="REF-LIST-001",
+        ),
+    ).json()
     response = client.get("/correspondences", headers=auth_headers)
     assert response.status_code == 200
     body = response.json()
     assert body["total"] >= 1
     assert len(body["items"]) >= 1
+
+    listed = next(item for item in body["items"] if item["id"] == created["id"])
+    assert listed["current_unit_id"] == str(second_org_unit.id)
+    assert listed["current_user_id"] == str(second_user.id)
+    assert listed["current_unit_name"] == second_org_unit.name
+    assert listed["current_user_name"] is not None
+    assert listed["current_user_is_active"] is True
+    assert listed["reference"] == "REF-LIST-001"
+    assert listed["document_type_name"] == document_type.name
+    assert listed["correspondence_type"] == "EXTERNAL"
 
 
 def test_inactive_correspondence_excluded_from_operational_list(

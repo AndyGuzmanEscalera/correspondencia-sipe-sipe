@@ -76,10 +76,14 @@ class CorrespondenceListItem(BaseModel):
     document_type_code: str
     document_type_name: str
     subject: str
+    reference: str | None
     priority: str
     status: str
+    current_unit_id: uuid.UUID | None
     current_unit_name: str | None
+    current_user_id: uuid.UUID | None
     current_user_name: str | None
+    current_user_is_active: bool | None
     cite: str | None
     registered_at: datetime
 
@@ -93,7 +97,6 @@ class CorrespondenceListResponse(BaseModel):
 
 
 class CorrespondenceDetail(CorrespondenceListItem):
-    reference: str | None
     description: str | None
     sender_name: str | None
     sender_document: str | None

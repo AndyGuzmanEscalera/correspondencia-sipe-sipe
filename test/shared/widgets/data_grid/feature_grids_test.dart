@@ -93,6 +93,7 @@ void main() {
     final sampleCorrespondences = [
       externalCorrespondence,
       internalCorrespondence,
+      inactiveResponsibleCorrespondence,
     ];
 
     Future<void> pumpGridWidget(
@@ -221,13 +222,16 @@ void main() {
           columns: correspondenceTableColumns(),
           currentPage: 1,
           pageSize: 10,
-          totalItems: 2,
+          totalItems: 3,
           totalPages: 1,
           onPageChanged: (_) {},
         ),
       );
       expect(find.byType(DataTable2), findsOneWidget);
       expect(find.text('HR-2026-000001'), findsOneWidget);
+      expect(find.text('Encadenamiento'), findsOneWidget);
+      expect(find.text('Informe Técnico'), findsOneWidget);
+      expect(find.textContaining('Carlos Pérez · Inactivo'), findsOneWidget);
       expect(find.text('ACTIVO'), findsWidgets);
 
       // Mobile 390
@@ -240,14 +244,17 @@ void main() {
           columns: correspondenceTableColumns(),
           currentPage: 1,
           pageSize: 10,
-          totalItems: 2,
+          totalItems: 3,
           totalPages: 1,
           onPageChanged: (_) {},
         ),
       );
       expect(find.byType(DataTable2), findsNothing);
       expect(find.text('HR-2026-000001'), findsOneWidget);
-      expect(find.text('ACTIVO'), findsWidgets);
+      expect(find.text('Encadenamiento'), findsWidgets);
+      await tester.drag(find.byType(ListView), const Offset(0, -500));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Carlos Pérez · Inactivo'), findsWidgets);
       expect(tester.takeException(), isNull);
     });
   });

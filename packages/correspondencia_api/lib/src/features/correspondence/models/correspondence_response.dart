@@ -13,6 +13,7 @@ class CorrespondenceResponse {
     required this.status,
     this.currentUnitName,
     this.currentUserName,
+    this.currentUserIsActive,
     this.cite,
     required this.registeredAt,
     this.reference,
@@ -52,6 +53,7 @@ class CorrespondenceResponse {
       status: json['status'] as String,
       currentUnitName: json['current_unit_name'] as String?,
       currentUserName: json['current_user_name'] as String?,
+      currentUserIsActive: json['current_user_is_active'] as bool?,
       cite: json['cite'] as String?,
       registeredAt: DateTime.parse(json['registered_at'] as String),
       reference: json['reference'] as String?,
@@ -94,6 +96,7 @@ class CorrespondenceResponse {
   final String status;
   final String? currentUnitName;
   final String? currentUserName;
+  final bool? currentUserIsActive;
   final String? cite;
   final DateTime registeredAt;
   final String? reference;

@@ -785,6 +785,14 @@ class CorrespondenceService:
             return self._employee_display_name(user.employee_id)
         return user.username
 
+    def _user_is_active(self, user_id: uuid.UUID | None) -> bool | None:
+        if user_id is None:
+            return None
+        user = self._db.get(User, user_id)
+        if user is None:
+            return None
+        return user.is_active
+
     def _employee_display_name(self, employee_id: uuid.UUID | None) -> str | None:
         if employee_id is None:
             return None
@@ -837,10 +845,14 @@ class CorrespondenceService:
             document_type_code=doc_type.code,
             document_type_name=doc_type.name,
             subject=correspondence.subject,
+            reference=correspondence.reference,
             priority=correspondence.priority,
             status=correspondence.status,
+            current_unit_id=correspondence.current_unit_id,
             current_unit_name=self._unit_name(correspondence.current_unit_id),
+            current_user_id=correspondence.current_user_id,
             current_user_name=self._user_display_name(correspondence.current_user_id),
+            current_user_is_active=self._user_is_active(correspondence.current_user_id),
             cite=correspondence.cite,
             registered_at=correspondence.created_at,
         )
@@ -850,7 +862,6 @@ class CorrespondenceService:
         creator = self._db.get(User, correspondence.created_by_user_id)
         return CorrespondenceDetail(
             **base.model_dump(),
-            reference=correspondence.reference,
             description=correspondence.description,
             sender_name=correspondence.sender_name,
             sender_document=correspondence.sender_document,
@@ -864,8 +875,6 @@ class CorrespondenceService:
             origin_employee_name=self._employee_display_name(
                 correspondence.origin_employee_id
             ),
-            current_unit_id=correspondence.current_unit_id,
-            current_user_id=correspondence.current_user_id,
             cite_sequence=correspondence.cite_sequence,
             cite_year=correspondence.cite_year,
             concluded_at=correspondence.concluded_at,

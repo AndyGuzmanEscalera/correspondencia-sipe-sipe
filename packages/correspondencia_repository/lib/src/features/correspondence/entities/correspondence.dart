@@ -15,6 +15,7 @@ class Correspondence extends Equatable {
     required this.status,
     this.currentUnitName,
     this.currentUserName,
+    this.currentUserIsActive,
     this.cite,
     required this.registeredAt,
     this.reference,
@@ -47,6 +48,7 @@ class Correspondence extends Equatable {
   final String status;
   final String? currentUnitName;
   final String? currentUserName;
+  final bool? currentUserIsActive;
   final String? cite;
   final DateTime registeredAt;
   final String? reference;
@@ -82,6 +84,7 @@ class Correspondence extends Equatable {
         status,
         currentUnitName,
         currentUserName,
+        currentUserIsActive,
         cite,
         registeredAt,
         reference,
