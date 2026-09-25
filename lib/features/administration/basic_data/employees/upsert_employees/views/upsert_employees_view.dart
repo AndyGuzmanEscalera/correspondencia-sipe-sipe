@@ -7,6 +7,7 @@ import 'package:correspondencia_sipe_sipe/features/administration/basic_data/emp
 import 'package:correspondencia_sipe_sipe/features/administration/basic_data/employees/upsert_employees/cubit/upsert_employees_cubit.dart';
 import 'package:correspondencia_sipe_sipe/features/administration/basic_data/employees/upsert_employees/helpers/upsert_employees_inherited.dart';
 import 'package:correspondencia_sipe_sipe/injection/injection_bloc.dart';
+import 'package:correspondencia_sipe_sipe/shared/widgets/app_form_dialog.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/form/app_dropdown.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/form/app_text_field.dart';
 import 'package:flutter/material.dart';
@@ -82,15 +83,18 @@ class UpsertEmployeesBody extends StatelessWidget {
     return BlocBuilder<UpsertEmployeesCubit, UpsertEmployeesState>(
       builder: (context, state) {
         if (!state.catalogLoaded) {
-          return AlertDialog(
-            title: Text(isCreate ? 'Nuevo funcionario' : 'Editar funcionario'),
-            content: const SizedBox(
-              width: 480,
+          return AppFormDialog(
+            title: isCreate ? 'Nuevo funcionario' : 'Editar funcionario',
+            maxWidth: 540,
+            isLoading: true,
+            isSubmitDisabled: true,
+            child: const SizedBox(
+              height: 120,
               child: Center(
                 child: SizedBox(
                   width: 24,
                   height: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  child: CircularProgressIndicator(strokeWidth: 2.5),
                 ),
               ),
             ),
@@ -98,17 +102,16 @@ class UpsertEmployeesBody extends StatelessWidget {
         }
 
         if (!state.catalogReady) {
-          return AlertDialog(
-            title: Text(isCreate ? 'Nuevo funcionario' : 'Editar funcionario'),
-            content: const Text(
-              'No se pudieron cargar unidades y cargos activos.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cerrar'),
+          return AppFormDialog(
+            title: isCreate ? 'Nuevo funcionario' : 'Editar funcionario',
+            maxWidth: 540,
+            onSubmit: null,
+            child: const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Text(
+                'No se pudieron cargar unidades y cargos activos.',
               ),
-            ],
+            ),
           );
         }
 
@@ -133,117 +136,101 @@ class UpsertEmployeesBody extends StatelessWidget {
 
         final isLoading = state.generalStatus == GeneralStatus.loading;
 
-        return AlertDialog(
-          title: Text(isCreate ? 'Nuevo funcionario' : 'Editar funcionario'),
-          content: SizedBox(
-            width: 480,
-            child: Form(
-              key: inherited.formKey,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    AppTextField(
-                      controller: inherited.firstName,
-                      label: 'Nombres',
-                      validators: [
-                        RequiredValid(error: 'Campo requerido'),
-                      ],
-                    ),
-                    AppTextField(
-                      controller: inherited.lastName,
-                      label: 'Apellidos',
-                      validators: [
-                        RequiredValid(error: 'Campo requerido'),
-                      ],
-                    ),
-                    AppTextField(
-                      controller: inherited.document,
-                      label: 'Documento de identidad',
-                      validators: [
-                        RequiredValid(error: 'Campo requerido'),
-                      ],
-                    ),
-                    AppTextField(
-                      controller: inherited.email,
-                      label: 'Correo (opcional)',
-                      inputType: TextInputType.emailAddress,
-                    ),
-                    AppTextField(
-                      controller: inherited.phone,
-                      label: 'Teléfono (opcional)',
-                      inputType: TextInputType.phone,
-                    ),
-                    AppDropdown<String>(
-                      controller: inherited.unit,
-                      label: 'Unidad',
-                      items: unitItems,
-                      validators: [
-                        RequiredValid(error: 'Seleccione una unidad'),
-                      ],
-                    ),
-                    AppDropdown<String>(
-                      controller: inherited.position,
-                      label: 'Cargo',
-                      items: positionItems,
-                      validators: [
-                        RequiredValid(error: 'Seleccione un cargo'),
-                      ],
-                    ),
+        return AppFormDialog(
+          title: isCreate ? 'Nuevo funcionario' : 'Editar funcionario',
+          subtitle: isCreate
+              ? 'Complete los datos personales y de asignación'
+              : 'Actualice los datos del funcionario',
+          maxWidth: 540,
+          isLoading: isLoading,
+          submitLabel: isCreate ? 'Registrar' : 'Guardar',
+          onSubmit: () {
+            final validResult = inherited.valid();
+            if (!validResult.isPassed) return;
+
+            final unitId = inherited.unit.get();
+            final positionId = inherited.position.get();
+            if (unitId == null || positionId == null) return;
+
+            if (isCreate) {
+              upsertCubit.save(
+                firstName: inherited.firstName.getValue(),
+                lastName: inherited.lastName.getValue(),
+                documentNumber: inherited.document.getValue(),
+                unitId: unitId,
+                positionId: positionId,
+                email: inherited.email.getValue(),
+                phone: inherited.phone.getValue(),
+              );
+            } else {
+              if (selected == null) return;
+              upsertCubit.update(
+                entity: selected,
+                firstName: inherited.firstName.getValue(),
+                lastName: inherited.lastName.getValue(),
+                documentNumber: inherited.document.getValue(),
+                unitId: unitId,
+                positionId: positionId,
+                email: inherited.email.getValue(),
+                phone: inherited.phone.getValue(),
+              );
+            }
+          },
+          child: Form(
+            key: inherited.formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AppTextField(
+                  controller: inherited.firstName,
+                  label: 'Nombres',
+                  validators: [
+                    RequiredValid(error: 'Campo requerido'),
                   ],
                 ),
-              ),
+                AppTextField(
+                  controller: inherited.lastName,
+                  label: 'Apellidos',
+                  validators: [
+                    RequiredValid(error: 'Campo requerido'),
+                  ],
+                ),
+                AppTextField(
+                  controller: inherited.document,
+                  label: 'Documento de identidad',
+                  validators: [
+                    RequiredValid(error: 'Campo requerido'),
+                  ],
+                ),
+                AppTextField(
+                  controller: inherited.email,
+                  label: 'Correo (opcional)',
+                  inputType: TextInputType.emailAddress,
+                ),
+                AppTextField(
+                  controller: inherited.phone,
+                  label: 'Teléfono (opcional)',
+                  inputType: TextInputType.phone,
+                ),
+                AppDropdown<String>(
+                  controller: inherited.unit,
+                  label: 'Unidad',
+                  items: unitItems,
+                  validators: [
+                    RequiredValid(error: 'Seleccione una unidad'),
+                  ],
+                ),
+                AppDropdown<String>(
+                  controller: inherited.position,
+                  label: 'Cargo',
+                  items: positionItems,
+                  validators: [
+                    RequiredValid(error: 'Seleccione un cargo'),
+                  ],
+                ),
+              ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: isLoading ? null : () => Navigator.pop(context),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: isLoading
-                  ? null
-                  : () {
-                      final validResult = inherited.valid();
-                      if (!validResult.isPassed) return;
-
-                      final unitId = inherited.unit.get();
-                      final positionId = inherited.position.get();
-                      if (unitId == null || positionId == null) return;
-
-                      if (isCreate) {
-                        upsertCubit.save(
-                          firstName: inherited.firstName.getValue(),
-                          lastName: inherited.lastName.getValue(),
-                          documentNumber: inherited.document.getValue(),
-                          unitId: unitId,
-                          positionId: positionId,
-                          email: inherited.email.getValue(),
-                          phone: inherited.phone.getValue(),
-                        );
-                      } else {
-                        if (selected == null) return;
-                        upsertCubit.update(
-                          entity: selected,
-                          firstName: inherited.firstName.getValue(),
-                          lastName: inherited.lastName.getValue(),
-                          documentNumber: inherited.document.getValue(),
-                          unitId: unitId,
-                          positionId: positionId,
-                          email: inherited.email.getValue(),
-                          phone: inherited.phone.getValue(),
-                        );
-                      }
-                    },
-              child: isLoading
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text(isCreate ? 'Registrar' : 'Guardar'),
-            ),
-          ],
         );
       },
     );

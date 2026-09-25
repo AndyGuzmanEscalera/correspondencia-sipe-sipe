@@ -185,6 +185,22 @@ void main() {
       createGate.complete();
       await tester.pumpAndSettle();
     });
+
+    testWidgets('mobile 390px renderiza sin overflow', (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await pumpUpsertDialog(tester, typeOperation: TypeOperation.create);
+
+      expect(find.text('Nuevo usuario'), findsOneWidget);
+      expect(find.text('Registrar'), findsOneWidget);
+      expect(find.text('Cancelar'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
   });
 }
 

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:correspondencia_repository/correspondencia_repository.dart';
 import 'package:correspondencia_sipe_sipe/core/util/enums.dart';
 import 'package:correspondencia_sipe_sipe/core/util/form/models/form_option.dart';
@@ -163,6 +165,45 @@ void main() {
 
       expect(find.text('Nueva unidad'), findsNothing);
     });
+
+    testWidgets('mobile 390px renderiza sin overflow', (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await pumpUpsertDialog(tester, typeOperation: TypeOperation.create);
+
+      expect(find.text('Nueva unidad'), findsOneWidget);
+      expect(find.text('Registrar'), findsOneWidget);
+      expect(find.text('Cancelar'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('loading deshabilita submit', (tester) async {
+      final createGate = Completer<void>();
+      repository.createGate = createGate;
+
+      await pumpUpsertDialog(tester, typeOperation: TypeOperation.create);
+
+      await tester.enterText(find.byType(TextFormField).at(0), 'FIN');
+      await tester.enterText(find.byType(TextFormField).at(1), 'Finanzas');
+      await tester.tap(find.text('Registrar'));
+      await tester.pump();
+
+      expect(
+        tester
+            .widgetList<ElevatedButton>(find.byType(ElevatedButton))
+            .last
+            .onPressed,
+        isNull,
+      );
+
+      createGate.complete();
+      await tester.pumpAndSettle();
+    });
   });
 }
 
@@ -205,6 +246,7 @@ class _FakeListRepository implements OrganizationalUnitsAdminRepository {
 class _FakeOrganizationalUnitsAdminRepository
     implements OrganizationalUnitsAdminRepository {
   Result<OrganizationalUnitAdmin, Failure>? createResult;
+  Completer<void>? createGate;
 
   @override
   Future<Result<AdminPage<OrganizationalUnitAdmin>, Failure>> list({
@@ -228,6 +270,7 @@ class _FakeOrganizationalUnitsAdminRepository
   Future<Result<OrganizationalUnitAdmin, Failure>> create(
     OrganizationalUnitInput input,
   ) async {
+    if (createGate != null) await createGate!.future;
     return createResult ??
         Ok(
           OrganizationalUnitAdmin(

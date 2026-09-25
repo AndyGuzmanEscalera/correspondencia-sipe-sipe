@@ -8,6 +8,7 @@ import 'package:correspondencia_sipe_sipe/features/administration/basic_data/use
 import 'package:correspondencia_sipe_sipe/features/administration/basic_data/users/upsert_users/helpers/upsert_users_inherited.dart';
 import 'package:correspondencia_sipe_sipe/features/administration/basic_data/users/upsert_users/widgets/user_roles_section.dart';
 import 'package:correspondencia_sipe_sipe/injection/injection_bloc.dart';
+import 'package:correspondencia_sipe_sipe/shared/widgets/app_form_dialog.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/form/app_dropdown.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/form/app_text_field.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/form/app_text_password.dart';
@@ -108,15 +109,18 @@ class _UpsertUsersBodyState extends State<UpsertUsersBody> {
       builder: (context, state) {
         _applyRolesIfNeeded(state);
         if (!state.catalogLoaded) {
-          return AlertDialog(
-            title: Text(isCreate ? 'Nuevo usuario' : 'Editar usuario'),
-            content: const SizedBox(
-              width: 480,
+          return AppFormDialog(
+            title: isCreate ? 'Nuevo usuario' : 'Editar usuario',
+            maxWidth: 540,
+            isLoading: true,
+            isSubmitDisabled: true,
+            child: const SizedBox(
+              height: 120,
               child: Center(
                 child: SizedBox(
                   width: 24,
                   height: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  child: CircularProgressIndicator(strokeWidth: 2.5),
                 ),
               ),
             ),
@@ -124,17 +128,16 @@ class _UpsertUsersBodyState extends State<UpsertUsersBody> {
         }
 
         if (!state.catalogReady) {
-          return AlertDialog(
-            title: Text(isCreate ? 'Nuevo usuario' : 'Editar usuario'),
-            content: const Text(
-              'No se pudieron cargar funcionarios y roles activos.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cerrar'),
+          return AppFormDialog(
+            title: isCreate ? 'Nuevo usuario' : 'Editar usuario',
+            maxWidth: 540,
+            onSubmit: null,
+            child: const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Text(
+                'No se pudieron cargar funcionarios y roles activos.',
               ),
-            ],
+            ),
           );
         }
 
@@ -150,96 +153,80 @@ class _UpsertUsersBodyState extends State<UpsertUsersBody> {
 
         final isLoading = state.generalStatus == GeneralStatus.loading;
 
-        return AlertDialog(
-          title: Text(isCreate ? 'Nuevo usuario' : 'Editar usuario'),
-          content: SizedBox(
-            width: 480,
-            child: Form(
-              key: inherited.formKey,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    AppTextField(
-                      controller: inherited.username,
-                      label: 'Nombre de usuario',
-                      validators: [
-                        RequiredValid(error: 'Campo requerido'),
-                      ],
-                    ),
-                    AppTextField(
-                      controller: inherited.email,
-                      label: 'Correo (opcional)',
-                      inputType: TextInputType.emailAddress,
-                    ),
-                    if (isCreate)
-                      AppTextPassword(
-                        controller: inherited.password,
-                        label: 'Contraseña inicial',
-                        validators: [
-                          RequiredValid(error: 'Campo requerido'),
-                        ],
-                      ),
-                    AppDropdown<String>(
-                      controller: inherited.employee,
-                      label: 'Funcionario',
-                      items: employeeItems,
-                      validators: [
-                        RequiredValid(error: 'Seleccione un funcionario'),
-                      ],
-                    ),
-                    UserRolesSection(roles: state.roles),
+        return AppFormDialog(
+          title: isCreate ? 'Nuevo usuario' : 'Editar usuario',
+          subtitle: isCreate
+              ? 'Defina credenciales y asignación de roles'
+              : 'Actualice los datos y roles del usuario',
+          maxWidth: 540,
+          isLoading: isLoading,
+          submitLabel: isCreate ? 'Registrar' : 'Guardar',
+          onSubmit: () {
+            final validResult =
+                inherited.valid(isCreate: isCreate);
+            if (!validResult.isPassed) return;
+
+            final employeeId = inherited.employee.get();
+            if (employeeId == null) return;
+
+            final roleIds = inherited.selectedRoleIds.toList();
+
+            if (isCreate) {
+              upsertCubit.save(
+                username: inherited.username.getValue(),
+                employeeId: employeeId,
+                initialPassword: inherited.password.getValue(),
+                roleIds: roleIds,
+                email: inherited.email.getValue(),
+              );
+            } else {
+              if (selected == null) return;
+              upsertCubit.update(
+                entity: selected,
+                username: inherited.username.getValue(),
+                employeeId: employeeId,
+                roleIds: roleIds,
+                email: inherited.email.getValue(),
+              );
+            }
+          },
+          child: Form(
+            key: inherited.formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AppTextField(
+                  controller: inherited.username,
+                  label: 'Nombre de usuario',
+                  validators: [
+                    RequiredValid(error: 'Campo requerido'),
                   ],
                 ),
-              ),
+                AppTextField(
+                  controller: inherited.email,
+                  label: 'Correo (opcional)',
+                  inputType: TextInputType.emailAddress,
+                ),
+                if (isCreate)
+                  AppTextPassword(
+                    controller: inherited.password,
+                    label: 'Contraseña inicial',
+                    validators: [
+                      RequiredValid(error: 'Campo requerido'),
+                    ],
+                  ),
+                AppDropdown<String>(
+                  controller: inherited.employee,
+                  label: 'Funcionario',
+                  items: employeeItems,
+                  validators: [
+                    RequiredValid(error: 'Seleccione un funcionario'),
+                  ],
+                ),
+                UserRolesSection(roles: state.roles),
+              ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: isLoading ? null : () => Navigator.pop(context),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: isLoading
-                  ? null
-                  : () {
-                      final validResult =
-                          inherited.valid(isCreate: isCreate);
-                      if (!validResult.isPassed) return;
-
-                      final employeeId = inherited.employee.get();
-                      if (employeeId == null) return;
-
-                      final roleIds = inherited.selectedRoleIds.toList();
-
-                      if (isCreate) {
-                        upsertCubit.save(
-                          username: inherited.username.getValue(),
-                          employeeId: employeeId,
-                          initialPassword: inherited.password.getValue(),
-                          roleIds: roleIds,
-                          email: inherited.email.getValue(),
-                        );
-                      } else {
-                        if (selected == null) return;
-                        upsertCubit.update(
-                          entity: selected,
-                          username: inherited.username.getValue(),
-                          employeeId: employeeId,
-                          roleIds: roleIds,
-                          email: inherited.email.getValue(),
-                        );
-                      }
-                    },
-              child: isLoading
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text(isCreate ? 'Registrar' : 'Guardar'),
-            ),
-          ],
         );
       },
     );

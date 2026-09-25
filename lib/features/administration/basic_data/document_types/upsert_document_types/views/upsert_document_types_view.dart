@@ -6,6 +6,7 @@ import 'package:correspondencia_sipe_sipe/features/administration/basic_data/doc
 import 'package:correspondencia_sipe_sipe/features/administration/basic_data/document_types/upsert_document_types/cubit/upsert_document_types_cubit.dart';
 import 'package:correspondencia_sipe_sipe/features/administration/basic_data/document_types/upsert_document_types/helpers/upsert_document_types_inherited.dart';
 import 'package:correspondencia_sipe_sipe/injection/injection_bloc.dart';
+import 'package:correspondencia_sipe_sipe/shared/widgets/app_form_dialog.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/form/app_text_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -73,90 +74,63 @@ class UpsertDocumentTypesBody extends StatelessWidget {
     final upsertCubit = context.read<UpsertDocumentTypesCubit>();
     final listCubit = context.read<DocumentTypesCubit>();
 
-    return AlertDialog(
-      title: Text(
-        isCreate ? 'Nuevo tipo de documento' : 'Editar tipo de documento',
-      ),
-      content: SizedBox(
-        width: 420,
-        child: Form(
-          key: inherited.formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AppTextField(
-                controller: inherited.code,
-                label: 'Código',
-                readOnly: !isCreate,
-                validators: [
-                  RequiredValid(error: 'Campo requerido'),
-                ],
-              ),
-              AppTextField(
-                controller: inherited.name,
-                label: 'Nombre',
-                validators: [
-                  RequiredValid(error: 'Campo requerido'),
-                ],
-              ),
-              const SizedBox(height: 10),
-              BlocBuilder<UpsertDocumentTypesCubit, UpsertDocumentTypesState>(
-                builder: (context, state) {
-                  final isLoading =
-                      state.generalStatus == GeneralStatus.loading;
+    return BlocBuilder<UpsertDocumentTypesCubit, UpsertDocumentTypesState>(
+      builder: (context, state) {
+        final isLoading = state.generalStatus == GeneralStatus.loading;
 
-                  return Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: isLoading
-                              ? null
-                              : () => Navigator.pop(context),
-                          child: const Text('Cancelar'),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: isLoading
-                              ? null
-                              : () {
-                                  final validResult = inherited.valid();
-                                  if (validResult.isPassed) {
-                                    if (isCreate) {
-                                      upsertCubit.save(
-                                        code: inherited.code.getValue(),
-                                        name: inherited.name.getValue(),
-                                      );
-                                    } else {
-                                      final selected = listCubit.state.selected;
-                                      if (selected == null) return;
-                                      upsertCubit.update(
-                                        name: inherited.name.getValue(),
-                                        entity: selected,
-                                      );
-                                    }
-                                  }
-                                },
-                          child: isLoading
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : Text(isCreate ? 'Registrar' : 'Guardar'),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ],
+        return AppFormDialog(
+          title: isCreate
+              ? 'Nuevo tipo de documento'
+              : 'Editar tipo de documento',
+          subtitle: isCreate
+              ? 'Defina el código y nombre del tipo de documento'
+              : 'Modifique los datos del tipo de documento',
+          maxWidth: 480,
+          isLoading: isLoading,
+          submitLabel: isCreate ? 'Registrar' : 'Guardar',
+          onSubmit: () {
+            final validResult = inherited.valid();
+            if (validResult.isPassed) {
+              if (isCreate) {
+                upsertCubit.save(
+                  code: inherited.code.getValue(),
+                  name: inherited.name.getValue(),
+                );
+              } else {
+                final selected = listCubit.state.selected;
+                if (selected == null) return;
+                upsertCubit.update(
+                  name: inherited.name.getValue(),
+                  entity: selected,
+                );
+              }
+            }
+          },
+          child: Form(
+            key: inherited.formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AppTextField(
+                  controller: inherited.code,
+                  label: 'Código',
+                  readOnly: !isCreate,
+                  validators: [
+                    RequiredValid(error: 'Campo requerido'),
+                  ],
+                ),
+                AppTextField(
+                  controller: inherited.name,
+                  label: 'Nombre',
+                  validators: [
+                    RequiredValid(error: 'Campo requerido'),
+                  ],
+                ),
+              ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

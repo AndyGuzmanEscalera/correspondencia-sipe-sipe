@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:correspondencia_repository/correspondencia_repository.dart';
 import 'package:correspondencia_sipe_sipe/core/util/enums.dart';
 import 'package:correspondencia_sipe_sipe/features/administration/basic_data/document_types/list_document_types/cubit/document_types_cubit.dart';
@@ -154,6 +156,45 @@ void main() {
 
       expect(find.text('Nuevo tipo de documento'), findsNothing);
     });
+
+    testWidgets('mobile 390px renderiza sin overflow', (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await pumpUpsertDialog(tester, typeOperation: TypeOperation.create);
+
+      expect(find.text('Nuevo tipo de documento'), findsOneWidget);
+      expect(find.text('Registrar'), findsOneWidget);
+      expect(find.text('Cancelar'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('loading deshabilita submit', (tester) async {
+      final createGate = Completer<void>();
+      repository.createGate = createGate;
+
+      await pumpUpsertDialog(tester, typeOperation: TypeOperation.create);
+
+      await tester.enterText(find.byType(TextFormField).at(0), 'MEMO');
+      await tester.enterText(find.byType(TextFormField).at(1), 'Memorando');
+      await tester.tap(find.text('Registrar'));
+      await tester.pump();
+
+      expect(
+        tester
+            .widgetList<ElevatedButton>(find.byType(ElevatedButton))
+            .last
+            .onPressed,
+        isNull,
+      );
+
+      createGate.complete();
+      await tester.pumpAndSettle();
+    });
   });
 }
 
@@ -187,11 +228,13 @@ class _FakeListRepository implements DocumentTypesAdminRepository {
 class _FakeDocumentTypesAdminRepository
     implements DocumentTypesAdminRepository {
   Result<DocumentTypeAdmin, Failure>? createResult;
+  Completer<void>? createGate;
 
   @override
   Future<Result<DocumentTypeAdmin, Failure>> create(
     DocumentTypeInput input,
   ) async {
+    if (createGate != null) await createGate!.future;
     return createResult ??
         Ok(
           DocumentTypeAdmin(

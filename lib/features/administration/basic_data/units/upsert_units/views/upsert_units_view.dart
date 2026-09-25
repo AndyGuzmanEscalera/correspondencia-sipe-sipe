@@ -7,6 +7,7 @@ import 'package:correspondencia_sipe_sipe/features/administration/basic_data/uni
 import 'package:correspondencia_sipe_sipe/features/administration/basic_data/units/upsert_units/cubit/upsert_units_cubit.dart';
 import 'package:correspondencia_sipe_sipe/features/administration/basic_data/units/upsert_units/helpers/upsert_units_inherited.dart';
 import 'package:correspondencia_sipe_sipe/injection/injection_bloc.dart';
+import 'package:correspondencia_sipe_sipe/shared/widgets/app_form_dialog.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/form/app_dropdown.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/form/app_text_field.dart';
 import 'package:flutter/material.dart';
@@ -79,138 +80,104 @@ class UpsertUnitsBody extends StatelessWidget {
     final listCubit = context.read<UnitsCubit>();
     final selected = listCubit.state.selected;
 
-    return AlertDialog(
-      title: Text(isCreate ? 'Nueva unidad' : 'Editar unidad'),
-      content: SizedBox(
-        width: 460,
-        child: Form(
-          key: inherited.formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AppTextField(
-                controller: inherited.code,
-                label: 'Código',
-                readOnly: !isCreate,
-                validators: [
-                  RequiredValid(error: 'Campo requerido'),
-                ],
+    return BlocBuilder<UpsertUnitsCubit, UpsertUnitsState>(
+      builder: (context, state) {
+        final isLoading = state.generalStatus == GeneralStatus.loading;
+
+        final parentItems = [
+          UpsertUnitsInherited.noParent,
+          ...upsertCubit
+              .parentOptions(excludeUnitId: selected?.id)
+              .map(
+                (unit) => FormOption<String>(
+                  id: unit.id.hashCode,
+                  text: unit.name,
+                  value: unit.id,
+                ),
               ),
-              AppTextField(
-                controller: inherited.name,
-                label: 'Nombre',
-                validators: [
-                  RequiredValid(error: 'Campo requerido'),
-                ],
-              ),
-              AppTextField(
-                controller: inherited.description,
-                label: 'Descripción (opcional)',
-              ),
-              BlocBuilder<UpsertUnitsCubit, UpsertUnitsState>(
-                builder: (context, state) {
-                  if (!state.catalogLoaded) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 12),
-                      child: Center(
-                        child: SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
+        ];
+
+        return AppFormDialog(
+          title: isCreate ? 'Nueva unidad' : 'Editar unidad',
+          subtitle: isCreate
+              ? 'Defina la estructura y pertenencia de la unidad'
+              : 'Modifique los datos de la unidad organizacional',
+          maxWidth: 520,
+          isLoading: isLoading,
+          isSubmitDisabled: !state.catalogLoaded,
+          submitLabel: isCreate ? 'Registrar' : 'Guardar',
+          onSubmit: () {
+            final validResult = inherited.valid();
+            if (!validResult.isPassed) return;
+
+            final parentValue = inherited.parent.get();
+            final parentId = parentValue != null && parentValue.isNotEmpty
+                ? parentValue
+                : null;
+
+            if (isCreate) {
+              upsertCubit.save(
+                code: inherited.code.getValue(),
+                name: inherited.name.getValue(),
+                description: inherited.description.getValue(),
+                parentId: parentId,
+              );
+            } else {
+              if (selected == null) return;
+              upsertCubit.update(
+                entity: selected,
+                name: inherited.name.getValue(),
+                description: inherited.description.getValue(),
+                parentId: parentId,
+              );
+            }
+          },
+          child: Form(
+            key: inherited.formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AppTextField(
+                  controller: inherited.code,
+                  label: 'Código',
+                  readOnly: !isCreate,
+                  validators: [
+                    RequiredValid(error: 'Campo requerido'),
+                  ],
+                ),
+                AppTextField(
+                  controller: inherited.name,
+                  label: 'Nombre',
+                  validators: [
+                    RequiredValid(error: 'Campo requerido'),
+                  ],
+                ),
+                AppTextField(
+                  controller: inherited.description,
+                  label: 'Descripción (opcional)',
+                ),
+                if (!state.catalogLoaded)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    child: Center(
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
                       ),
-                    );
-                  }
-
-                  final parentItems = [
-                    UpsertUnitsInherited.noParent,
-                    ...upsertCubit
-                        .parentOptions(excludeUnitId: selected?.id)
-                        .map(
-                          (unit) => FormOption<String>(
-                            id: unit.id.hashCode,
-                            text: unit.name,
-                            value: unit.id,
-                          ),
-                        ),
-                  ];
-
-                  return AppDropdown<String>(
+                    ),
+                  )
+                else
+                  AppDropdown<String>(
                     controller: inherited.parent,
                     label: 'Unidad superior (opcional)',
                     items: parentItems,
-                  );
-                },
-              ),
-              const SizedBox(height: 10),
-              BlocBuilder<UpsertUnitsCubit, UpsertUnitsState>(
-                builder: (context, state) {
-                  final isLoading =
-                      state.generalStatus == GeneralStatus.loading;
-
-                  return Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: isLoading
-                              ? null
-                              : () => Navigator.pop(context),
-                          child: const Text('Cancelar'),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: isLoading || !state.catalogLoaded
-                              ? null
-                              : () {
-                                  final validResult = inherited.valid();
-                                  if (!validResult.isPassed) return;
-
-                                  final parentValue = inherited.parent.get();
-                                  final parentId = parentValue != null &&
-                                          parentValue.isNotEmpty
-                                      ? parentValue
-                                      : null;
-
-                                  if (isCreate) {
-                                    upsertCubit.save(
-                                      code: inherited.code.getValue(),
-                                      name: inherited.name.getValue(),
-                                      description:
-                                          inherited.description.getValue(),
-                                      parentId: parentId,
-                                    );
-                                  } else {
-                                    if (selected == null) return;
-                                    upsertCubit.update(
-                                      entity: selected,
-                                      name: inherited.name.getValue(),
-                                      description:
-                                          inherited.description.getValue(),
-                                      parentId: parentId,
-                                    );
-                                  }
-                                },
-                          child: isLoading
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : Text(isCreate ? 'Registrar' : 'Guardar'),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ],
+                  ),
+              ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
