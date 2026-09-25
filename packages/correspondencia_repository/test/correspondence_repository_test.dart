@@ -217,5 +217,80 @@ void main() {
       expect(result.isErr, isTrue);
       expect(result.failureOrNull(), isA<NetworkFailure>());
     });
+
+    test('getInbox maps scope mine to query param', () async {
+      String? capturedScope;
+      final repo = CorrespondenceRepository(
+        correspondenceApi: _apiWithHandler(
+          (options) async {
+            capturedScope = options.queryParameters['scope'] as String?;
+            return Response<dynamic>(
+              requestOptions: options,
+              statusCode: 200,
+              data: {
+                'items': [],
+                'page': 1,
+                'page_size': 20,
+                'total': 0,
+                'total_pages': 0,
+              },
+            );
+          },
+        ),
+      );
+
+      final result = await repo.getInbox(scope: InboxScope.mine);
+
+      expect(result.isOk, isTrue);
+      expect(capturedScope, 'mine');
+    });
+
+    test('getInboxUnit maps scope unit to query param', () async {
+      String? capturedScope;
+      final repo = CorrespondenceRepository(
+        correspondenceApi: _apiWithHandler(
+          (options) async {
+            capturedScope = options.queryParameters['scope'] as String?;
+            return Response<dynamic>(
+              requestOptions: options,
+              statusCode: 200,
+              data: {
+                'items': [],
+                'page': 1,
+                'page_size': 20,
+                'total': 0,
+                'total_pages': 0,
+              },
+            );
+          },
+        ),
+      );
+
+      final result = await repo.getInbox(scope: InboxScope.unit);
+
+      expect(result.isOk, isTrue);
+      expect(capturedScope, 'unit');
+    });
+
+    test('getInboxCounts maps response', () async {
+      final repo = CorrespondenceRepository(
+        correspondenceApi: _apiWithHandler(
+          (options) async => Response<dynamic>(
+            requestOptions: options,
+            statusCode: 200,
+            data: {
+              'mine': 4,
+              'unit': 12,
+            },
+          ),
+        ),
+      );
+
+      final result = await repo.getInboxCounts();
+
+      expect(result.isOk, isTrue);
+      expect(result.valueOrNull()?.mine, 4);
+      expect(result.valueOrNull()?.unit, 12);
+    });
   });
 }

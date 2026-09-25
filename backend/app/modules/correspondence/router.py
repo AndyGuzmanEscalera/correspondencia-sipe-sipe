@@ -12,6 +12,7 @@ from app.modules.correspondence.attachment_service import CorrespondenceAttachme
 from app.modules.correspondence.schemas import (
     CorrespondenceAttachmentResponse,
     CorrespondenceDetail,
+    CorrespondenceInboxCountsResponse,
     CorrespondenceListResponse,
     CorrespondenceMovementResponse,
     CreateCorrespondenceRequest,
@@ -84,6 +85,32 @@ def list_correspondences(
         search=search,
         active_only=True,
     )
+
+
+@router.get("/inbox", response_model=CorrespondenceListResponse)
+def list_inbox(
+    user: Annotated[User, Depends(get_current_user)],
+    service: Annotated[CorrespondenceService, Depends(_service)],
+    scope: str = Query(..., pattern="^(mine|unit)$"),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    search: str | None = Query(default=None),
+) -> CorrespondenceListResponse:
+    return service.list_inbox(
+        user,
+        scope=scope,
+        page=page,
+        page_size=page_size,
+        search=search,
+    )
+
+
+@router.get("/inbox/counts", response_model=CorrespondenceInboxCountsResponse)
+def get_inbox_counts(
+    user: Annotated[User, Depends(get_current_user)],
+    service: Annotated[CorrespondenceService, Depends(_service)],
+) -> CorrespondenceInboxCountsResponse:
+    return service.get_inbox_counts(user)
 
 
 @router.get("/{correspondence_id}", response_model=CorrespondenceDetail)

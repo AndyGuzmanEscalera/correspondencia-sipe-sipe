@@ -96,6 +96,11 @@ class CorrespondenceListResponse(BaseModel):
     total_pages: int
 
 
+class CorrespondenceInboxCountsResponse(BaseModel):
+    mine: int
+    unit: int
+
+
 class CorrespondenceDetail(CorrespondenceListItem):
     description: str | None
     sender_name: str | None

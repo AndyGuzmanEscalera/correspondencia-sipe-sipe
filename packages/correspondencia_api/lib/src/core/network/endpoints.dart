@@ -12,6 +12,8 @@ class Endpoints {
   static const String documentTypes = '/document-types';
   static const String employees = '/employees';
   static const String correspondences = '/correspondences';
+  static const String correspondencesInbox = '/correspondences/inbox';
+  static const String correspondencesInboxCounts = '/correspondences/inbox/counts';
   static String correspondence(String id) => '/correspondences/$id';
   static String correspondenceDerive(String id) => '/correspondences/$id/derive';
   static String correspondenceMovements(String id) =>

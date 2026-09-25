@@ -7,6 +7,8 @@ import '../entities/correspondence_movement.dart';
 import '../entities/create_correspondence_input.dart';
 import '../entities/document_type.dart';
 import '../entities/employee_option.dart';
+import '../entities/inbox_counts.dart';
+import '../entities/inbox_scope.dart';
 import '../mappers/correspondence_mapper.dart';
 
 class CorrespondenceRepository {
@@ -34,6 +36,36 @@ class CorrespondenceRepository {
       },
       feature: 'correspondence',
       operation: 'listEmployees',
+    );
+  }
+
+  Future<Result<CorrespondencePage, Failure>> getInbox({
+    required InboxScope scope,
+    int page = 1,
+    int pageSize = 50,
+    String? search,
+  }) {
+    return handleExceptions<CorrespondencePage>(
+      () async {
+        final response = await _correspondenceApi.getInbox(
+          scope: scope.apiValue,
+          page: page,
+          pageSize: pageSize,
+          search: search,
+        );
+        return response.toEntity();
+      },
+      feature: 'correspondence',
+      operation: 'getInbox',
+    );
+  }
+
+  Future<Result<InboxCounts, Failure>> getInboxCounts() {
+    return handleExceptions<InboxCounts>(
+      () async =>
+          (await _correspondenceApi.getInboxCounts()).toEntity(),
+      feature: 'correspondence',
+      operation: 'getInboxCounts',
     );
   }
 

@@ -6,6 +6,7 @@ import '../entities/correspondence_movement.dart';
 import '../entities/create_correspondence_input.dart';
 import '../entities/document_type.dart';
 import '../entities/employee_option.dart';
+import '../entities/inbox_counts.dart';
 
 extension DocumentTypeResponseMapper on DocumentTypeResponse {
   DocumentType toEntity() => DocumentType(id: id, code: code, name: name);
@@ -66,6 +67,11 @@ extension CorrespondenceListResponseMapper on CorrespondenceListResponse {
         total: total,
         totalPages: totalPages,
       );
+}
+
+extension CorrespondenceInboxCountsResponseMapper
+    on CorrespondenceInboxCountsResponse {
+  InboxCounts toEntity() => InboxCounts(mine: mine, unit: unit);
 }
 
 extension CorrespondenceMovementResponseMapper on CorrespondenceMovementResponse {

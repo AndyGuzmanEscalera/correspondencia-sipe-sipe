@@ -33,6 +33,7 @@ from app.modules.correspondence.document_type_profiles import (
 )
 from app.modules.correspondence.schemas import (
     CorrespondenceDetail,
+    CorrespondenceInboxCountsResponse,
     CorrespondenceListItem,
     CorrespondenceListResponse,
     CorrespondenceMovementResponse,
@@ -59,6 +60,12 @@ from app.modules.organization.position import Position
 
 @dataclass(frozen=True)
 class InstitutionalResponsible:
+    user_id: uuid.UUID
+    unit_id: uuid.UUID
+
+
+@dataclass(frozen=True)
+class InboxInstitutionalContext:
     user_id: uuid.UUID
     unit_id: uuid.UUID
 
@@ -113,43 +120,63 @@ class CorrespondenceService:
     ) -> CorrespondenceListResponse:
         """Operational listing. Routers MUST pass active_only=True; audit/admin
         access to inactive records will use a dedicated endpoint later."""
-        query = select(Correspondence)
-        if active_only:
-            query = query.where(Correspondence.is_active == True)  # noqa: E712
-        if status_filter:
-            query = query.where(Correspondence.status == status_filter)
-        if correspondence_type:
-            query = query.where(
-                Correspondence.correspondence_type == correspondence_type
-            )
-        if search:
-            term = f"%{search.strip()}%"
-            query = query.where(
-                Correspondence.subject.ilike(term)
-                | Correspondence.route_number.ilike(term)
-                | Correspondence.cite.ilike(term)
-            )
-
-        total = self._db.scalar(
-            select(func.count()).select_from(query.subquery())
-        ) or 0
-        total_pages = max(1, math.ceil(total / page_size)) if total else 0
-        offset = (page - 1) * page_size
-
-        rows = self._db.scalars(
-            query.order_by(Correspondence.created_at.desc())
-            .offset(offset)
-            .limit(page_size)
-        ).all()
-
-        items = [self._to_list_item(row) for row in rows]
-        return CorrespondenceListResponse(
-            items=items,
-            page=page,
-            page_size=page_size,
-            total=total,
-            total_pages=total_pages,
+        query = self._base_correspondence_query(active_only=active_only)
+        query = self._apply_list_filters(
+            query,
+            status_filter=status_filter,
+            correspondence_type=correspondence_type,
+            search=search,
         )
+        return self._paginate_correspondences(query, page=page, page_size=page_size)
+
+    def list_inbox(
+        self,
+        user: User,
+        *,
+        scope: str,
+        page: int,
+        page_size: int,
+        search: str | None,
+    ) -> CorrespondenceListResponse:
+        """Inbox listing scoped to the authenticated user's institutional identity."""
+        if scope not in {"mine", "unit"}:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="scope debe ser 'mine' o 'unit'",
+            )
+
+        context = self._resolve_inbox_context(user)
+        if context is None:
+            return self._empty_correspondence_page(page=page, page_size=page_size)
+
+        query = self._base_correspondence_query(active_only=True).where(
+            Correspondence.status == STATUS_ACTIVE
+        )
+        if scope == "mine":
+            query = query.where(Correspondence.current_user_id == context.user_id)
+        else:
+            query = query.where(Correspondence.current_unit_id == context.unit_id)
+
+        query = self._apply_search_filter(query, search)
+        return self._paginate_correspondences(query, page=page, page_size=page_size)
+
+    def get_inbox_counts(self, user: User) -> CorrespondenceInboxCountsResponse:
+        context = self._resolve_inbox_context(user)
+        if context is None:
+            return CorrespondenceInboxCountsResponse(mine=0, unit=0)
+
+        base = self._base_correspondence_query(active_only=True).where(
+            Correspondence.status == STATUS_ACTIVE
+        )
+        mine = self._db.scalar(
+            select(func.count())
+            .select_from(base.where(Correspondence.current_user_id == context.user_id).subquery())
+        ) or 0
+        unit = self._db.scalar(
+            select(func.count())
+            .select_from(base.where(Correspondence.current_unit_id == context.unit_id).subquery())
+        ) or 0
+        return CorrespondenceInboxCountsResponse(mine=mine, unit=unit)
 
     def get_correspondence(
         self,
@@ -397,6 +424,97 @@ class CorrespondenceService:
                 detail="Correspondencia no encontrada",
             )
         return correspondence
+
+    def _resolve_inbox_context(self, user: User) -> InboxInstitutionalContext | None:
+        """Institutional identity for inbox queries (session-derived, never from client)."""
+        if user.employee_id is None:
+            return None
+        employee = self._db.get(Employee, user.employee_id)
+        if employee is None or not employee.is_active:
+            return None
+        if employee.unit_id is None:
+            return None
+        unit = self._db.get(OrganizationalUnit, employee.unit_id)
+        if unit is None or not unit.is_active:
+            return None
+        return InboxInstitutionalContext(user_id=user.id, unit_id=employee.unit_id)
+
+    @staticmethod
+    def _base_correspondence_query(*, active_only: bool):
+        query = select(Correspondence)
+        if active_only:
+            query = query.where(Correspondence.is_active == True)  # noqa: E712
+        return query
+
+    @staticmethod
+    def _apply_search_filter(query, search: str | None):
+        if not search:
+            return query
+        term = f"%{search.strip()}%"
+        return query.where(
+            Correspondence.subject.ilike(term)
+            | Correspondence.route_number.ilike(term)
+            | Correspondence.cite.ilike(term)
+            | Correspondence.reference.ilike(term)
+        )
+
+    @staticmethod
+    def _apply_list_filters(
+        query,
+        *,
+        status_filter: str | None,
+        correspondence_type: str | None,
+        search: str | None,
+    ):
+        if status_filter:
+            query = query.where(Correspondence.status == status_filter)
+        if correspondence_type:
+            query = query.where(
+                Correspondence.correspondence_type == correspondence_type
+            )
+        return CorrespondenceService._apply_search_filter(query, search)
+
+    def _paginate_correspondences(
+        self,
+        query,
+        *,
+        page: int,
+        page_size: int,
+    ) -> CorrespondenceListResponse:
+        total = self._db.scalar(
+            select(func.count()).select_from(query.subquery())
+        ) or 0
+        total_pages = max(1, math.ceil(total / page_size)) if total else 0
+        offset = (page - 1) * page_size
+
+        rows = self._db.scalars(
+            query.order_by(Correspondence.created_at.desc())
+            .offset(offset)
+            .limit(page_size)
+        ).all()
+
+        items = [self._to_list_item(row) for row in rows]
+        return CorrespondenceListResponse(
+            items=items,
+            page=page,
+            page_size=page_size,
+            total=total,
+            total_pages=total_pages,
+        )
+
+    @staticmethod
+    def _empty_correspondence_page(
+        *,
+        page: int,
+        page_size: int,
+    ) -> CorrespondenceListResponse:
+        return CorrespondenceListResponse(
+            items=[],
+            page=page,
+            page_size=page_size,
+            total=0,
+            total_pages=0,
+        )
 
     def _resolve_institutional_responsible(self, user: User) -> InstitutionalResponsible:
         if user.employee_id is None:

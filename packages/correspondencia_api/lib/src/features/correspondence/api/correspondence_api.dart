@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../../../core/network/api_method.dart';
 import '../../../core/network/endpoints.dart';
 import '../models/correspondence_attachment_response.dart';
+import '../models/correspondence_inbox_counts_response.dart';
 import '../models/correspondence_list_response.dart';
 import '../models/correspondence_movement_response.dart';
 import '../models/correspondence_response.dart';
@@ -30,6 +31,33 @@ class CorrespondenceApi {
       operation: 'correspondence.employees',
     );
     return items.map(EmployeeOptionResponse.fromJson).toList();
+  }
+
+  Future<CorrespondenceListResponse> getInbox({
+    required String scope,
+    int page = 1,
+    int pageSize = 20,
+    String? search,
+  }) async {
+    final json = await _mainApi.get(
+      Endpoints.correspondencesInbox,
+      queryParameters: {
+        'scope': scope,
+        'page': page,
+        'page_size': pageSize,
+        if (search != null && search.isNotEmpty) 'search': search,
+      },
+      operation: 'correspondence.inbox',
+    );
+    return CorrespondenceListResponse.fromJson(json);
+  }
+
+  Future<CorrespondenceInboxCountsResponse> getInboxCounts() async {
+    final json = await _mainApi.get(
+      Endpoints.correspondencesInboxCounts,
+      operation: 'correspondence.inboxCounts',
+    );
+    return CorrespondenceInboxCountsResponse.fromJson(json);
   }
 
   Future<CorrespondenceListResponse> listCorrespondences({
