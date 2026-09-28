@@ -1,5 +1,6 @@
 import 'package:correspondencia_sipe_sipe/core/helpers/full_widget_generics.dart';
 import 'package:correspondencia_sipe_sipe/core/helpers/listener/listener_generic.dart';
+import 'package:correspondencia_sipe_sipe/features/administration/common/admin_upsert_bloc_listener.dart';
 import 'package:correspondencia_sipe_sipe/core/util/enums.dart';
 import 'package:correspondencia_sipe_sipe/core/util/form/validator_field/valid.dart';
 import 'package:correspondencia_sipe_sipe/features/administration/basic_data/positions/list_positions/cubit/positions_cubit.dart';
@@ -12,9 +13,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class UpsertPositionsPage extends StatelessWidget {
-  const UpsertPositionsPage({super.key, required this.typeOperation});
+  const UpsertPositionsPage({
+    super.key,
+    required this.typeOperation,
+    this.hostDialogContext,
+    this.ownerContext,
+  });
 
   final TypeOperation typeOperation;
+  final BuildContext? hostDialogContext;
+  final BuildContext? ownerContext;
 
   @override
   Widget build(BuildContext context) {
@@ -22,30 +30,40 @@ class UpsertPositionsPage extends StatelessWidget {
       typeOperation: typeOperation,
       child: BlocProvider(
         create: (context) => getIt<UpsertPositionsCubit>(),
-        child: const UpsertPositionsView(),
+        child: UpsertPositionsView(
+          hostDialogContext: hostDialogContext,
+          ownerContext: ownerContext,
+        ),
       ),
     );
   }
 }
 
 class UpsertPositionsView extends StatelessWidget {
-  const UpsertPositionsView({super.key});
+  const UpsertPositionsView({
+    super.key,
+    this.hostDialogContext,
+    this.ownerContext,
+  });
+
+  final BuildContext? hostDialogContext;
+  final BuildContext? ownerContext;
 
   @override
   Widget build(BuildContext context) {
     final inherited = UpsertPositionsInherited.of(context);
     final listCubit = context.read<PositionsCubit>();
 
-    return MultiBlocListener(
-      listeners: [
-        ListenerPro<UpsertPositionsCubit, UpsertPositionsState>().listen(
-          onPressedSuccess: () => Navigator.of(context).pop(),
-        ),
-        ListenerPro<UpsertPositionsCubit, UpsertPositionsState>().event(
-          onSuccess: (_) => listCubit.get(),
-        ),
-      ],
-      child: FullWidgetGeneric(
+    return AdminUpsertBlocListener<UpsertPositionsCubit, UpsertPositionsState>(
+      hostDialogContext: hostDialogContext,
+      ownerContext: ownerContext,
+      child: MultiBlocListener(
+        listeners: [
+          ListenerPro<UpsertPositionsCubit, UpsertPositionsState>().event(
+            onSuccess: (_) => listCubit.get(),
+          ),
+        ],
+        child: FullWidgetGeneric(
         onInit: () {
           if (inherited.typeOperation == TypeOperation.create) {
             inherited.clear();
@@ -58,7 +76,8 @@ class UpsertPositionsView extends StatelessWidget {
           }
         },
         onDispose: inherited.dispose,
-        child: const UpsertPositionsBody(),
+          child: const UpsertPositionsBody(),
+        ),
       ),
     );
   }

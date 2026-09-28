@@ -51,7 +51,8 @@ void main() {
                     onPressed: () {
                       showDialog<void>(
                         context: context,
-                        builder: (_) => BlocProvider<UsersCubit>.value(
+                        builder: (dialogContext) =>
+                            BlocProvider<UsersCubit>.value(
                           value: listCubit,
                           child: UpsertUsersInherited(
                             typeOperation: typeOperation,
@@ -60,7 +61,10 @@ void main() {
                                 usersRepository: usersRepository,
                                 employeesRepository: employeesRepository,
                               ),
-                              child: const UpsertUsersView(),
+                              child: UpsertUsersView(
+                                hostDialogContext: dialogContext,
+                                ownerContext: context,
+                              ),
                             ),
                           ),
                         ),
@@ -138,7 +142,7 @@ void main() {
       expect(find.text('Nuevo usuario'), findsOneWidget);
     });
 
-    testWidgets('success refresca listado y cierra upsert al confirmar éxito',
+    testWidgets('success refresca listado y cierra formulario sin pulsar Cerrar',
         (tester) async {
       await pumpUpsertDialog(tester, typeOperation: TypeOperation.create);
 
@@ -152,12 +156,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(listCubit.getCallCount, 1);
-      expect(find.text('Éxito'), findsOneWidget);
-
-      await tester.tap(find.text('Cerrar'));
-      await tester.pumpAndSettle();
-
       expect(find.text('Nuevo usuario'), findsNothing);
+      expect(find.text('Éxito'), findsOneWidget);
     });
 
     testWidgets('loading impide doble submit', (tester) async {
@@ -250,14 +250,15 @@ Future<void> _selectRole(
   WidgetTester tester, {
   required String roleName,
 }) async {
-  final dropdowns = find.byType(DropdownButtonFormField<FormOption<String>>);
+  final roleDropdown =
+      find.byType(DropdownButtonFormField<FormOption<String>>).at(1);
   await tester.scrollUntilVisible(
-    dropdowns.at(1),
+    roleDropdown,
     48,
     scrollable: find.byType(Scrollable).first,
   );
   await tester.pumpAndSettle();
-  await tester.tap(dropdowns.at(1));
+  await tester.tap(roleDropdown);
   await tester.pumpAndSettle();
   await tester.tap(find.text(roleName).last);
   await tester.pumpAndSettle();

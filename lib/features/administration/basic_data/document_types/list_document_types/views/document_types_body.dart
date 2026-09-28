@@ -33,11 +33,13 @@ class DocumentTypesBody extends StatelessWidget {
                   onPressed: () {
                     showDialog<void>(
                       context: context,
-                      builder: (_) {
+                      builder: (dialogContext) {
                         return BlocProvider.value(
                           value: BlocProvider.of<DocumentTypesCubit>(context),
-                          child: const UpsertDocumentTypesPage(
+                          child: UpsertDocumentTypesPage(
                             typeOperation: TypeOperation.create,
+                            hostDialogContext: dialogContext,
+                            ownerContext: context,
                           ),
                         );
                       },
@@ -73,13 +75,15 @@ class DocumentTypesBody extends StatelessWidget {
                               cubit.changeSelected(item);
                               showDialog<void>(
                                 context: context,
-                                builder: (_) {
+                                builder: (dialogContext) {
                                   return BlocProvider.value(
                                     value: BlocProvider.of<DocumentTypesCubit>(
                                       context,
                                     ),
-                                    child: const UpsertDocumentTypesPage(
+                                    child: UpsertDocumentTypesPage(
                                       typeOperation: TypeOperation.update,
+                                      hostDialogContext: dialogContext,
+                                      ownerContext: context,
                                     ),
                                   );
                                 },

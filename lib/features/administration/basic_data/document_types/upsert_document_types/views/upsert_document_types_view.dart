@@ -1,5 +1,6 @@
 import 'package:correspondencia_sipe_sipe/core/helpers/full_widget_generics.dart';
 import 'package:correspondencia_sipe_sipe/core/helpers/listener/listener_generic.dart';
+import 'package:correspondencia_sipe_sipe/features/administration/common/admin_upsert_bloc_listener.dart';
 import 'package:correspondencia_sipe_sipe/core/util/enums.dart';
 import 'package:correspondencia_sipe_sipe/core/util/form/validator_field/valid.dart';
 import 'package:correspondencia_sipe_sipe/features/administration/basic_data/document_types/list_document_types/cubit/document_types_cubit.dart';
@@ -12,9 +13,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class UpsertDocumentTypesPage extends StatelessWidget {
-  const UpsertDocumentTypesPage({super.key, required this.typeOperation});
+  const UpsertDocumentTypesPage({
+    super.key,
+    required this.typeOperation,
+    this.hostDialogContext,
+    this.ownerContext,
+  });
 
   final TypeOperation typeOperation;
+  final BuildContext? hostDialogContext;
+  final BuildContext? ownerContext;
 
   @override
   Widget build(BuildContext context) {
@@ -22,30 +30,41 @@ class UpsertDocumentTypesPage extends StatelessWidget {
       typeOperation: typeOperation,
       child: BlocProvider(
         create: (context) => getIt<UpsertDocumentTypesCubit>(),
-        child: const UpsertDocumentTypesView(),
+        child: UpsertDocumentTypesView(
+          hostDialogContext: hostDialogContext,
+          ownerContext: ownerContext,
+        ),
       ),
     );
   }
 }
 
 class UpsertDocumentTypesView extends StatelessWidget {
-  const UpsertDocumentTypesView({super.key});
+  const UpsertDocumentTypesView({
+    super.key,
+    this.hostDialogContext,
+    this.ownerContext,
+  });
+
+  final BuildContext? hostDialogContext;
+  final BuildContext? ownerContext;
 
   @override
   Widget build(BuildContext context) {
     final inherited = UpsertDocumentTypesInherited.of(context);
     final listCubit = context.read<DocumentTypesCubit>();
 
-    return MultiBlocListener(
-      listeners: [
-        ListenerPro<UpsertDocumentTypesCubit, UpsertDocumentTypesState>().listen(
-          onPressedSuccess: () => Navigator.of(context).pop(),
-        ),
-        ListenerPro<UpsertDocumentTypesCubit, UpsertDocumentTypesState>().event(
-          onSuccess: (_) => listCubit.get(),
-        ),
-      ],
-      child: FullWidgetGeneric(
+    return AdminUpsertBlocListener<
+        UpsertDocumentTypesCubit, UpsertDocumentTypesState>(
+      hostDialogContext: hostDialogContext,
+      ownerContext: ownerContext,
+      child: MultiBlocListener(
+        listeners: [
+          ListenerPro<UpsertDocumentTypesCubit, UpsertDocumentTypesState>().event(
+            onSuccess: (_) => listCubit.get(),
+          ),
+        ],
+        child: FullWidgetGeneric(
         onInit: () {
           if (inherited.typeOperation == TypeOperation.create) {
             inherited.clear();
@@ -58,7 +77,8 @@ class UpsertDocumentTypesView extends StatelessWidget {
           }
         },
         onDispose: inherited.dispose,
-        child: const UpsertDocumentTypesBody(),
+          child: const UpsertDocumentTypesBody(),
+        ),
       ),
     );
   }

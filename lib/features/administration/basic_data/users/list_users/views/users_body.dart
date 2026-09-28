@@ -33,11 +33,13 @@ class UsersBody extends StatelessWidget {
                   onPressed: () {
                     showDialog<void>(
                       context: context,
-                      builder: (_) {
+                      builder: (dialogContext) {
                         return BlocProvider.value(
                           value: BlocProvider.of<UsersCubit>(context),
-                          child: const UpsertUsersPage(
+                          child: UpsertUsersPage(
                             typeOperation: TypeOperation.create,
+                            hostDialogContext: dialogContext,
+                            ownerContext: context,
                           ),
                         );
                       },
@@ -73,13 +75,15 @@ class UsersBody extends StatelessWidget {
                               cubit.changeSelected(item);
                               showDialog<void>(
                                 context: context,
-                                builder: (_) {
+                                builder: (dialogContext) {
                                   return BlocProvider.value(
                                     value: BlocProvider.of<UsersCubit>(
                                       context,
                                     ),
-                                    child: const UpsertUsersPage(
+                                    child: UpsertUsersPage(
                                       typeOperation: TypeOperation.update,
+                                      hostDialogContext: dialogContext,
+                                      ownerContext: context,
                                     ),
                                   );
                                 },

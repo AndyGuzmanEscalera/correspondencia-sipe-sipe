@@ -53,7 +53,8 @@ void main() {
                     onPressed: () {
                       showDialog<void>(
                         context: context,
-                        builder: (_) => BlocProvider<EmployeesCubit>.value(
+                        builder: (dialogContext) =>
+                            BlocProvider<EmployeesCubit>.value(
                           value: listCubit,
                           child: UpsertEmployeesInherited(
                             typeOperation: typeOperation,
@@ -63,7 +64,10 @@ void main() {
                                 unitsRepository: unitsRepository,
                                 positionsRepository: positionsRepository,
                               ),
-                              child: const UpsertEmployeesView(),
+                              child: UpsertEmployeesView(
+                                hostDialogContext: dialogContext,
+                                ownerContext: context,
+                              ),
                             ),
                           ),
                         ),
@@ -166,13 +170,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(listCubit.getCallCount, 1);
-      expect(find.text('Nuevo funcionario'), findsOneWidget);
-      expect(find.text('Éxito'), findsOneWidget);
-
-      await tester.tap(find.text('Cerrar'));
-      await tester.pumpAndSettle();
-
       expect(find.text('Nuevo funcionario'), findsNothing);
+      expect(find.text('Éxito'), findsOneWidget);
     });
 
     testWidgets('loading impide doble submit', (tester) async {

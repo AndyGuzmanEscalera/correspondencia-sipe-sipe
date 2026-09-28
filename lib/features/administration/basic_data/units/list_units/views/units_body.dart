@@ -34,11 +34,13 @@ class UnitsBody extends StatelessWidget {
                   onPressed: () {
                     showDialog<void>(
                       context: context,
-                      builder: (_) {
+                      builder: (dialogContext) {
                         return BlocProvider.value(
                           value: BlocProvider.of<UnitsCubit>(context),
-                          child: const UpsertUnitsPage(
+                          child: UpsertUnitsPage(
                             typeOperation: TypeOperation.create,
+                            hostDialogContext: dialogContext,
+                            ownerContext: context,
                           ),
                         );
                       },
@@ -74,11 +76,13 @@ class UnitsBody extends StatelessWidget {
                               cubit.changeSelected(item);
                               showDialog<void>(
                                 context: context,
-                                builder: (_) {
+                                builder: (dialogContext) {
                                   return BlocProvider.value(
                                     value: BlocProvider.of<UnitsCubit>(context),
-                                    child: const UpsertUnitsPage(
+                                    child: UpsertUnitsPage(
                                       typeOperation: TypeOperation.update,
+                                      hostDialogContext: dialogContext,
+                                      ownerContext: context,
                                     ),
                                   );
                                 },

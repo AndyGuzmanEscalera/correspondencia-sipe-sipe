@@ -7,6 +7,7 @@ import 'package:correspondencia_sipe_sipe/features/administration/basic_data/use
 import 'package:correspondencia_sipe_sipe/features/administration/basic_data/users/upsert_users/cubit/upsert_users_cubit.dart';
 import 'package:correspondencia_sipe_sipe/features/administration/basic_data/users/upsert_users/helpers/upsert_users_inherited.dart';
 import 'package:correspondencia_sipe_sipe/features/administration/basic_data/users/upsert_users/widgets/user_roles_section.dart';
+import 'package:correspondencia_sipe_sipe/features/administration/common/admin_upsert_bloc_listener.dart';
 import 'package:correspondencia_sipe_sipe/injection/injection_bloc.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/app_form_dialog.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/form/app_dropdown.dart';
@@ -16,9 +17,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class UpsertUsersPage extends StatelessWidget {
-  const UpsertUsersPage({super.key, required this.typeOperation});
+  const UpsertUsersPage({
+    super.key,
+    required this.typeOperation,
+    this.hostDialogContext,
+    this.ownerContext,
+  });
 
   final TypeOperation typeOperation;
+  final BuildContext? hostDialogContext;
+  final BuildContext? ownerContext;
 
   @override
   Widget build(BuildContext context) {
@@ -26,14 +34,24 @@ class UpsertUsersPage extends StatelessWidget {
       typeOperation: typeOperation,
       child: BlocProvider(
         create: (context) => getIt<UpsertUsersCubit>(),
-        child: const UpsertUsersView(),
+        child: UpsertUsersView(
+          hostDialogContext: hostDialogContext,
+          ownerContext: ownerContext,
+        ),
       ),
     );
   }
 }
 
 class UpsertUsersView extends StatelessWidget {
-  const UpsertUsersView({super.key});
+  const UpsertUsersView({
+    super.key,
+    this.hostDialogContext,
+    this.ownerContext,
+  });
+
+  final BuildContext? hostDialogContext;
+  final BuildContext? ownerContext;
 
   @override
   Widget build(BuildContext context) {
@@ -42,30 +60,31 @@ class UpsertUsersView extends StatelessWidget {
     final upsertCubit = context.read<UpsertUsersCubit>();
     final selected = listCubit.state.selected;
 
-    return MultiBlocListener(
-      listeners: [
-        ListenerPro<UpsertUsersCubit, UpsertUsersState>().listen(
-          onPressedSuccess: () => Navigator.of(context).pop(),
-        ),
-        ListenerPro<UpsertUsersCubit, UpsertUsersState>().event(
-          onSuccess: (_) => listCubit.get(),
-        ),
-      ],
-      child: FullWidgetGeneric(
-        onInit: () {
-          if (inherited.typeOperation == TypeOperation.create) {
-            inherited.clear();
-            upsertCubit.init();
-            return;
-          }
+    return AdminUpsertBlocListener<UpsertUsersCubit, UpsertUsersState>(
+      hostDialogContext: hostDialogContext,
+      ownerContext: ownerContext,
+      child: MultiBlocListener(
+        listeners: [
+          ListenerPro<UpsertUsersCubit, UpsertUsersState>().event(
+            onSuccess: (_) => listCubit.get(),
+          ),
+        ],
+        child: FullWidgetGeneric(
+          onInit: () {
+            if (inherited.typeOperation == TypeOperation.create) {
+              inherited.clear();
+              upsertCubit.init();
+              return;
+            }
 
-          if (selected != null) {
-            inherited.setData(selected);
-            upsertCubit.init(editing: selected);
-          }
-        },
-        onDispose: inherited.dispose,
-        child: const UpsertUsersBody(),
+            if (selected != null) {
+              inherited.setData(selected);
+              upsertCubit.init(editing: selected);
+            }
+          },
+          onDispose: inherited.dispose,
+          child: const UpsertUsersBody(),
+        ),
       ),
     );
   }

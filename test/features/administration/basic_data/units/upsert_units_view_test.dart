@@ -47,13 +47,17 @@ void main() {
                     onPressed: () {
                       showDialog<void>(
                         context: context,
-                        builder: (_) => BlocProvider<UnitsCubit>.value(
+                        builder: (dialogContext) =>
+                            BlocProvider<UnitsCubit>.value(
                           value: listCubit,
                           child: UpsertUnitsInherited(
                             typeOperation: typeOperation,
                             child: BlocProvider(
                               create: (_) => UpsertUnitsCubit(repository),
-                              child: const UpsertUnitsView(),
+                              child: UpsertUnitsView(
+                                hostDialogContext: dialogContext,
+                                ownerContext: context,
+                              ),
                             ),
                           ),
                         ),
@@ -146,7 +150,7 @@ void main() {
       expect(find.text('Registrar'), findsOneWidget);
     });
 
-    testWidgets('success refresca listado y cierra upsert al confirmar éxito',
+    testWidgets('success refresca listado y cierra formulario sin pulsar Cerrar',
         (tester) async {
       await pumpUpsertDialog(tester, typeOperation: TypeOperation.create);
 
@@ -157,13 +161,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(listCubit.getCallCount, 1);
-      expect(find.text('Nueva unidad'), findsOneWidget);
-      expect(find.text('Éxito'), findsOneWidget);
-
-      await tester.tap(find.text('Cerrar'));
-      await tester.pumpAndSettle();
-
       expect(find.text('Nueva unidad'), findsNothing);
+      expect(find.text('Éxito'), findsOneWidget);
     });
 
     testWidgets('mobile 390px renderiza sin overflow', (tester) async {

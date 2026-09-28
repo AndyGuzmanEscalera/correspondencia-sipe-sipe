@@ -46,14 +46,18 @@ void main() {
                     onPressed: () {
                       showDialog<void>(
                         context: context,
-                        builder: (_) => BlocProvider<PositionsCubit>.value(
+                        builder: (dialogContext) =>
+                            BlocProvider<PositionsCubit>.value(
                           value: listCubit,
                           child: UpsertPositionsInherited(
                             typeOperation: typeOperation,
                             child: BlocProvider(
                               create: (_) =>
                                   UpsertPositionsCubit(repository),
-                              child: const UpsertPositionsView(),
+                              child: UpsertPositionsView(
+                                hostDialogContext: dialogContext,
+                                ownerContext: context,
+                              ),
                             ),
                           ),
                         ),
@@ -143,13 +147,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(listCubit.getCallCount, 1);
-      expect(find.text('Nuevo cargo'), findsOneWidget);
-      expect(find.text('Éxito'), findsOneWidget);
-
-      await tester.tap(find.text('Cerrar'));
-      await tester.pumpAndSettle();
-
       expect(find.text('Nuevo cargo'), findsNothing);
+      expect(find.text('Éxito'), findsOneWidget);
     });
 
     testWidgets('mobile 390px renderiza sin overflow', (tester) async {

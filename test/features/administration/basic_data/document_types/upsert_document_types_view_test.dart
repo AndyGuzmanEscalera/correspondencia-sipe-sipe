@@ -46,14 +46,18 @@ void main() {
                     onPressed: () {
                       showDialog<void>(
                         context: context,
-                        builder: (_) => BlocProvider<DocumentTypesCubit>.value(
+                        builder: (dialogContext) =>
+                            BlocProvider<DocumentTypesCubit>.value(
                           value: listCubit,
                           child: UpsertDocumentTypesInherited(
                             typeOperation: typeOperation,
                             child: BlocProvider(
                               create: (_) =>
                                   UpsertDocumentTypesCubit(repository),
-                              child: const UpsertDocumentTypesView(),
+                              child: UpsertDocumentTypesView(
+                                hostDialogContext: dialogContext,
+                                ownerContext: context,
+                              ),
                             ),
                           ),
                         ),
@@ -148,13 +152,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(listCubit.getCallCount, 1);
-      expect(find.text('Nuevo tipo de documento'), findsOneWidget);
-      expect(find.text('Éxito'), findsOneWidget);
-
-      await tester.tap(find.text('Cerrar'));
-      await tester.pumpAndSettle();
-
       expect(find.text('Nuevo tipo de documento'), findsNothing);
+      expect(find.text('Éxito'), findsOneWidget);
     });
 
     testWidgets('mobile 390px renderiza sin overflow', (tester) async {

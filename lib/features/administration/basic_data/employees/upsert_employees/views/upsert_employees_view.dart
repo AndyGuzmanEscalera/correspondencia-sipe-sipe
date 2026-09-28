@@ -1,5 +1,6 @@
 import 'package:correspondencia_sipe_sipe/core/helpers/full_widget_generics.dart';
 import 'package:correspondencia_sipe_sipe/core/helpers/listener/listener_generic.dart';
+import 'package:correspondencia_sipe_sipe/features/administration/common/admin_upsert_bloc_listener.dart';
 import 'package:correspondencia_sipe_sipe/core/util/enums.dart';
 import 'package:correspondencia_sipe_sipe/core/util/form/models/form_option.dart';
 import 'package:correspondencia_sipe_sipe/core/util/form/validator_field/valid.dart';
@@ -14,9 +15,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class UpsertEmployeesPage extends StatelessWidget {
-  const UpsertEmployeesPage({super.key, required this.typeOperation});
+  const UpsertEmployeesPage({
+    super.key,
+    required this.typeOperation,
+    this.hostDialogContext,
+    this.ownerContext,
+  });
 
   final TypeOperation typeOperation;
+  final BuildContext? hostDialogContext;
+  final BuildContext? ownerContext;
 
   @override
   Widget build(BuildContext context) {
@@ -24,14 +32,24 @@ class UpsertEmployeesPage extends StatelessWidget {
       typeOperation: typeOperation,
       child: BlocProvider(
         create: (context) => getIt<UpsertEmployeesCubit>(),
-        child: const UpsertEmployeesView(),
+        child: UpsertEmployeesView(
+          hostDialogContext: hostDialogContext,
+          ownerContext: ownerContext,
+        ),
       ),
     );
   }
 }
 
 class UpsertEmployeesView extends StatelessWidget {
-  const UpsertEmployeesView({super.key});
+  const UpsertEmployeesView({
+    super.key,
+    this.hostDialogContext,
+    this.ownerContext,
+  });
+
+  final BuildContext? hostDialogContext;
+  final BuildContext? ownerContext;
 
   @override
   Widget build(BuildContext context) {
@@ -40,16 +58,16 @@ class UpsertEmployeesView extends StatelessWidget {
     final upsertCubit = context.read<UpsertEmployeesCubit>();
     final selected = listCubit.state.selected;
 
-    return MultiBlocListener(
-      listeners: [
-        ListenerPro<UpsertEmployeesCubit, UpsertEmployeesState>().listen(
-          onPressedSuccess: () => Navigator.of(context).pop(),
-        ),
-        ListenerPro<UpsertEmployeesCubit, UpsertEmployeesState>().event(
-          onSuccess: (_) => listCubit.get(),
-        ),
-      ],
-      child: FullWidgetGeneric(
+    return AdminUpsertBlocListener<UpsertEmployeesCubit, UpsertEmployeesState>(
+      hostDialogContext: hostDialogContext,
+      ownerContext: ownerContext,
+      child: MultiBlocListener(
+        listeners: [
+          ListenerPro<UpsertEmployeesCubit, UpsertEmployeesState>().event(
+            onSuccess: (_) => listCubit.get(),
+          ),
+        ],
+        child: FullWidgetGeneric(
         onInit: () {
           if (inherited.typeOperation == TypeOperation.create) {
             inherited.clear();
@@ -63,7 +81,8 @@ class UpsertEmployeesView extends StatelessWidget {
           }
         },
         onDispose: inherited.dispose,
-        child: const UpsertEmployeesBody(),
+          child: const UpsertEmployeesBody(),
+        ),
       ),
     );
   }
