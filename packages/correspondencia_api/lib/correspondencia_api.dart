@@ -25,6 +25,7 @@ export 'src/features/authentication/api/auth_api.dart';
 export 'src/features/authentication/api/auth_remote.dart';
 export 'src/features/authentication/authentication.dart';
 export 'src/features/authentication/models/auth_response.dart';
+export 'src/features/authentication/models/me_employee_response.dart';
 export 'src/features/authentication/models/user_response.dart';
 export 'src/features/correspondence/correspondence.dart';
 export 'src/features/identity/identity.dart';

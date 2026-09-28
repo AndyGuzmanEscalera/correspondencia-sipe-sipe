@@ -18,6 +18,7 @@ from app.modules.auth.schemas import (
     MeResponse,
     RefreshResponse,
 )
+from app.modules.auth.institutional_context import resolve_me_employee_context
 from app.modules.auth.service import (
     ExpiredSessionError,
     InvalidSessionError,
@@ -133,6 +134,7 @@ def me(
     rbac = RbacService(db)
     return MeResponse(
         **_user_to_brief(current_user),
+        employee=resolve_me_employee_context(db, current_user),
         roles=rbac.get_user_role_codes(current_user.id),
         permissions=rbac.get_user_permission_codes(current_user.id),
     )

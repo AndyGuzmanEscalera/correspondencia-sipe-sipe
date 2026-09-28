@@ -16,8 +16,8 @@ import 'package:flutter_test/flutter_test.dart';
 class _TrackingDetailCubit extends CorrespondenceDetailCubit {
   _TrackingDetailCubit({
     required super.repository,
-    required super.authRepository,
     required super.correspondenceId,
+    super.viewerUnitId,
   });
 
   int refreshCallCount = 0;
@@ -120,7 +120,6 @@ void main() {
       organizationRepository = _FakeOrganizationRepository();
       detailCubit = _TrackingDetailCubit(
         repository: _FakeListRepository(),
-        authRepository: _FakeAuthRepository(),
         correspondenceId: 'corr-1',
       );
       sideMenuCubit = SideMenuCubit();

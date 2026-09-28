@@ -15,16 +15,16 @@ part 'correspondence_detail_state.dart';
 class CorrespondenceDetailCubit extends Cubit<CorrespondenceDetailState> {
   CorrespondenceDetailCubit({
     required repo.CorrespondenceRepository repository,
-    required repo.AuthenticationRepository authRepository,
     required String correspondenceId,
+    String? viewerUnitId,
   })  : _repository = repository,
-        _authRepository = authRepository,
         _correspondenceId = correspondenceId,
+        _viewerUnitId = viewerUnitId,
         super(const CorrespondenceDetailState());
 
   final repo.CorrespondenceRepository _repository;
-  final repo.AuthenticationRepository _authRepository;
   final String _correspondenceId;
+  final String? _viewerUnitId;
 
   String get correspondenceId => _correspondenceId;
 
@@ -187,8 +187,6 @@ class CorrespondenceDetailCubit extends Cubit<CorrespondenceDetailState> {
       return;
     }
 
-    final viewerUnitId = await _resolveViewerUnitId();
-
     final detail = detailResult.valueOrNull()!.toUiEntity();
     final movements = movementsResult
             .valueOrNull()
@@ -200,30 +198,10 @@ class CorrespondenceDetailCubit extends Cubit<CorrespondenceDetailState> {
       state.copyWith(
         correspondence: detail,
         movements: movements,
-        viewerUnitId: viewerUnitId,
+        viewerUnitId: _viewerUnitId,
         generalStatus: GeneralStatus.initial,
         dialogMessage: const DialogMessage.empty(),
       ),
     );
-  }
-
-  Future<String?> _resolveViewerUnitId() async {
-    final userResult = await _authRepository.currentUser();
-    final employeeId = userResult.valueOrNull()?.employeeId;
-    if (employeeId == null || employeeId.isEmpty) {
-      return null;
-    }
-
-    final employeesResult = await _repository.listEmployees();
-    if (employeesResult case Err()) {
-      return null;
-    }
-
-    for (final employee in employeesResult.valueOrNull() ?? const []) {
-      if (employee.id == employeeId) {
-        return employee.unitId;
-      }
-    }
-    return null;
   }
 }

@@ -9,7 +9,20 @@ extension UserResponseToEntity on UserResponse {
         isActive: isActive,
         email: email,
         employeeId: employeeId,
+        institutionalContext: employee?.toInstitutionalContext(),
         roles: roles,
         permissions: permissions,
+      );
+}
+
+extension MeEmployeeContextMapping on MeEmployeeContextResponse {
+  InstitutionalContext toInstitutionalContext() => InstitutionalContext(
+        employeeId: id,
+        employeeName: fullName,
+        documentNumber: documentNumber,
+        positionId: position?.id,
+        positionName: position?.name,
+        unitId: unit?.id,
+        unitName: unit?.name,
       );
 }

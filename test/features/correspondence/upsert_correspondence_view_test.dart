@@ -192,11 +192,11 @@ void main() {
       if (getIt.isRegistered<CorrespondenceDetailCubit>()) {
         getIt.unregister<CorrespondenceDetailCubit>();
       }
-      getIt.registerFactoryParam<CorrespondenceDetailCubit, String, void>(
-        (correspondenceId, _) => CorrespondenceDetailCubit(
+      getIt.registerFactoryParam<CorrespondenceDetailCubit, String, String?>(
+        (correspondenceId, viewerUnitId) => CorrespondenceDetailCubit(
           repository: _FakeDetailCorrespondenceRepository(),
-          authRepository: _FakeAuthRepository(),
           correspondenceId: correspondenceId,
+          viewerUnitId: viewerUnitId,
         ),
       );
       if (getIt.isRegistered<CorrespondenceDocumentActionsCubit>()) {

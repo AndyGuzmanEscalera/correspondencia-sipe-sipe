@@ -1,6 +1,24 @@
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
+class MeInstitutionalUnit(BaseModel):
+    id: str
+    name: str
+
+
+class MeInstitutionalPosition(BaseModel):
+    id: str
+    name: str
+
+
+class MeEmployeeContext(BaseModel):
+    id: str
+    full_name: str
+    document_number: str | None = None
+    position: MeInstitutionalPosition | None = None
+    unit: MeInstitutionalUnit | None = None
+
+
 class LoginRequest(BaseModel):
     username: str = Field(min_length=1, max_length=50)
     password: str = Field(min_length=1, max_length=255)
@@ -14,6 +32,7 @@ class UserBrief(BaseModel):
     email: str | None = None
     employee_id: str | None = None
     is_active: bool
+    employee: MeEmployeeContext | None = None
 
 
 class AuthResponse(BaseModel):

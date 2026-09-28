@@ -1,3 +1,4 @@
+import 'package:correspondencia_sipe_sipe/core/auth/session_header_labels.dart';
 import 'package:correspondencia_sipe_sipe/core/helpers/extensions/extension_device.dart';
 import 'package:correspondencia_sipe_sipe/core/routes.dart';
 import 'package:correspondencia_sipe_sipe/core/theme/app_decorations.dart';
@@ -124,7 +125,7 @@ class AdminAppBar extends StatelessWidget {
                           ),
                   ),
                   if (!isSmall) ...[
-                    _UserChip(sessionState: sessionState),
+                    _UserChip(sessionState: sessionState, compact: false),
                     const SizedBox(width: 12),
                     OutlinedButton.icon(
                       onPressed: () => _signOut(context),
@@ -137,7 +138,7 @@ class AdminAppBar extends StatelessWidget {
                         radius: 18,
                         backgroundColor: UiColors.primarySoft,
                         child: Text(
-                          _initials(sessionState),
+                          _initials(sessionState, compact: true),
                           style: const TextStyle(
                             color: UiColors.primary,
                             fontWeight: FontWeight.w700,
@@ -147,7 +148,7 @@ class AdminAppBar extends StatelessWidget {
                       itemBuilder: (context) => [
                         PopupMenuItem<void>(
                           enabled: false,
-                          child: Text(_displayName(sessionState)),
+                          child: _MobileUserSummary(sessionState: sessionState),
                         ),
                         PopupMenuItem<void>(
                           onTap: () => _signOut(context),
@@ -182,28 +183,57 @@ class AdminAppBar extends StatelessWidget {
     }
   }
 
-  String _initials(AppSessionState s) {
-    final name = _displayName(s);
+  String _initials(AppSessionState s, {required bool compact}) {
+    final labels = SessionHeaderLabels.forSession(
+      s.userSession,
+      compact: compact,
+    );
+    final name = labels.primaryLine;
     return name.isNotEmpty ? name.substring(0, 1).toUpperCase() : 'U';
-  }
-
-  String _displayName(AppSessionState s) {
-    final session = s.userSession;
-    if (session == null) return '';
-    return session.username;
   }
 }
 
-class _UserChip extends StatelessWidget {
-  const _UserChip({required this.sessionState});
+class _MobileUserSummary extends StatelessWidget {
+  const _MobileUserSummary({required this.sessionState});
 
   final AppSessionState sessionState;
 
   @override
   Widget build(BuildContext context) {
-    final session = sessionState.userSession;
-    final displayName = session?.username ?? '';
-    final username = session?.username ?? '';
+    final labels = SessionHeaderLabels.forSession(
+      sessionState.userSession,
+      compact: true,
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(labels.primaryLine, style: const TextStyle(fontWeight: FontWeight.w600)),
+        if (labels.secondaryLine.isNotEmpty)
+          Text(
+            labels.secondaryLine,
+            style: const TextStyle(color: UiColors.textSecondary, fontSize: 12),
+          ),
+      ],
+    );
+  }
+}
+
+class _UserChip extends StatelessWidget {
+  const _UserChip({
+    required this.sessionState,
+    required this.compact,
+  });
+
+  final AppSessionState sessionState;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final labels = SessionHeaderLabels.forSession(
+      sessionState.userSession,
+      compact: compact,
+    );
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -218,7 +248,9 @@ class _UserChip extends StatelessWidget {
             radius: 18,
             backgroundColor: UiColors.primarySoft,
             child: Text(
-              displayName.isNotEmpty ? displayName.substring(0, 1).toUpperCase() : 'U',
+              labels.primaryLine.isNotEmpty
+                  ? labels.primaryLine.substring(0, 1).toUpperCase()
+                  : 'U',
               style: const TextStyle(
                 color: UiColors.primary,
                 fontWeight: FontWeight.w700,
@@ -230,13 +262,14 @@ class _UserChip extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                displayName.isNotEmpty ? displayName : 'Funcionario',
+                labels.primaryLine,
                 style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
               ),
-              Text(
-                username.isEmpty ? 'Funcionario' : username,
-                style: const TextStyle(color: UiColors.textSecondary, fontSize: 12),
-              ),
+              if (labels.secondaryLine.isNotEmpty)
+                Text(
+                  labels.secondaryLine,
+                  style: const TextStyle(color: UiColors.textSecondary, fontSize: 12),
+                ),
             ],
           ),
         ],

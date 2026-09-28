@@ -19,6 +19,7 @@ class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
   Result<repo.Correspondence, Failure>? reopenResult;
   int getCorrespondenceCallCount = 0;
   int listMovementsCallCount = 0;
+  int listEmployeesCallCount = 0;
   bool concluded = false;
 
   repo.Correspondence _detail(String id) => repo.Correspondence(
@@ -63,6 +64,7 @@ class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
 
   @override
   Future<Result<List<repo.EmployeeOption>, Failure>> listEmployees() async {
+    listEmployeesCallCount++;
     return const Ok([]);
   }
 
@@ -94,38 +96,24 @@ class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
   noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-class _FakeAuthRepository implements repo.AuthenticationRepository {
-  @override
-  Future<Result<repo.UserSession, Failure>> currentUser() async {
-    return const Ok(
-      repo.UserSession(
-        id: 'user-1',
-        username: 'tester',
-        isActive: true,
-      ),
-    );
-  }
-
-  @override
-  noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
-
 void main() {
   group('CorrespondenceDetailCubit', () {
     test('init carga detail y movements', () async {
       final repository = _FakeCorrespondenceRepository();
       final cubit = CorrespondenceDetailCubit(
         repository: repository,
-        authRepository: _FakeAuthRepository(),
         correspondenceId: 'corr-1',
+        viewerUnitId: 'unit-1',
       );
 
       await cubit.init();
 
       expect(cubit.state.correspondence?.id, 'corr-1');
       expect(cubit.state.movements, hasLength(1));
+      expect(cubit.state.viewerUnitId, 'unit-1');
       expect(repository.getCorrespondenceCallCount, 1);
       expect(repository.listMovementsCallCount, 1);
+      expect(repository.listEmployeesCallCount, 0);
       await cubit.close();
     });
 
@@ -133,7 +121,6 @@ void main() {
       final repository = _FakeCorrespondenceRepository();
       final cubit = CorrespondenceDetailCubit(
         repository: repository,
-        authRepository: _FakeAuthRepository(),
         correspondenceId: 'corr-1',
       );
 
@@ -151,7 +138,6 @@ void main() {
       );
       final cubit = CorrespondenceDetailCubit(
         repository: repository,
-        authRepository: _FakeAuthRepository(),
         correspondenceId: 'corr-1',
       );
 
@@ -167,7 +153,6 @@ void main() {
       final repository = _FakeCorrespondenceRepository();
       final cubit = CorrespondenceDetailCubit(
         repository: repository,
-        authRepository: _FakeAuthRepository(),
         correspondenceId: 'corr-1',
       );
 
@@ -186,7 +171,6 @@ void main() {
       );
       final cubit = CorrespondenceDetailCubit(
         repository: repository,
-        authRepository: _FakeAuthRepository(),
         correspondenceId: 'corr-1',
       );
 
@@ -210,7 +194,6 @@ void main() {
       repository.concluded = true;
       final cubit = CorrespondenceDetailCubit(
         repository: repository,
-        authRepository: _FakeAuthRepository(),
         correspondenceId: 'corr-1',
       );
 

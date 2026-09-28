@@ -76,11 +76,11 @@ void registerCubits() {
     ),
   );
 
-  getIt.registerFactoryParam<CorrespondenceDetailCubit, String, void>(
-    (correspondenceId, _) => CorrespondenceDetailCubit(
+  getIt.registerFactoryParam<CorrespondenceDetailCubit, String, String?>(
+    (correspondenceId, viewerUnitId) => CorrespondenceDetailCubit(
       repository: getIt<CorrespondenceRepository>(),
-      authRepository: getIt<AuthenticationRepository>(),
       correspondenceId: correspondenceId,
+      viewerUnitId: viewerUnitId,
     ),
   );
 

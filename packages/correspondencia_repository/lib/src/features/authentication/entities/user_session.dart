@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 
+import 'institutional_context.dart';
+
 /// Represents the authenticated user as the UI consumes it.
 ///
 /// Intentionally does NOT carry the access token — that lives in
@@ -11,6 +13,7 @@ class UserSession extends Equatable {
     required this.isActive,
     this.email,
     this.employeeId,
+    this.institutionalContext,
     this.roles = const [],
     this.permissions = const [],
   });
@@ -20,6 +23,7 @@ class UserSession extends Equatable {
   final bool isActive;
   final String? email;
   final String? employeeId;
+  final InstitutionalContext? institutionalContext;
   final List<String> roles;
   final List<String> permissions;
 
@@ -29,6 +33,7 @@ class UserSession extends Equatable {
     bool? isActive,
     String? email,
     String? employeeId,
+    InstitutionalContext? institutionalContext,
     List<String>? roles,
     List<String>? permissions,
   }) {
@@ -38,12 +43,21 @@ class UserSession extends Equatable {
       isActive: isActive ?? this.isActive,
       email: email ?? this.email,
       employeeId: employeeId ?? this.employeeId,
+      institutionalContext: institutionalContext ?? this.institutionalContext,
       roles: roles ?? this.roles,
       permissions: permissions ?? this.permissions,
     );
   }
 
   @override
-  List<Object?> get props =>
-      [id, username, isActive, email, employeeId, roles, permissions];
+  List<Object?> get props => [
+        id,
+        username,
+        isActive,
+        email,
+        employeeId,
+        institutionalContext,
+        roles,
+        permissions,
+      ];
 }

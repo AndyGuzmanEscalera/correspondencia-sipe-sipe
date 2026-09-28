@@ -73,8 +73,8 @@ void main() {
       organizationRepository = _FakeOrganizationRepository();
       cubit = CorrespondenceDetailCubit(
         repository: _FakeCorrespondenceRepository(),
-        authRepository: _FakeAuthRepository(),
         correspondenceId: 'corr-1',
+        viewerUnitId: 'unit-sistemas',
       );
       cubit.emit(
         cubit.state.copyWith(
