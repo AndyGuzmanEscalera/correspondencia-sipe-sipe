@@ -113,6 +113,49 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsNothing);
     });
 
+    testWidgets('dropdown buscable filtra funcionario por nombre', (tester) async {
+      employeesRepository.extraEmployee = EmployeeAdmin(
+        id: 'e-2',
+        firstName: 'Ana',
+        lastName: 'García',
+        isActive: true,
+        createdAt: _date,
+        updatedAt: _date,
+      );
+
+      await pumpUpsertDialog(tester, typeOperation: TypeOperation.create);
+
+      await tester.tap(find.byIcon(Icons.search_rounded).first);
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.descendant(
+          of: find.byType(DraggableScrollableSheet),
+          matching: find.byType(TextField),
+        ),
+        'Ana',
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Ana García'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(DraggableScrollableSheet),
+          matching: find.text('Juan Pérez'),
+        ),
+        findsNothing,
+      );
+    });
+
+    testWidgets('editar conserva funcionario precargado', (tester) async {
+      await pumpUpsertDialog(
+        tester,
+        typeOperation: TypeOperation.update,
+        selected: _entity,
+      );
+
+      expect(find.text('Juan Pérez'), findsWidgets);
+    });
+
     testWidgets('error 409 mantiene el formulario abierto', (tester) async {
       usersRepository.createResult = const Err(
         ValidationFailure('Ya existe un usuario con el nombre admin.'),
@@ -232,16 +275,27 @@ final _date = DateTime.utc(2026, 1, 1);
 Future<void> _selectDropdownOption(
   WidgetTester tester, {
   required String optionText,
+  String? searchQuery,
 }) async {
-  final dropdown = find.byType(DropdownButtonFormField<FormOption<String>>).first;
+  final employeeSelector = find.byIcon(Icons.search_rounded).first;
   await tester.scrollUntilVisible(
-    dropdown,
+    employeeSelector,
     48,
     scrollable: find.byType(Scrollable).first,
   );
   await tester.pumpAndSettle();
-  await tester.tap(dropdown);
+  await tester.tap(employeeSelector);
   await tester.pumpAndSettle();
+  if (searchQuery != null) {
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(DraggableScrollableSheet),
+        matching: find.byType(TextField),
+      ),
+      searchQuery,
+    );
+    await tester.pumpAndSettle();
+  }
   await tester.tap(find.text(optionText).last);
   await tester.pumpAndSettle();
 }
@@ -251,7 +305,7 @@ Future<void> _selectRole(
   required String roleName,
 }) async {
   final roleDropdown =
-      find.byType(DropdownButtonFormField<FormOption<String>>).at(1);
+      find.byType(DropdownButtonFormField<FormOption<String>>).first;
   await tester.scrollUntilVisible(
     roleDropdown,
     48,
@@ -313,6 +367,8 @@ class _FakeUsersAdminRepository implements UsersAdminRepository {
 }
 
 class _FakeEmployeesAdminRepository implements EmployeesAdminRepository {
+  EmployeeAdmin? extraEmployee;
+
   @override
   Future<Result<AdminPage<EmployeeAdmin>, Failure>> list({
     int page = 1,
@@ -321,13 +377,19 @@ class _FakeEmployeesAdminRepository implements EmployeesAdminRepository {
     bool? isActive,
     String? unitId,
     String? positionId,
+    bool availableForUser = false,
+    String? exceptUserId,
   }) async {
+    final items = [
+      _employee,
+      if (extraEmployee != null) extraEmployee!,
+    ];
     return Ok(
       AdminPage(
-        items: [_employee],
+        items: items,
         page: 1,
         pageSize: 100,
-        total: 1,
+        total: items.length,
         totalPages: 1,
       ),
     );

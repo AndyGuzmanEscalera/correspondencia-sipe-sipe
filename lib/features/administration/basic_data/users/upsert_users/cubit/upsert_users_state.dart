@@ -13,8 +13,7 @@ class UpsertUsersState extends Equatable implements StatusState {
   final List<repo.RoleOption> roles;
   final bool catalogLoaded;
 
-  bool get catalogReady =>
-      catalogLoaded && employees.isNotEmpty && roles.isNotEmpty;
+  bool get catalogReady => catalogLoaded && roles.isNotEmpty;
 
   @override
   final DialogMessage dialogMessage;

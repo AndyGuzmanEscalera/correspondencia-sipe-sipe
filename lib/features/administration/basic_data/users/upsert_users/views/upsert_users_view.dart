@@ -1,16 +1,16 @@
 import 'package:correspondencia_sipe_sipe/core/helpers/full_widget_generics.dart';
 import 'package:correspondencia_sipe_sipe/core/helpers/listener/listener_generic.dart';
 import 'package:correspondencia_sipe_sipe/core/util/enums.dart';
-import 'package:correspondencia_sipe_sipe/core/util/form/models/form_option.dart';
 import 'package:correspondencia_sipe_sipe/core/util/form/validator_field/valid.dart';
 import 'package:correspondencia_sipe_sipe/features/administration/basic_data/users/list_users/cubit/users_cubit.dart';
 import 'package:correspondencia_sipe_sipe/features/administration/basic_data/users/upsert_users/cubit/upsert_users_cubit.dart';
+import 'package:correspondencia_sipe_sipe/features/administration/basic_data/users/upsert_users/helpers/employee_user_form_options.dart';
 import 'package:correspondencia_sipe_sipe/features/administration/basic_data/users/upsert_users/helpers/upsert_users_inherited.dart';
 import 'package:correspondencia_sipe_sipe/features/administration/basic_data/users/upsert_users/widgets/user_roles_section.dart';
 import 'package:correspondencia_sipe_sipe/features/administration/common/admin_upsert_bloc_listener.dart';
 import 'package:correspondencia_sipe_sipe/injection/injection_bloc.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/app_form_dialog.dart';
-import 'package:correspondencia_sipe_sipe/shared/widgets/form/app_dropdown.dart';
+import 'package:correspondencia_sipe_sipe/shared/widgets/form/app_searchable_dropdown.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/form/app_text_field.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/form/app_text_password.dart';
 import 'package:flutter/material.dart';
@@ -154,23 +154,17 @@ class _UpsertUsersBodyState extends State<UpsertUsersBody> {
             child: const Padding(
               padding: EdgeInsets.symmetric(vertical: 24),
               child: Text(
-                'No se pudieron cargar funcionarios y roles activos.',
+                'No se pudieron cargar los roles del sistema.',
               ),
             ),
           );
         }
 
-        final employeeItems = state.employees
-            .map(
-              (employee) => FormOption<String>(
-                id: employee.id.hashCode,
-                text: employee.fullName,
-                value: employee.id,
-              ),
-            )
-            .toList();
+        final employeeItems =
+            state.employees.map(employeeToFormOption).toList();
 
         final isLoading = state.generalStatus == GeneralStatus.loading;
+        final noEmployeesAvailable = employeeItems.isEmpty;
 
         return AppFormDialog(
           title: isCreate ? 'Nuevo usuario' : 'Editar usuario',
@@ -179,6 +173,7 @@ class _UpsertUsersBodyState extends State<UpsertUsersBody> {
               : 'Actualice los datos y roles del usuario',
           maxWidth: 540,
           isLoading: isLoading,
+          isSubmitDisabled: isLoading || (isCreate && noEmployeesAvailable),
           submitLabel: isCreate ? 'Registrar' : 'Guardar',
           onSubmit: () {
             final validResult =
@@ -186,7 +181,10 @@ class _UpsertUsersBodyState extends State<UpsertUsersBody> {
             if (!validResult.isPassed) return;
 
             final employeeId = inherited.employee.get();
-            if (employeeId == null) return;
+            if (employeeId == null) {
+              inherited.formKey.currentState?.validate();
+              return;
+            }
 
             final roleIds = inherited.selectedRoleIds.toList();
 
@@ -234,9 +232,14 @@ class _UpsertUsersBodyState extends State<UpsertUsersBody> {
                       RequiredValid(error: 'Campo requerido'),
                     ],
                   ),
-                AppDropdown<String>(
+                AppSearchableDropdown<String>(
                   controller: inherited.employee,
                   label: 'Funcionario',
+                  hint: 'Seleccione un funcionario',
+                  searchHint: 'Buscar por nombre, documento, cargo o unidad',
+                  emptyItemsMessage:
+                      'No hay funcionarios disponibles sin usuario.',
+                  emptySearchMessage: 'No se encontraron funcionarios.',
                   items: employeeItems,
                   validators: [
                     RequiredValid(error: 'Seleccione un funcionario'),

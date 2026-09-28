@@ -168,6 +168,8 @@ class _FakeEmployeesAdminRepository implements EmployeesAdminRepository {
     bool? isActive,
     String? unitId,
     String? positionId,
+    bool availableForUser = false,
+    String? exceptUserId,
   }) async {
     lastSearch = search;
     lastPage = page;

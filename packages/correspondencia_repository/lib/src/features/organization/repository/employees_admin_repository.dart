@@ -17,6 +17,8 @@ class EmployeesAdminRepository {
     bool? isActive,
     String? unitId,
     String? positionId,
+    bool availableForUser = false,
+    String? exceptUserId,
   }) {
     return handleExceptions<AdminPage<EmployeeAdmin>>(
       () async {
@@ -27,6 +29,8 @@ class EmployeesAdminRepository {
           isActive: isActive,
           unitId: unitId,
           positionId: positionId,
+          availableForUser: availableForUser,
+          exceptUserId: exceptUserId,
         );
         return AdminPage(
           items: response.items.map((item) => item.toEntity()).toList(),

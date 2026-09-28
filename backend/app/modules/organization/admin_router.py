@@ -171,6 +171,8 @@ def list_employees_admin(
     is_active: bool | None = None,
     unit_id: uuid.UUID | None = None,
     position_id: uuid.UUID | None = None,
+    available_for_user: bool = False,
+    except_user_id: uuid.UUID | None = None,
 ) -> PaginatedResponse[EmployeeAdminResponse]:
     return service.list_employees(
         page=page,
@@ -179,6 +181,8 @@ def list_employees_admin(
         is_active=is_active,
         unit_id=unit_id,
         position_id=position_id,
+        available_for_user=available_for_user,
+        except_user_id=except_user_id,
     )
 
 

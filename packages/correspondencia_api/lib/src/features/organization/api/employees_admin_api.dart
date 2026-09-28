@@ -16,6 +16,8 @@ class EmployeesAdminApi {
     bool? isActive,
     String? unitId,
     String? positionId,
+    bool availableForUser = false,
+    String? exceptUserId,
   }) async {
     final json = await _mainApi.get(
       Endpoints.adminEmployees,
@@ -26,6 +28,9 @@ class EmployeesAdminApi {
         if (isActive != null) 'is_active': isActive,
         if (unitId != null) 'unit_id': unitId,
         if (positionId != null) 'position_id': positionId,
+        if (availableForUser) 'available_for_user': true,
+        if (exceptUserId != null && exceptUserId.isNotEmpty)
+          'except_user_id': exceptUserId,
       },
       operation: 'admin.employees.list',
     );

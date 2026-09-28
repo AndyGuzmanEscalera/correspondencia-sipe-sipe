@@ -5,12 +5,16 @@ class FormOption<T> {
     this.text = '',
     this.value,
     this.description,
+    this.keywords,
   });
 
   final int id;
   final String text;
   final T? value;
   final String? description;
+
+  /// Texto adicional para filtrado local (p. ej. documento, cargo, unidad).
+  final List<String>? keywords;
 
   @override
   bool operator ==(Object other) {

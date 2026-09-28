@@ -20,13 +20,11 @@ class UpsertUsersCubit extends Cubit<UpsertUsersState> {
   final repo.UsersAdminRepository _usersRepository;
   final repo.EmployeesAdminRepository _employeesRepository;
 
+  static const _employeePageSize = 100;
+
   Future<void> init({repo.UserAdmin? editing}) async {
     final rolesResult = await _usersRepository.listRoles();
-    final employeesResult = await _employeesRepository.list(
-      page: 1,
-      pageSize: 100,
-      isActive: true,
-    );
+    final employeesResult = await _loadAvailableEmployees(editing: editing);
 
     if (rolesResult case Err(:final failure)) {
       emit(
@@ -62,18 +60,47 @@ class UpsertUsersCubit extends Cubit<UpsertUsersState> {
       return;
     }
 
-    final employeesPage = employeesResult.valueOrNull()!;
+    final employees = employeesResult.valueOrNull()!;
 
     emit(
       state.copyWith(
         roles: rolesResult.valueOrNull() ?? const [],
         employees: _employeesCatalog(
-          employees: employeesPage.items,
+          employees: employees,
           editing: editing,
         ),
         catalogLoaded: true,
       ),
     );
+  }
+
+  Future<Result<List<repo.EmployeeAdmin>, Failure>> _loadAvailableEmployees({
+    repo.UserAdmin? editing,
+  }) async {
+    final collected = <repo.EmployeeAdmin>[];
+    var page = 1;
+    var totalPages = 1;
+
+    while (page <= totalPages) {
+      final result = await _employeesRepository.list(
+        page: page,
+        pageSize: _employeePageSize,
+        isActive: true,
+        availableForUser: true,
+        exceptUserId: editing?.id,
+      );
+
+      if (result case Err(:final failure)) {
+        return Err(failure);
+      }
+
+      final employeesPage = result.valueOrNull()!;
+      collected.addAll(employeesPage.items);
+      totalPages = employeesPage.totalPages;
+      page++;
+    }
+
+    return Ok(collected);
   }
 
   Future<void> save({

@@ -33,8 +33,15 @@ class EmployeeAdminService:
         is_active: bool | None,
         unit_id: uuid.UUID | None,
         position_id: uuid.UUID | None,
+        available_for_user: bool = False,
+        except_user_id: uuid.UUID | None = None,
     ) -> PaginatedResponse[EmployeeAdminResponse]:
         query = select(Employee)
+        if available_for_user:
+            query = self._apply_available_for_user_filter(
+                query,
+                except_user_id=except_user_id,
+            )
         if is_active is not None:
             query = query.where(Employee.is_active == is_active)
         if unit_id:
@@ -167,6 +174,34 @@ class EmployeeAdminService:
             query = query.where(Employee.id != exclude_id)
         if self._db.scalar(query):
             raise conflict(f"Ya existe un funcionario con el documento {document_number}.")
+
+    def _apply_available_for_user_filter(
+        self,
+        query,
+        *,
+        except_user_id: uuid.UUID | None,
+    ):
+        """Employees without a linked user, or linked only to except_user_id (edit)."""
+        from sqlalchemy import exists, or_
+
+        assigned = (
+            select(User.id)
+            .where(User.employee_id == Employee.id)
+            .correlate(Employee)
+        )
+        if except_user_id is not None:
+            current_user_employee = (
+                select(User.id)
+                .where(
+                    User.employee_id == Employee.id,
+                    User.id == except_user_id,
+                )
+                .correlate(Employee)
+            )
+            return query.where(
+                or_(~exists(assigned), exists(current_user_employee))
+            )
+        return query.where(~exists(assigned))
 
     def _get_or_404(self, employee_id: uuid.UUID) -> Employee:
         row = self._db.get(Employee, employee_id)

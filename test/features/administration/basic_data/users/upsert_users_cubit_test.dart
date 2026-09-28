@@ -30,6 +30,56 @@ void main() {
       expect(cubit.state.catalogReady, isTrue);
       expect(cubit.state.employees, hasLength(1));
       expect(cubit.state.roles, hasLength(1));
+      expect(employeesRepository.lastAvailableForUser, isTrue);
+      expect(employeesRepository.lastExceptUserId, isNull);
+      await cubit.close();
+    });
+
+    test('init pagina todo el catálogo available_for_user', () async {
+      employeesRepository.pages = {
+        1: AdminPage(
+          items: [_employee],
+          page: 1,
+          pageSize: 100,
+          total: 2,
+          totalPages: 2,
+        ),
+        2: AdminPage(
+          items: [
+            EmployeeAdmin(
+              id: 'e-2',
+              firstName: 'Recién',
+              lastName: 'Creado',
+              isActive: true,
+              createdAt: _date,
+              updatedAt: _date,
+            ),
+          ],
+          page: 2,
+          pageSize: 100,
+          total: 2,
+          totalPages: 2,
+        ),
+      };
+      final cubit = buildCubit();
+
+      await cubit.init();
+
+      expect(cubit.state.employees, hasLength(2));
+      expect(
+        cubit.state.employees.map((item) => item.id),
+        containsAll(['e-1', 'e-2']),
+      );
+      expect(employeesRepository.listCalls, 2);
+      await cubit.close();
+    });
+
+    test('init en edición pasa exceptUserId al listado', () async {
+      final cubit = buildCubit();
+
+      await cubit.init(editing: _entity);
+
+      expect(employeesRepository.lastExceptUserId, 'u-1');
       await cubit.close();
     });
 
@@ -172,6 +222,19 @@ void main() {
       expect(cubit.state.generalStatus, GeneralStatus.error);
       await cubit.close();
     });
+
+    test('init error en employees emite DialogMessage y catalogLoaded', () async {
+      employeesRepository.listResult =
+          const Err(ServerFailure('Error al cargar funcionarios'));
+      final cubit = buildCubit();
+
+      await cubit.init();
+
+      expect(cubit.state.catalogLoaded, isTrue);
+      expect(cubit.state.catalogReady, isFalse);
+      expect(cubit.state.generalStatus, GeneralStatus.error);
+      await cubit.close();
+    });
   });
 }
 
@@ -254,6 +317,12 @@ class _FakeUsersAdminRepository implements UsersAdminRepository {
 }
 
 class _FakeEmployeesAdminRepository implements EmployeesAdminRepository {
+  Map<int, AdminPage<EmployeeAdmin>> pages = {};
+  int listCalls = 0;
+  bool? lastAvailableForUser;
+  String? lastExceptUserId;
+  Result<AdminPage<EmployeeAdmin>, Failure>? listResult;
+
   @override
   Future<Result<AdminPage<EmployeeAdmin>, Failure>> list({
     int page = 1,
@@ -262,7 +331,27 @@ class _FakeEmployeesAdminRepository implements EmployeesAdminRepository {
     bool? isActive,
     String? unitId,
     String? positionId,
+    bool availableForUser = false,
+    String? exceptUserId,
   }) async {
+    listCalls++;
+    lastAvailableForUser = availableForUser;
+    lastExceptUserId = exceptUserId;
+    if (listResult != null) {
+      return listResult!;
+    }
+    if (pages.isNotEmpty) {
+      return Ok(
+        pages[page] ??
+            AdminPage(
+              items: const [],
+              page: page,
+              pageSize: pageSize,
+              total: 0,
+              totalPages: pages.length,
+            ),
+      );
+    }
     return Ok(
       AdminPage(
         items: [_employee],
