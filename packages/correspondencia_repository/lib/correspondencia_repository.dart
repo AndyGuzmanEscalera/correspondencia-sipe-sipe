@@ -10,3 +10,4 @@ export 'src/features/authentication/authentication.dart';
 export 'src/features/correspondence/correspondence.dart';
 export 'src/features/identity/identity.dart';
 export 'src/features/organization/organization.dart';
+export 'src/features/system/system.dart';

@@ -63,4 +63,6 @@ class Endpoints {
   static String adminDocumentType(String id) => '/admin/document-types/$id';
   static String adminDocumentTypeActive(String id) =>
       '/admin/document-types/$id/active';
+  static const String adminSystemSettingsInstitutional =
+      '/admin/system-settings/institutional';
 }

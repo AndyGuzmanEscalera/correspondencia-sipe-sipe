@@ -11,6 +11,7 @@ import '../../features/administration/basic_data/units/list_units/cubit/units_cu
 import '../../features/administration/basic_data/units/upsert_units/cubit/upsert_units_cubit.dart';
 import '../../features/administration/basic_data/users/list_users/cubit/users_cubit.dart';
 import '../../features/administration/basic_data/users/upsert_users/cubit/upsert_users_cubit.dart';
+import '../../features/administration/configuration/cubit/configuration_cubit.dart';
 import '../../features/app/cubit/app_session_cubit.dart';
 import '../../features/authentication/sign_in/cubit/sign_in_cubit.dart';
 import '../../features/correspondence/attachments/cubit/correspondence_attachments_cubit.dart';
@@ -151,5 +152,9 @@ void registerCubits() {
 
   getIt.registerFactory<UpsertDocumentTypesCubit>(
     () => UpsertDocumentTypesCubit(getIt<DocumentTypesAdminRepository>()),
+  );
+
+  getIt.registerFactory<ConfigurationCubit>(
+    () => ConfigurationCubit(getIt<SystemSettingsAdminRepository>()),
   );
 }

@@ -91,6 +91,12 @@ Future<void> registerRepositories() async {
     ),
   );
 
+  getIt.registerLazySingleton<SystemSettingsAdminApi>(
+    () => SystemSettingsAdminApi(
+      mainApi: getIt<ApiMethod>(instanceName: 'mainApi'),
+    ),
+  );
+
   // ─── Repositories ─────────────────────────────────────────────
   getIt.registerLazySingleton<AuthenticationRepository>(
     () => AuthenticationRepository(
@@ -134,5 +140,11 @@ Future<void> registerRepositories() async {
 
   getIt.registerLazySingleton<DocumentTypesAdminRepository>(
     () => DocumentTypesAdminRepository(api: getIt<DocumentTypesAdminApi>()),
+  );
+
+  getIt.registerLazySingleton<SystemSettingsAdminRepository>(
+    () => SystemSettingsAdminRepository(
+      api: getIt<SystemSettingsAdminApi>(),
+    ),
   );
 }

@@ -56,6 +56,16 @@ void main() {
       expect(_hasMenu(menus, MenuEnum.adminDocumentTypes), isFalse);
     });
 
+    test('configuración solo con system.settings.read', () {
+      final menus = MenuOptions.build(
+        counts: const {},
+        permissions: [Permissions.systemSettingsRead],
+      );
+
+      expect(_hasSectionTitle(menus, 'Configuración'), isTrue);
+      expect(_hasMenu(menus, MenuEnum.adminConfiguration), isTrue);
+    });
+
     test('D) los 10 permisos master_data: todos los módulos admin', () {
       final menus = MenuOptions.build(
         counts: const {},
@@ -78,6 +88,7 @@ void main() {
       expect(_hasMenu(menus, MenuEnum.adminEmployees), isTrue);
       expect(_hasMenu(menus, MenuEnum.adminUsers), isTrue);
       expect(_hasMenu(menus, MenuEnum.adminDocumentTypes), isTrue);
+      expect(_hasMenu(menus, MenuEnum.adminConfiguration), isFalse);
     });
 
     test('E) rol conceptual AUDITOR_TEST: solo por permisos efectivos', () {

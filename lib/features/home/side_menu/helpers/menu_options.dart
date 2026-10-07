@@ -88,6 +88,18 @@ class MenuOptions {
         icon: Icons.category_outlined,
         requiredPermission: Permissions.documentTypesRead,
       ),
+      const MenuItemData(
+        menu: MenuEnum.settings,
+        title: 'Configuración',
+        icon: Icons.settings_outlined,
+        isSection: true,
+      ),
+      MenuItemData(
+        menu: MenuEnum.adminConfiguration,
+        title: 'Institucional',
+        icon: Icons.account_balance_outlined,
+        requiredPermission: Permissions.systemSettingsRead,
+      ),
     ];
 
     return _filterByPermissions(all, permissions);

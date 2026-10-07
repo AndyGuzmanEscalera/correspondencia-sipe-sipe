@@ -34,7 +34,7 @@ def _master_data_codes_for_role(db: Session, role_id: uuid.UUID) -> set[str]:
         .join(RolePermission, RolePermission.permission_id == Permission.id)
         .where(
             RolePermission.role_id == role_id,
-            Permission.code.like("master_data.%"),
+            Permission.code.in_(MASTER_DATA_PERMISSIONS),
         )
     ).all()
     return set(rows)
@@ -150,7 +150,9 @@ def test_seed_is_idempotent_no_duplicate_role_permissions(db: Session) -> None:
     _ensure_master_data_permissions(db)
     conn = db.connection()
     ensure_institutional_base_roles(conn)
+    before = set(db.execute(select(RolePermission.role_id, RolePermission.permission_id)).all())
     ensure_institutional_base_roles(conn)
+    assert before == set(db.execute(select(RolePermission.role_id, RolePermission.permission_id)).all())
 
     admin = db.scalar(select(Role).where(Role.code == "ADMIN"))
     assert admin is not None
@@ -159,7 +161,7 @@ def test_seed_is_idempotent_no_duplicate_role_permissions(db: Session) -> None:
             "SELECT COUNT(*) FROM role_permissions WHERE role_id = :role_id"
         ).bindparams(role_id=admin.id)
     )
-    assert total == len(MASTER_DATA_PERMISSIONS)
+    assert total == sum(1 for role_id, _ in before if role_id == admin.id)
 
 
 def test_dynamic_future_role_resolves_permissions_via_rbac(

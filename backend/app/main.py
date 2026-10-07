@@ -20,6 +20,7 @@ from app.modules.organization.admin_router import (
     units_router as admin_units_router,
 )
 from app.modules.organization.router import router as organization_router
+from app.modules.system.admin_router import router as system_settings_admin_router
 
 settings = get_settings()
 
@@ -56,6 +57,7 @@ app.include_router(admin_positions_router)
 app.include_router(admin_employees_router)
 app.include_router(identity_admin_router)
 app.include_router(document_types_admin_router)
+app.include_router(system_settings_admin_router)
 
 
 @app.get("/health", tags=["health"])

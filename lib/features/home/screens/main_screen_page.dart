@@ -7,6 +7,7 @@ import 'package:correspondencia_sipe_sipe/features/administration/basic_data/emp
 import 'package:correspondencia_sipe_sipe/features/administration/basic_data/positions/list_positions/views/positions_page.dart';
 import 'package:correspondencia_sipe_sipe/features/administration/basic_data/units/list_units/views/units_page.dart';
 import 'package:correspondencia_sipe_sipe/features/administration/basic_data/users/list_users/views/users_page.dart';
+import 'package:correspondencia_sipe_sipe/features/administration/configuration/views/configuration_page.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/list_correspondence/views/correspondence_page.dart';
 import 'package:correspondencia_sipe_sipe/features/dashboard/views/dashboard_page.dart';
 import 'package:correspondencia_sipe_sipe/features/home/side_menu/cubit/side_menu_cubit.dart';
@@ -125,6 +126,10 @@ class _ContentArea extends StatelessWidget {
       MenuEnum.adminDocumentTypes => PermissionGuard(
           permission: Permissions.documentTypesRead,
           child: const DocumentTypesPage(),
+        ),
+      MenuEnum.adminConfiguration => PermissionGuard(
+          permission: Permissions.systemSettingsRead,
+          child: const ConfigurationPage(),
         ),
       MenuEnum.administration ||
       MenuEnum.basicData ||

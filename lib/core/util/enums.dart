@@ -35,6 +35,7 @@ enum MenuEnum {
   adminUsers,
   adminDocumentTypes,
   settings,
+  adminConfiguration,
 }
 
 enum CorrespondenceTypeCode {

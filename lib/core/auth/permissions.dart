@@ -15,6 +15,8 @@ class Permissions {
   static const rolesAssign = 'master_data.roles.assign';
   static const documentTypesRead = 'master_data.document_types.read';
   static const documentTypesManage = 'master_data.document_types.manage';
+  static const systemSettingsRead = 'system.settings.read';
+  static const systemSettingsManage = 'system.settings.manage';
 }
 
 bool hasPermission(UserSession? session, String code) {
