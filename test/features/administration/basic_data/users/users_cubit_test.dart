@@ -84,7 +84,37 @@ void main() {
       await cubit.close();
     });
 
-    test('toggleActive reemplaza entidad devuelta', () async {
+    test('filtros de estado y reactivación conservan el contrato', () async {
+      final cubit = UsersCubit(repository);
+      await cubit.get();
+      expect(repository.lastIsActive, isTrue);
+      await cubit.filterActive(false);
+      expect(repository.lastIsActive, isFalse);
+      await cubit.changePage(2);
+      expect(repository.lastIsActive, isFalse);
+      await cubit.filterActive(null);
+      expect(repository.lastIsActive, isNull);
+      repository.listResult = Ok(AdminPage(
+          items: [_inactive], page: 1, pageSize: 20, total: 1, totalPages: 1));
+      await cubit.get();
+      repository.setActiveResult = Ok(_entity);
+      await cubit.reactivate(_inactive);
+      expect(repository.lastSetActive, isTrue);
+      expect(cubit.state.list.single.isActive, isTrue);
+      expect(cubit.state.total, 1);
+      await cubit.close();
+    });
+
+    test('deleteLogically quita el registro de la lista', () async {
+      repository.listResult = Ok(
+        AdminPage(
+          items: [_entity],
+          page: 1,
+          pageSize: 20,
+          total: 1,
+          totalPages: 1,
+        ),
+      );
       repository.setActiveResult = Ok(
         UserAdmin(
           id: 'u-1',
@@ -99,8 +129,10 @@ void main() {
       );
 
       final cubit = UsersCubit(repository);
-      await cubit.toggleActive(_entity);
+      await cubit.get();
+      await cubit.deleteLogically(_entity);
 
+      expect(cubit.state.list, isEmpty);
       expect(cubit.state.generalStatus, GeneralStatus.success);
       await cubit.close();
     });
@@ -118,12 +150,25 @@ final _entity = UserAdmin(
   updatedAt: _date,
 );
 
+final _inactive = UserAdmin(
+  id: 'u-1',
+  username: 'admin',
+  employeeId: 'e-1',
+  employeeName: 'Juan Pérez',
+  isActive: false,
+  roleCodes: const ['ADMIN'],
+  createdAt: _date,
+  updatedAt: _date,
+);
+
 final _date = DateTime.utc(2026, 1, 1);
 
 class _FakeUsersAdminRepository implements UsersAdminRepository {
   Result<AdminPage<UserAdmin>, Failure>? listResult;
   Result<UserAdmin, Failure>? setActiveResult;
   String? lastSearch;
+  bool? lastIsActive;
+  bool? lastSetActive;
 
   @override
   Future<Result<AdminPage<UserAdmin>, Failure>> list({
@@ -134,6 +179,7 @@ class _FakeUsersAdminRepository implements UsersAdminRepository {
     String? unitId,
   }) async {
     lastSearch = search;
+    lastIsActive = isActive;
     return listResult ??
         Ok(
           AdminPage(
@@ -151,6 +197,7 @@ class _FakeUsersAdminRepository implements UsersAdminRepository {
     String id, {
     required bool isActive,
   }) async {
+    lastSetActive = isActive;
     return setActiveResult ??
         const Err(ServerFailure('setActive not configured'));
   }

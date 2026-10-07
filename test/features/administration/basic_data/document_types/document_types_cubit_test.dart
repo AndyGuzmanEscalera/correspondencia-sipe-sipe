@@ -87,7 +87,28 @@ void main() {
       await cubit.close();
     });
 
-    test('toggleActive reemplaza entidad devuelta', () async {
+    test('filtros de estado y reactivación conservan el contrato', () async {
+      final cubit = DocumentTypesCubit(repository);
+      await cubit.get();
+      expect(repository.lastIsActive, isTrue);
+      await cubit.filterActive(false);
+      expect(repository.lastIsActive, isFalse);
+      await cubit.changePage(2);
+      expect(repository.lastIsActive, isFalse);
+      await cubit.filterActive(null);
+      expect(repository.lastIsActive, isNull);
+      repository.listResult = Ok(AdminPage(
+          items: [_inactive], page: 1, pageSize: 20, total: 1, totalPages: 1));
+      await cubit.get();
+      repository.setActiveResult = Ok(_entity);
+      await cubit.reactivate(_inactive);
+      expect(repository.lastSetActive, isTrue);
+      expect(cubit.state.list.single.isActive, isTrue);
+      expect(cubit.state.total, 1);
+      await cubit.close();
+    });
+
+    test('deleteLogically quita el registro de la lista', () async {
       repository.listResult = Ok(
         AdminPage(
           items: [_entity],
@@ -110,9 +131,9 @@ void main() {
 
       final cubit = DocumentTypesCubit(repository);
       await cubit.get();
-      await cubit.toggleActive(_entity);
+      await cubit.deleteLogically(_entity);
 
-      expect(cubit.state.list.single.isActive, isFalse);
+      expect(cubit.state.list, isEmpty);
       await cubit.close();
     });
   });
@@ -127,6 +148,15 @@ final _entity = DocumentTypeAdmin(
   updatedAt: _date,
 );
 
+final _inactive = DocumentTypeAdmin(
+  id: 'dt-1',
+  code: 'CARTA',
+  name: 'Carta',
+  isActive: false,
+  createdAt: _date,
+  updatedAt: _date,
+);
+
 final _date = DateTime.utc(2026, 1, 1);
 
 class _FakeDocumentTypesAdminRepository
@@ -134,6 +164,8 @@ class _FakeDocumentTypesAdminRepository
   Result<AdminPage<DocumentTypeAdmin>, Failure>? listResult;
   Result<DocumentTypeAdmin, Failure>? setActiveResult;
   String? lastSearch;
+  bool? lastIsActive;
+  bool? lastSetActive;
   int? lastPage;
   int? lastPageSize;
 
@@ -145,6 +177,7 @@ class _FakeDocumentTypesAdminRepository
     bool? isActive,
   }) async {
     lastSearch = search;
+    lastIsActive = isActive;
     lastPage = page;
     lastPageSize = pageSize;
     return listResult ??
@@ -164,6 +197,7 @@ class _FakeDocumentTypesAdminRepository
     String id, {
     required bool isActive,
   }) async {
+    lastSetActive = isActive;
     return setActiveResult ??
         const Err(ServerFailure('setActive not configured'));
   }

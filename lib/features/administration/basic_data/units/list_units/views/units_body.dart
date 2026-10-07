@@ -2,6 +2,8 @@ import 'package:correspondencia_repository/correspondencia_repository.dart';
 import 'package:correspondencia_sipe_sipe/core/auth/permissions.dart';
 import 'package:correspondencia_sipe_sipe/core/util/enums.dart';
 import 'package:correspondencia_sipe_sipe/features/administration/basic_data/units/list_units/cubit/units_cubit.dart';
+import 'package:correspondencia_sipe_sipe/features/administration/common/admin_logical_delete_dialog.dart';
+import 'package:correspondencia_sipe_sipe/features/administration/common/admin_active_filter.dart';
 import 'package:correspondencia_sipe_sipe/features/administration/basic_data/units/list_units/tables/units_table.dart';
 import 'package:correspondencia_sipe_sipe/features/administration/basic_data/units/upsert_units/views/upsert_units_view.dart';
 import 'package:correspondencia_sipe_sipe/features/app/cubit/app_session_cubit.dart';
@@ -57,6 +59,8 @@ class UnitsBody extends StatelessWidget {
             onChanged: cubit.filter,
           ),
           const SizedBox(height: 20),
+          AdminActiveFilter(onChanged: cubit.filterActive),
+          const SizedBox(height: 12),
           BlocBuilder<UnitsCubit, UnitsState>(
             builder: (context, state) {
               final isLoading = state.generalStatus == GeneralStatus.loading &&
@@ -90,16 +94,27 @@ class UnitsBody extends StatelessWidget {
                             },
                           ),
                           AppDataGridAction<OrganizationalUnitAdmin>(
-                            icon: Icons.toggle_on_outlined,
-                            tooltip: 'Desactivar',
-                            visibleWhen: (item) => item.isActive,
-                            onPressed: cubit.toggleActive,
-                          ),
-                          AppDataGridAction<OrganizationalUnitAdmin>(
-                            icon: Icons.toggle_off_outlined,
+                            icon: Icons.check_circle_outline,
                             tooltip: 'Activar',
                             visibleWhen: (item) => !item.isActive,
-                            onPressed: cubit.toggleActive,
+                            onPressed: cubit.reactivate,
+                          ),
+                          AppDataGridAction<OrganizationalUnitAdmin>(
+                            icon: Icons.delete_outline,
+                            tooltip: 'Desactivar',
+                            visibleWhen: (item) => item.isActive,
+                            onPressed: (item) async {
+                              final confirmed = await confirmAdminLogicalDelete(
+                                context,
+                                title: 'Desactivar unidad',
+                                message:
+                                    '¿Desactivar la unidad "${item.name}"? '
+                                    'Dejará de estar disponible (eliminación lógica).',
+                              );
+                              if (confirmed && context.mounted) {
+                                await cubit.deleteLogically(item);
+                              }
+                            },
                           ),
                         ]
                       : const [],

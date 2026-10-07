@@ -2,6 +2,8 @@ import 'package:correspondencia_repository/correspondencia_repository.dart';
 import 'package:correspondencia_sipe_sipe/core/auth/permissions.dart';
 import 'package:correspondencia_sipe_sipe/core/util/enums.dart';
 import 'package:correspondencia_sipe_sipe/features/administration/basic_data/positions/list_positions/cubit/positions_cubit.dart';
+import 'package:correspondencia_sipe_sipe/features/administration/common/admin_logical_delete_dialog.dart';
+import 'package:correspondencia_sipe_sipe/features/administration/common/admin_active_filter.dart';
 import 'package:correspondencia_sipe_sipe/features/administration/basic_data/positions/list_positions/tables/positions_table.dart';
 import 'package:correspondencia_sipe_sipe/features/administration/basic_data/positions/upsert_positions/views/upsert_positions_view.dart';
 import 'package:correspondencia_sipe_sipe/features/app/cubit/app_session_cubit.dart';
@@ -56,6 +58,8 @@ class PositionsBody extends StatelessWidget {
             onChanged: cubit.filter,
           ),
           const SizedBox(height: 20),
+          AdminActiveFilter(onChanged: cubit.filterActive),
+          const SizedBox(height: 12),
           BlocBuilder<PositionsCubit, PositionsState>(
             builder: (context, state) {
               final isLoading = state.generalStatus == GeneralStatus.loading &&
@@ -91,16 +95,26 @@ class PositionsBody extends StatelessWidget {
                             },
                           ),
                           AppDataGridAction<PositionAdmin>(
-                            icon: Icons.toggle_on_outlined,
-                            tooltip: 'Desactivar',
-                            visibleWhen: (item) => item.isActive,
-                            onPressed: cubit.toggleActive,
-                          ),
-                          AppDataGridAction<PositionAdmin>(
-                            icon: Icons.toggle_off_outlined,
+                            icon: Icons.check_circle_outline,
                             tooltip: 'Activar',
                             visibleWhen: (item) => !item.isActive,
-                            onPressed: cubit.toggleActive,
+                            onPressed: cubit.reactivate,
+                          ),
+                          AppDataGridAction<PositionAdmin>(
+                            icon: Icons.delete_outline,
+                            tooltip: 'Desactivar',
+                            visibleWhen: (item) => item.isActive,
+                            onPressed: (item) async {
+                              final confirmed = await confirmAdminLogicalDelete(
+                                context,
+                                title: 'Desactivar cargo',
+                                message: '¿Desactivar el cargo "${item.name}"? '
+                                    'Dejará de estar disponible (eliminación lógica).',
+                              );
+                              if (confirmed && context.mounted) {
+                                await cubit.deleteLogically(item);
+                              }
+                            },
                           ),
                         ]
                       : const [],

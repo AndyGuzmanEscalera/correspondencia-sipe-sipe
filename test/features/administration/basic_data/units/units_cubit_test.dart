@@ -86,7 +86,28 @@ void main() {
       await cubit.close();
     });
 
-    test('toggleActive reemplaza entidad devuelta', () async {
+    test('filtros de estado y reactivación conservan el contrato', () async {
+      final cubit = UnitsCubit(repository);
+      await cubit.get();
+      expect(repository.lastIsActive, isTrue);
+      await cubit.filterActive(false);
+      expect(repository.lastIsActive, isFalse);
+      await cubit.changePage(2);
+      expect(repository.lastIsActive, isFalse);
+      await cubit.filterActive(null);
+      expect(repository.lastIsActive, isNull);
+      repository.listResult = Ok(AdminPage(
+          items: [_inactive], page: 1, pageSize: 20, total: 1, totalPages: 1));
+      await cubit.get();
+      repository.setActiveResult = Ok(_entity);
+      await cubit.reactivate(_inactive);
+      expect(repository.lastSetActive, isTrue);
+      expect(cubit.state.list.single.isActive, isTrue);
+      expect(cubit.state.total, 1);
+      await cubit.close();
+    });
+
+    test('deleteLogically quita el registro de la lista', () async {
       repository.listResult = Ok(
         AdminPage(
           items: [_entity],
@@ -109,9 +130,10 @@ void main() {
 
       final cubit = UnitsCubit(repository);
       await cubit.get();
-      await cubit.toggleActive(_entity);
+      await cubit.deleteLogically(_entity);
 
-      expect(cubit.state.list.single.isActive, isFalse);
+      expect(cubit.state.list, isEmpty);
+      expect(cubit.state.total, 0);
       await cubit.close();
     });
   });
@@ -135,6 +157,15 @@ final _parent = OrganizationalUnitAdmin(
   updatedAt: _date,
 );
 
+final _inactive = OrganizationalUnitAdmin(
+  id: 'u-1',
+  code: 'REC',
+  name: 'Recepción',
+  isActive: false,
+  createdAt: _date,
+  updatedAt: _date,
+);
+
 final _date = DateTime.utc(2026, 1, 1);
 
 class _FakeOrganizationalUnitsAdminRepository
@@ -142,9 +173,10 @@ class _FakeOrganizationalUnitsAdminRepository
   Result<AdminPage<OrganizationalUnitAdmin>, Failure>? listResult;
   Result<OrganizationalUnitAdmin, Failure>? setActiveResult;
   String? lastSearch;
+  bool? lastIsActive;
+  bool? lastSetActive;
   int? lastPage;
   int? lastPageSize;
-  bool? lastIsActive;
 
   @override
   Future<Result<AdminPage<OrganizationalUnitAdmin>, Failure>> list({
@@ -154,9 +186,9 @@ class _FakeOrganizationalUnitsAdminRepository
     bool? isActive,
   }) async {
     lastSearch = search;
+    lastIsActive = isActive;
     lastPage = page;
     lastPageSize = pageSize;
-    lastIsActive = isActive;
     return listResult ??
         Ok(
           AdminPage(
@@ -174,6 +206,7 @@ class _FakeOrganizationalUnitsAdminRepository
     String id, {
     required bool isActive,
   }) async {
+    lastSetActive = isActive;
     return setActiveResult ??
         const Err(ServerFailure('setActive not configured'));
   }

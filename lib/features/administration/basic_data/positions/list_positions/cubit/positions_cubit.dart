@@ -16,6 +16,14 @@ class PositionsCubit extends Cubit<PositionsState> {
 
   final repo.PositionsAdminRepository _repository;
   Timer? _searchDebounce;
+  bool? _activeFilter = true;
+  bool? get activeFilter => _activeFilter;
+
+  Future<void> filterActive(bool? isActive) async {
+    _activeFilter = isActive;
+    _searchDebounce?.cancel();
+    await _loadList(search: state.query, page: 1, pageSize: state.pageSize);
+  }
 
   Future<void> get() async {
     await _loadList(
@@ -45,36 +53,63 @@ class PositionsCubit extends Cubit<PositionsState> {
     emit(state.copyWith(selected: selected));
   }
 
-  Future<void> toggleActive(repo.PositionAdmin item) async {
+  Future<void> deleteLogically(repo.PositionAdmin item) async {
+    if (!item.isActive) return;
+    await _setActive(item, false);
+  }
+
+  Future<void> reactivate(repo.PositionAdmin item) async {
+    if (item.isActive) return;
+    await _setActive(item, true);
+  }
+
+  Future<void> _setActive(repo.PositionAdmin item, bool isActive) async {
+    if (state.generalStatus == GeneralStatus.loading) return;
+
     emit(
       state.copyWith(
         generalStatus: GeneralStatus.loading,
-        dialogMessage: const DialogMessage(
-          message: 'Actualizando estado...',
+        dialogMessage: DialogMessage(
+          message: isActive ? 'Activando cargo...' : 'Desactivando cargo...',
         ),
       ),
     );
 
     final result = await _repository.setActive(
       item.id,
-      isActive: !item.isActive,
+      isActive: isActive,
     );
 
-    result.when(
-      ok: (updated) {
+    await result.when(
+      ok: (updated) async {
+        final removesRow =
+            _activeFilter != null && updated.isActive != _activeFilter;
+        final total =
+            removesRow && state.total > 0 ? state.total - 1 : state.total;
+        final pages = (total / state.pageSize).ceil();
+        final previousPage = state.page;
+        final page = pages == 0 ? 1 : state.page.clamp(1, pages);
         emit(
           state.copyWith(
-            list: state.list
-                .map((entry) => entry.id == updated.id ? updated : entry)
-                .toList(),
+            list: removesRow
+                ? state.list.where((entry) => entry.id != item.id).toList()
+                : state.list
+                    .map((entry) => entry.id == updated.id ? updated : entry)
+                    .toList(),
+            total: total,
+            totalPages: pages,
+            page: page,
             generalStatus: GeneralStatus.success,
-            dialogMessage: const DialogMessage(
-              message: 'Estado actualizado correctamente.',
+            dialogMessage: DialogMessage(
+              message: isActive
+                  ? 'Cargo activado correctamente.'
+                  : 'Cargo desactivado correctamente.',
             ),
           ),
         );
+        if (previousPage != page && total > 0) await get();
       },
-      err: (failure) {
+      err: (failure) async {
         emit(
           state.copyWith(
             generalStatus: GeneralStatus.error,
@@ -82,7 +117,7 @@ class PositionsCubit extends Cubit<PositionsState> {
               title: 'Error',
               message: FailureGeneric.message(
                 failure: failure,
-                messageResult: 'No se pudo cambiar el estado.',
+                messageResult: 'No se pudo cambiar el estado del cargo.',
               ),
             ),
           ),
@@ -111,6 +146,7 @@ class PositionsCubit extends Cubit<PositionsState> {
       page: page,
       pageSize: pageSize,
       search: search.isEmpty ? null : search,
+      isActive: _activeFilter,
     );
 
     result.when(

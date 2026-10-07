@@ -86,7 +86,28 @@ void main() {
       await cubit.close();
     });
 
-    test('toggleActive reemplaza entidad devuelta', () async {
+    test('filtros de estado y reactivación conservan el contrato', () async {
+      final cubit = EmployeesCubit(repository);
+      await cubit.get();
+      expect(repository.lastIsActive, isTrue);
+      await cubit.filterActive(false);
+      expect(repository.lastIsActive, isFalse);
+      await cubit.changePage(2);
+      expect(repository.lastIsActive, isFalse);
+      await cubit.filterActive(null);
+      expect(repository.lastIsActive, isNull);
+      repository.listResult = Ok(AdminPage(
+          items: [_inactive], page: 1, pageSize: 20, total: 1, totalPages: 1));
+      await cubit.get();
+      repository.setActiveResult = Ok(_entity);
+      await cubit.reactivate(_inactive);
+      expect(repository.lastSetActive, isTrue);
+      expect(cubit.state.list.single.isActive, isTrue);
+      expect(cubit.state.total, 1);
+      await cubit.close();
+    });
+
+    test('deleteLogically quita el registro de la lista', () async {
       repository.listResult = Ok(
         AdminPage(
           items: [_entity],
@@ -114,21 +135,20 @@ void main() {
 
       final cubit = EmployeesCubit(repository);
       await cubit.get();
-      await cubit.toggleActive(_entity);
+      await cubit.deleteLogically(_entity);
 
-      expect(cubit.state.list.single.isActive, isFalse);
+      expect(cubit.state.list, isEmpty);
       expect(cubit.state.generalStatus, GeneralStatus.success);
       await cubit.close();
     });
 
-    test('toggleActive error por usuario activo vinculado', () async {
-      const errorMessage =
-          'No se puede desactivar el funcionario porque tiene '
+    test('deleteLogically error por usuario activo vinculado', () async {
+      const errorMessage = 'No se puede desactivar el funcionario porque tiene '
           'una cuenta de usuario activa vinculada';
       repository.setActiveResult = const Err(ValidationFailure(errorMessage));
 
       final cubit = EmployeesCubit(repository);
-      await cubit.toggleActive(_entity);
+      await cubit.deleteLogically(_entity);
 
       expect(cubit.state.generalStatus, GeneralStatus.error);
       expect(cubit.state.dialogMessage.message, errorMessage);
@@ -151,12 +171,28 @@ final _entity = EmployeeAdmin(
   updatedAt: _date,
 );
 
+final _inactive = EmployeeAdmin(
+  id: 'e-1',
+  firstName: 'Juan',
+  lastName: 'Pérez',
+  documentNumber: '123456',
+  unitId: 'u-1',
+  unitName: 'Recepción',
+  positionId: 'p-1',
+  positionName: 'Técnico',
+  isActive: false,
+  createdAt: _date,
+  updatedAt: _date,
+);
+
 final _date = DateTime.utc(2026, 1, 1);
 
 class _FakeEmployeesAdminRepository implements EmployeesAdminRepository {
   Result<AdminPage<EmployeeAdmin>, Failure>? listResult;
   Result<EmployeeAdmin, Failure>? setActiveResult;
   String? lastSearch;
+  bool? lastIsActive;
+  bool? lastSetActive;
   int? lastPage;
   int? lastPageSize;
 
@@ -172,6 +208,7 @@ class _FakeEmployeesAdminRepository implements EmployeesAdminRepository {
     String? exceptUserId,
   }) async {
     lastSearch = search;
+    lastIsActive = isActive;
     lastPage = page;
     lastPageSize = pageSize;
     return listResult ??
@@ -191,6 +228,7 @@ class _FakeEmployeesAdminRepository implements EmployeesAdminRepository {
     String id, {
     required bool isActive,
   }) async {
+    lastSetActive = isActive;
     return setActiveResult ??
         const Err(ServerFailure('setActive not configured'));
   }
