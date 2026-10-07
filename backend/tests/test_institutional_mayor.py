@@ -85,3 +85,31 @@ def test_edie_requires_distinct_second_recipient(client, auth_headers,
         unit_id=second_org_unit.id if destination == "missing" else mayor.unit_id,
         user_id=None if destination == "missing" else mayor.user_id)
     assert client.post("/correspondences", headers=auth_headers, json=payload).status_code == 422
+
+
+def test_pdf_uses_historical_recipient_after_change_of_titular(client, db, auth_headers, encadenamiento_document_type, second_org_unit, second_user, mayor_user, monkeypatch):
+    from app.modules.correspondence.service import CorrespondenceService
+    original = resolve_institutional_mayor(db)
+    created = client.post('/correspondences', headers=auth_headers, json=_create_payload(encadenamiento_document_type, 'Historia EDIE', unit_id=second_org_unit.id, user_id=second_user.id, sender_name='Origen'))
+    assert created.status_code == 201, created.text
+    employee = Employee(first_name='Nueva', last_name='Autoridad', unit_id=original.unit_id, position_id=db.get(Employee, original.employee_id).position_id, is_active=True)
+    db.add(employee)
+    db.flush()
+    replacement = User(employee_id=employee.id, username=f'replacement_{uuid.uuid4().hex}', password_hash='unused', is_active=True)
+    db.add(replacement)
+    mayor_user.is_active = False
+    db.commit()
+    contexts = []
+    def render(context):
+        contexts.append(context)
+        return b'%PDF-test'
+    monkeypatch.setattr('app.modules.correspondence.service.generate_encadenamiento_pdf', render)
+    try:
+        assert resolve_institutional_mayor(db).user_id == replacement.id
+        CorrespondenceService(db).generate_encadenamiento_pdf_bytes(uuid.UUID(created.json()['id']))
+        assert contexts[0].para == original.para_label
+        assert 'Nueva Autoridad' not in contexts[0].para
+    finally:
+        replacement.is_active = False
+        mayor_user.is_active = True
+        db.commit()

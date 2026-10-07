@@ -65,6 +65,7 @@ from app.modules.correspondence.pdf.encadenamiento_pdf import (
 from app.modules.identity.user import User
 from app.modules.organization.employee import Employee
 from app.modules.organization.organizational_unit import OrganizationalUnit
+from app.modules.system.service import apply_mayor_display_name
 from app.modules.organization.position import Position
 
 
@@ -514,11 +515,7 @@ class CorrespondenceService:
         if logo_path is not None and not logo_path.is_file():
             logo_path = None
 
-        mayor_para: str | None = None
-        if supports_encadenamiento_pdf(doc_type.code):
-            mayor = resolve_institutional_mayor(self._db)
-            if mayor is not None:
-                mayor_para = mayor.para_label
+        mayor_para = self._historical_mayor_para(correspondence_id)
 
         para = resolve_para(
             current_unit_name=self._unit_name(correspondence.current_unit_id),
@@ -1174,6 +1171,38 @@ class CorrespondenceService:
             )
         )
         return (current_max or 0) + 1
+
+    def _historical_mayor_para(self, correspondence_id: uuid.UUID) -> str | None:
+        first = self._db.scalar(
+            select(CorrespondenceMovement)
+            .where(
+                CorrespondenceMovement.correspondence_id == correspondence_id,
+                CorrespondenceMovement.movement_type == MOVEMENT_DERIVED,
+                CorrespondenceMovement.cancelled_at.is_(None),
+            )
+            .order_by(CorrespondenceMovement.sequence_number)
+            .limit(1)
+        )
+        if first is None or first.to_user_id is None:
+            return None
+        recipient = self._db.get(User, first.to_user_id)
+        employee = (
+            self._db.get(Employee, recipient.employee_id)
+            if recipient and recipient.employee_id else None
+        )
+        position = (
+            self._db.get(Position, employee.position_id)
+            if employee and employee.position_id else None
+        )
+        if (position is None or position.code not in
+                get_settings().institutional_mayor_position_codes_list):
+            return None
+        name = apply_mayor_display_name(
+            self._db, self._user_display_name(first.to_user_id) or ''
+        )
+        return ' — '.join(
+            value for value in [self._unit_name(first.to_unit_id), name] if value
+        )
 
     def _load_encadenamiento_movements(
         self,
