@@ -156,7 +156,8 @@ class ApiMethod {
       );
       throw _mapDioException(e);
     } on FormatException catch (e) {
-      ApiLogger.logSave('EXCEPTION $tag ===> FormatException ${DateTime.now()}');
+      ApiLogger.logSave(
+          'EXCEPTION $tag ===> FormatException ${DateTime.now()}');
       throw RequestException('Formato inválido: ${e.message}');
     }
   }
@@ -228,7 +229,8 @@ class ApiMethod {
       );
       throw _mapDioException(e);
     } on FormatException catch (e) {
-      ApiLogger.logSave('EXCEPTION $tag ===> FormatException ${DateTime.now()}');
+      ApiLogger.logSave(
+          'EXCEPTION $tag ===> FormatException ${DateTime.now()}');
       throw RequestException('Formato inválido: ${e.message}');
     }
   }
@@ -330,8 +332,11 @@ class ApiMethod {
       rethrow;
     } on RequestException {
       rethrow;
+    } on ValidationException {
+      rethrow;
     } on FormatException catch (e) {
-      ApiLogger.logSave('EXCEPTION $tag ===> FormatException ${DateTime.now()}');
+      ApiLogger.logSave(
+          'EXCEPTION $tag ===> FormatException ${DateTime.now()}');
       throw RequestException('Formato inválido: ${e.message}');
     }
   }
@@ -350,10 +355,15 @@ class ApiMethod {
           message ?? 'El registro ingresado ya existe.',
           statusCode: statusCode,
         );
+      case 400:
+      case 422:
+        return ValidationException(
+          message ?? 'Datos inválidos.',
+        );
       default:
         if (statusCode >= 500) {
           return ServerException(
-            message: message ?? 'Error del servidor',
+            message: 'Error del servidor. Intente nuevamente.',
             statusCode: statusCode,
           );
         }
@@ -375,6 +385,19 @@ class ApiMethod {
     if (exception is ForbiddenException) {
       ApiLogger.logSave(
         'MESSAGE $tag ===> ${exception.message ?? 'Acceso denegado'} '
+        '${DateTime.now()}',
+      );
+      return;
+    }
+    if (exception is ValidationException) {
+      ApiLogger.logSave(
+        'MESSAGE $tag ===> ${exception.message} ${DateTime.now()}',
+      );
+      return;
+    }
+    if (exception is RequestException) {
+      ApiLogger.logSave(
+        'MESSAGE $tag ===> ${exception.message ?? 'Solicitud inválida'} '
         '${DateTime.now()}',
       );
       return;
@@ -413,9 +436,14 @@ class ApiMethod {
             statusCode: status,
           );
         }
+        if (status == 400 || status == 422) {
+          return ValidationException(
+            backendMessage ?? 'Datos inválidos.',
+          );
+        }
         if (status != null && status >= 500) {
           return ServerException(
-            message: backendMessage ?? 'Error del servidor',
+            message: 'Error del servidor. Intente nuevamente.',
             statusCode: status,
           );
         }
@@ -448,17 +476,62 @@ class ApiMethod {
       final detail = data['detail'];
       if (detail is String && detail.isNotEmpty) return detail;
       if (detail is List && detail.isNotEmpty) {
-        final first = detail.first;
-        if (first is Map) {
-          final msg = first['msg'] ?? first['message'];
-          if (msg != null) return msg.toString();
-        }
+        return detail
+            .whereType<Map>()
+            .map(_validationMessage)
+            .toSet()
+            .take(5)
+            .join('\n');
       }
       final message = data['message'] ?? data['Message'];
       if (message is String && message.isNotEmpty) return message;
     }
-    if (data is String && data.isNotEmpty) return data;
     return null;
+  }
+
+  String _validationMessage(Map error) {
+    const labels = <String, String>{
+      'username': 'Usuario',
+      'password': 'Contraseña',
+      'email': 'Correo',
+      'first_name': 'Nombre',
+      'last_name': 'Apellido',
+      'subject': 'Asunto',
+      'reference': 'Referencia',
+      'document_number': 'Documento',
+      'document_type_id': 'Tipo de documento',
+      'initial_to_unit_id': 'Unidad destino',
+      'to_unit_id': 'Unidad destino',
+      'initial_to_user_id': 'Funcionario destino',
+      'to_user_id': 'Funcionario destino',
+      'employee_id': 'Funcionario',
+      'origin_employee_id': 'Funcionario de origen',
+      'sender_name': 'Remitente',
+      'code': 'Código',
+      'name': 'Nombre',
+      'role_codes': 'Roles',
+      'mayor_display_name': 'Nombre del titular ejecutivo',
+    };
+    final location = error['loc'];
+    final field =
+        location is List && location.isNotEmpty ? labels[location.last] : null;
+    final message = switch (error['type']) {
+      'missing' => 'Este campo es obligatorio.',
+      'string_too_long' => 'El texto supera la longitud permitida.',
+      'string_too_short' => 'El texto es demasiado corto.',
+      'uuid_parsing' || 'uuid_type' => 'Seleccione una opción válida.',
+      'int_parsing' ||
+      'int_type' ||
+      'float_parsing' =>
+        'Ingrese un número válido.',
+      'greater_than' ||
+      'greater_than_equal' ||
+      'less_than' ||
+      'less_than_equal' =>
+        'El número está fuera del rango permitido.',
+      _ => 'Revise el valor ingresado.',
+    };
+    return '${field ?? 'Datos'}: $message';
   }
 
   String _bodyAsString(dynamic data) {

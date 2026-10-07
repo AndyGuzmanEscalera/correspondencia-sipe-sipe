@@ -89,11 +89,13 @@ Future<Result<T, Failure>> handleExceptions<T>(
       statusCode: e.statusCode ?? 500,
     );
   } on RequestException catch (e, stackTrace) {
+    final message = e.message ?? 'Error de solicitud';
+    final isValidationStatus = e.statusCode == 400 || e.statusCode == 422;
     return _fail<T>(
-      GenericFailure(e.message ?? 'Error de solicitud'),
+      isValidationStatus ? ValidationFailure(message) : GenericFailure(message),
       e,
       stackTrace,
-      ErrorCode.request,
+      isValidationStatus ? ErrorCode.validation : ErrorCode.request,
       feature: feature,
       operation: operation,
       statusCode: e.statusCode,
