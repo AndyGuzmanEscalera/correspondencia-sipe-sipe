@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:correspondencia_repository/correspondencia_repository.dart'
     as repo;
-import 'package:correspondencia_sipe_sipe/core/util/form/models/form_option.dart';
+import 'package:correspondencia_sipe_sipe/features/correspondence/domain/mappers/correspondence_entity_mapper.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/derive_correspondence/cubit/derive_correspondence_cubit.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/derive_correspondence/helpers/derive_correspondence_inherited.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/derive_correspondence/views/derive_correspondence_view.dart';
@@ -12,6 +12,8 @@ import 'package:failures/failures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../../test_helpers/app_dropdown_test_helpers.dart';
 
 class _TrackingDetailCubit extends CorrespondenceDetailCubit {
   _TrackingDetailCubit({
@@ -179,7 +181,38 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       expect(find.text('Usuario destino (opcional)'), findsOneWidget);
-      expect(find.byType(DropdownButtonFormField<FormOption<String>>), findsNWidgets(2));
+      expect(find.byIcon(Icons.search_rounded), findsNWidgets(2));
+    });
+
+    testWidgets(
+        'EDIE exige funcionario; un documento genérico permite destino de unidad',
+        (tester) async {
+      detailCubit.emit(detailCubit.state.copyWith(
+          correspondence: repo.Correspondence(
+                  id: 'corr-1',
+                  routeNumber: 'HR-2026-000001',
+                  routeYear: 2026,
+                  routeSequence: 1,
+                  correspondenceType: 'INTERNAL',
+                  documentTypeCode: 'EDIE',
+                  documentTypeName: 'Encadenamiento',
+                  subject: 'Asunto',
+                  priority: 'MEDIUM',
+                  status: 'ACTIVE',
+                  registeredAt: DateTime.utc(2026))
+              .toUiEntity()));
+      await pumpDeriveForm(tester);
+      await _selectStringDropdown(tester, optionText: 'Sistemas');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Derivar'));
+      await tester.pumpAndSettle();
+      expect(correspondenceRepository.deriveCallCount, 0);
+      expect(find.text('Seleccione un funcionario destino'), findsOneWidget);
+      await selectAppDropdownOption(tester,
+          dropdownIndex: 1, optionText: 'Usuario Destino');
+      await tester.tap(find.text('Derivar'));
+      await tester.pumpAndSettle();
+      expect(correspondenceRepository.deriveCallCount, 1);
     });
 
     testWidgets('error mantiene formulario abierto', (tester) async {
@@ -230,8 +263,13 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsWidgets);
       expect(correspondenceRepository.deriveCallCount, 1);
 
-      await tester.tap(find.text('Derivar'));
-      await tester.pump();
+      expect(
+          tester
+              .widget<ElevatedButton>(find
+                  .byWidgetPredicate((widget) => widget is ElevatedButton)
+                  .first)
+              .onPressed,
+          isNull);
       expect(correspondenceRepository.deriveCallCount, 1);
 
       deriveGate.complete();
@@ -249,10 +287,9 @@ Future<void> _selectStringDropdown(
   WidgetTester tester, {
   required String optionText,
 }) async {
-  final dropdown =
-      find.byType(DropdownButtonFormField<FormOption<String>>).first;
-  await tester.tap(dropdown);
-  await tester.pumpAndSettle();
-  await tester.tap(find.text(optionText).last);
-  await tester.pumpAndSettle();
+  await selectAppDropdownOption(
+    tester,
+    dropdownIndex: 0,
+    optionText: optionText,
+  );
 }

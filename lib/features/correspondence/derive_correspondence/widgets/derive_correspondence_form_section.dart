@@ -13,12 +13,14 @@ class DeriveCorrespondenceFormSection extends StatelessWidget {
     required this.organizationalUnits,
     required this.unitUsers,
     required this.unitUsersLoading,
+    this.requireSpecificUser = false,
     super.key,
   });
 
   final List<OrganizationalUnit> organizationalUnits;
   final List<UnitUser> unitUsers;
   final bool unitUsersLoading;
+  final bool requireSpecificUser;
 
   @override
   Widget build(BuildContext context) {
@@ -35,16 +37,18 @@ class DeriveCorrespondenceFormSection extends StatelessWidget {
         )
         .toList();
 
-    final userItems = [
-      DeriveCorrespondenceInherited.noUserOption,
-      ...unitUsers.map(
-        (user) => FormOption<String>(
-          id: user.id.hashCode,
-          text: user.displayName,
-          value: user.id,
-        ),
-      ),
-    ];
+    final userItems = unitUsers
+        .map(
+          (user) => FormOption<String>(
+            id: user.id.hashCode,
+            text: user.displayName,
+            value: user.id,
+          ),
+        )
+        .toList();
+    if (!requireSpecificUser) {
+      userItems.insert(0, DeriveCorrespondenceInherited.noUserOption);
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -81,8 +85,13 @@ class DeriveCorrespondenceFormSection extends StatelessWidget {
             ),
           AppDropdown<String>(
             controller: inherited.toUser,
-            label: 'Usuario destino (opcional)',
+            label: requireSpecificUser
+                ? 'Funcionario destino'
+                : 'Usuario destino (opcional)',
             items: userItems,
+            validators: requireSpecificUser
+                ? [RequiredValid(error: 'Seleccione un funcionario destino')]
+                : null,
           ),
         ],
         AppTextField(
