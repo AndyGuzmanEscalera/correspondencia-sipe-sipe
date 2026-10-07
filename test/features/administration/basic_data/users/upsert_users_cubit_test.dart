@@ -21,10 +21,48 @@ void main() {
       );
     }
 
+    test('C4 sin permiso omite roles incluso si caller entrega IDs', () async {
+      final cubit = buildCubit();
+      await cubit.init(editing: _entity);
+      expect(cubit.state.catalogReady, isTrue);
+      expect(usersRepository.roleCalls, 0);
+      await cubit.save(
+          username: 'nuevo',
+          employeeId: _employee.id,
+          initialPassword: 'Secret123',
+          roleIds: [_role.id]);
+      expect(usersRepository.lastCreateInput!.roleIds, isNull);
+      await cubit.update(
+          entity: _entity,
+          username: 'edited',
+          employeeId: _employee.id,
+          roleIds: []);
+      expect(usersRepository.lastUpdateInput!.roleIds, isNull);
+      await cubit.close();
+    });
+
+    test('C4 con permiso conserva asignaciones explícitas y vaciado', () async {
+      final cubit = buildCubit();
+      await cubit.init(canAssignRoles: true);
+      await cubit.save(
+          username: 'nuevo',
+          employeeId: _employee.id,
+          initialPassword: 'Secret123',
+          roleIds: [_role.id]);
+      expect(usersRepository.lastCreateInput!.roleIds, [_role.id]);
+      await cubit.update(
+          entity: _entity,
+          username: 'edited',
+          employeeId: _employee.id,
+          roleIds: []);
+      expect(usersRepository.lastUpdateInput!.roleIds, isEmpty);
+      await cubit.close();
+    });
+
     test('init carga employees y roles', () async {
       final cubit = buildCubit();
 
-      await cubit.init();
+      await cubit.init(canAssignRoles: true);
 
       expect(cubit.state.catalogLoaded, isTrue);
       expect(cubit.state.catalogReady, isTrue);
@@ -63,7 +101,7 @@ void main() {
       };
       final cubit = buildCubit();
 
-      await cubit.init();
+      await cubit.init(canAssignRoles: true);
 
       expect(cubit.state.employees, hasLength(2));
       expect(
@@ -83,7 +121,8 @@ void main() {
       await cubit.close();
     });
 
-    test('init incluye employee actual si no está en catálogo activo', () async {
+    test('init incluye employee actual si no está en catálogo activo',
+        () async {
       final cubit = buildCubit();
 
       await cubit.init(editing: _entity);
@@ -215,7 +254,7 @@ void main() {
           const Err(ServerFailure('Error al cargar roles'));
       final cubit = buildCubit();
 
-      await cubit.init();
+      await cubit.init(canAssignRoles: true);
 
       expect(cubit.state.catalogLoaded, isTrue);
       expect(cubit.state.catalogReady, isFalse);
@@ -223,12 +262,13 @@ void main() {
       await cubit.close();
     });
 
-    test('init error en employees emite DialogMessage y catalogLoaded', () async {
+    test('init error en employees emite DialogMessage y catalogLoaded',
+        () async {
       employeesRepository.listResult =
           const Err(ServerFailure('Error al cargar funcionarios'));
       final cubit = buildCubit();
 
-      await cubit.init();
+      await cubit.init(canAssignRoles: true);
 
       expect(cubit.state.catalogLoaded, isTrue);
       expect(cubit.state.catalogReady, isFalse);
@@ -269,9 +309,12 @@ class _FakeUsersAdminRepository implements UsersAdminRepository {
   Result<List<RoleOption>, Failure>? listRolesResult;
   UserCreateInput? lastCreateInput;
   String? lastUpdateId;
+  UserUpdateInput? lastUpdateInput;
+  int roleCalls = 0;
 
   @override
   Future<Result<List<RoleOption>, Failure>> listRoles() async {
+    roleCalls++;
     return listRolesResult ?? Ok([_role]);
   }
 
@@ -298,6 +341,7 @@ class _FakeUsersAdminRepository implements UsersAdminRepository {
     UserUpdateInput input,
   ) async {
     lastUpdateId = id;
+    lastUpdateInput = input;
     return updateResult ??
         Ok(
           UserAdmin(

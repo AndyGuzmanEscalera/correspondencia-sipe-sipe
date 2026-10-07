@@ -53,7 +53,7 @@ class UserCreateInput extends Equatable {
   final String? email;
   final String employeeId;
   final String initialPassword;
-  final List<String> roleIds;
+  final List<String>? roleIds;
 
   @override
   List<Object?> get props =>
@@ -71,7 +71,7 @@ class UserUpdateInput extends Equatable {
   final String username;
   final String? email;
   final String employeeId;
-  final List<String> roleIds;
+  final List<String>? roleIds;
 
   @override
   List<Object?> get props => [username, email, employeeId, roleIds];

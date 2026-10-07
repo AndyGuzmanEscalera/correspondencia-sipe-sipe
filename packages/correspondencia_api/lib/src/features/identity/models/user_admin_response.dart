@@ -59,14 +59,14 @@ class CreateUserRequest {
   final String? email;
   final String employeeId;
   final String initialPassword;
-  final List<String> roleIds;
+  final List<String>? roleIds;
 
   Map<String, dynamic> toJson() => {
         'username': username,
         if (email != null) 'email': email,
         'employee_id': employeeId,
         'initial_password': initialPassword,
-        'role_ids': roleIds,
+        if (roleIds != null) 'role_ids': roleIds,
       };
 }
 
@@ -81,13 +81,13 @@ class UpdateUserRequest {
   final String username;
   final String? email;
   final String employeeId;
-  final List<String> roleIds;
+  final List<String>? roleIds;
 
   Map<String, dynamic> toJson() => {
         'username': username,
         if (email != null) 'email': email,
         'employee_id': employeeId,
-        'role_ids': roleIds,
+        if (roleIds != null) 'role_ids': roleIds,
       };
 }
 

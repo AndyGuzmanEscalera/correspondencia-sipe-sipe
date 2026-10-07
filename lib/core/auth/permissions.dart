@@ -12,6 +12,7 @@ class Permissions {
   static const employeesManage = 'master_data.employees.manage';
   static const usersRead = 'master_data.users.read';
   static const usersManage = 'master_data.users.manage';
+  static const rolesAssign = 'master_data.roles.assign';
   static const documentTypesRead = 'master_data.document_types.read';
   static const documentTypesManage = 'master_data.document_types.manage';
 }

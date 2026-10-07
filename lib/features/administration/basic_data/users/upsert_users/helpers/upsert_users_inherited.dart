@@ -20,6 +20,11 @@ class UpsertUsersInherited extends InheritedWidget {
   final employee = ControllerFieldDropdown<String>();
   final rolePicker = ControllerFieldDropdown<String>();
   final Set<String> selectedRoleIds = {};
+  final Set<String> _initialRoleIds = {};
+
+  bool get rolesChanged =>
+      selectedRoleIds.length != _initialRoleIds.length ||
+      !selectedRoleIds.containsAll(_initialRoleIds);
 
   static UpsertUsersInherited of(BuildContext context) {
     final result =
@@ -53,6 +58,10 @@ class UpsertUsersInherited extends InheritedWidget {
         selectedRoleIds.add(role.id);
       }
     }
+
+    _initialRoleIds
+      ..clear()
+      ..addAll(selectedRoleIds);
   }
 
   void addRole(String roleId) {
@@ -77,13 +86,6 @@ class UpsertUsersInherited extends InheritedWidget {
     final result = formKey.validateAndGetErrors(fieldKeys);
     if (!result.isPassed) return result;
 
-    if (selectedRoleIds.isEmpty) {
-      return const ResultValidate(
-        errors: {'roles': 'Seleccione al menos un rol'},
-        isPassed: false,
-      );
-    }
-
     return result;
   }
 
@@ -94,6 +96,7 @@ class UpsertUsersInherited extends InheritedWidget {
     employee.clear();
     rolePicker.clear();
     selectedRoleIds.clear();
+    _initialRoleIds.clear();
   }
 
   void dispose() {

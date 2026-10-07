@@ -7,10 +7,14 @@ import 'package:flutter/material.dart';
 class UserRolesSection extends StatefulWidget {
   const UserRolesSection({
     required this.roles,
+    required this.canAssignRoles,
+    this.currentRoleCodes = const [],
     super.key,
   });
 
   final List<RoleOption> roles;
+  final bool canAssignRoles;
+  final List<String> currentRoleCodes;
 
   @override
   State<UserRolesSection> createState() => _UserRolesSectionState();
@@ -20,6 +24,23 @@ class _UserRolesSectionState extends State<UserRolesSection> {
   @override
   Widget build(BuildContext context) {
     final inherited = UpsertUsersInherited.of(context);
+    if (!widget.canAssignRoles) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Roles (solo lectura)'),
+          if (widget.currentRoleCodes.isEmpty)
+            const Text('Sin roles asignados')
+          else
+            Wrap(
+              spacing: 8,
+              children: widget.currentRoleCodes
+                  .map((code) => Chip(label: Text(code)))
+                  .toList(),
+            ),
+        ],
+      );
+    }
     final roleItems = widget.roles
         .map(
           (role) => FormOption<String>(

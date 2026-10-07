@@ -34,7 +34,7 @@ def _users(db: Annotated[Session, Depends(get_db)]) -> UserAdminService:
 @router.get("/roles", response_model=list[RoleOptionResponse])
 def list_roles_for_admin(
     db: Annotated[Session, Depends(get_db)],
-    _user: Annotated[User, Depends(require_permission("master_data.users.read"))],
+    _user: Annotated[User, Depends(require_permission("master_data.roles.assign"))],
 ) -> list[RoleOptionResponse]:
     rows = db.scalars(
         select(Role)

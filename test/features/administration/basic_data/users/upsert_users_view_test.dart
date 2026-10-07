@@ -1,5 +1,8 @@
 import 'dart:async';
 
+import 'package:correspondencia_sipe_sipe/core/auth/permissions.dart';
+import 'package:correspondencia_sipe_sipe/features/app/cubit/app_session_cubit.dart';
+
 import 'package:correspondencia_repository/correspondencia_repository.dart';
 import 'package:correspondencia_sipe_sipe/core/util/enums.dart';
 import 'package:correspondencia_sipe_sipe/core/util/form/models/form_option.dart';
@@ -32,6 +35,7 @@ void main() {
       WidgetTester tester, {
       required TypeOperation typeOperation,
       UserAdmin? selected,
+      bool canAssignRoles = true,
     }) async {
       await tester.binding.setSurfaceSize(const Size(900, 1200));
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -40,40 +44,53 @@ void main() {
         listCubit.changeSelected(selected);
       }
 
+      final session = AppSessionCubit(authRepository: _FakeAuthRepository());
+      session.onSignedIn(UserSession(
+          id: 'operator',
+          username: 'operator',
+          isActive: true,
+          permissions: [
+            Permissions.usersManage,
+            if (canAssignRoles) Permissions.rolesAssign
+          ]));
+      addTearDown(session.close);
       await tester.pumpWidget(
-        MaterialApp(
-          home: BlocProvider<UsersCubit>.value(
-            value: listCubit,
-            child: Builder(
-              builder: (context) {
-                return Scaffold(
-                  body: ElevatedButton(
-                    onPressed: () {
-                      showDialog<void>(
-                        context: context,
-                        builder: (dialogContext) =>
-                            BlocProvider<UsersCubit>.value(
-                          value: listCubit,
-                          child: UpsertUsersInherited(
-                            typeOperation: typeOperation,
-                            child: BlocProvider(
-                              create: (_) => UpsertUsersCubit(
-                                usersRepository: usersRepository,
-                                employeesRepository: employeesRepository,
-                              ),
-                              child: UpsertUsersView(
-                                hostDialogContext: dialogContext,
-                                ownerContext: context,
+        BlocProvider<AppSessionCubit>.value(
+          value: session,
+          child: MaterialApp(
+            home: BlocProvider<UsersCubit>.value(
+              value: listCubit,
+              child: Builder(
+                builder: (context) {
+                  return Scaffold(
+                    body: ElevatedButton(
+                      onPressed: () {
+                        showDialog<void>(
+                          context: context,
+                          builder: (dialogContext) =>
+                              BlocProvider<UsersCubit>.value(
+                            value: listCubit,
+                            child: UpsertUsersInherited(
+                              typeOperation: typeOperation,
+                              child: BlocProvider(
+                                create: (_) => UpsertUsersCubit(
+                                  usersRepository: usersRepository,
+                                  employeesRepository: employeesRepository,
+                                ),
+                                child: UpsertUsersView(
+                                  hostDialogContext: dialogContext,
+                                  ownerContext: context,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      );
-                    },
-                    child: const Text('Open'),
-                  ),
-                );
-              },
+                        );
+                      },
+                      child: const Text('Open'),
+                    ),
+                  );
+                },
+              ),
             ),
           ),
         ),
@@ -82,6 +99,65 @@ void main() {
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
     }
+
+    testWidgets('C4 roles históricos solo lectura sin permiso', (tester) async {
+      await pumpUpsertDialog(tester,
+          typeOperation: TypeOperation.update,
+          selected: _entity,
+          canAssignRoles: false);
+      expect(find.text('Roles (solo lectura)'), findsOneWidget);
+      expect(find.text('ADMIN'), findsOneWidget);
+      expect(find.text('Agregar rol'), findsNothing);
+      expect(usersRepository.rolesCalls, 0);
+      expect(tester.widget<Chip>(find.byType(Chip)).onDeleted, isNull);
+    });
+
+    testWidgets('C4 editar sin permiso conserva roles omitiendo payload',
+        (tester) async {
+      await pumpUpsertDialog(tester,
+          typeOperation: TypeOperation.update,
+          selected: _entity,
+          canAssignRoles: false);
+      await tester.enterText(find.byType(TextFormField).at(0), 'edited');
+      await tester.tap(find.text('Guardar'));
+      await tester.pumpAndSettle();
+      expect(usersRepository.lastUpdateInput, isNotNull);
+      expect(usersRepository.lastUpdateInput!.roleIds, isNull);
+    });
+
+    testWidgets('C4 editar datos con permiso también omite roles intactos',
+        (tester) async {
+      await pumpUpsertDialog(tester,
+          typeOperation: TypeOperation.update, selected: _entity);
+      await tester.enterText(find.byType(TextFormField).at(0), 'edited');
+      await tester.tap(find.text('Guardar'));
+      await tester.pumpAndSettle();
+      expect(usersRepository.lastUpdateInput!.roleIds, isNull);
+    });
+
+    testWidgets('C4 selector habilitado con permiso dinámico', (tester) async {
+      await pumpUpsertDialog(tester, typeOperation: TypeOperation.create);
+      expect(find.text('Agregar rol'), findsOneWidget);
+      await _selectRole(tester, roleName: 'Administrador');
+      expect(
+        find.descendant(of: find.byType(Chip), matching: find.text('Administrador')),
+        findsOneWidget,
+      );
+      expect(usersRepository.rolesCalls, 1);
+    });
+
+    testWidgets('C4 crear sin permiso no envía roles', (tester) async {
+      await pumpUpsertDialog(tester,
+          typeOperation: TypeOperation.create, canAssignRoles: false);
+      await tester.enterText(find.byType(TextFormField).at(0), 'nuevo');
+      await tester.enterText(find.byType(TextFormField).at(2), 'Secret123');
+      await _selectDropdownOption(tester, optionText: 'Juan Pérez');
+      await tester.tap(find.text('Registrar'));
+      await tester.pumpAndSettle();
+      expect(usersRepository.lastCreateInput, isNotNull);
+      expect(usersRepository.lastCreateInput!.roleIds, isNull);
+      expect(listCubit.getCallCount, 1);
+    });
 
     testWidgets('create dialog muestra formulario vacío con password',
         (tester) async {
@@ -113,7 +189,8 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsNothing);
     });
 
-    testWidgets('dropdown buscable filtra funcionario por nombre', (tester) async {
+    testWidgets('dropdown buscable filtra funcionario por nombre',
+        (tester) async {
       employeesRepository.extraEmployee = EmployeeAdmin(
         id: 'e-2',
         firstName: 'Ana',
@@ -185,7 +262,8 @@ void main() {
       expect(find.text('Nuevo usuario'), findsOneWidget);
     });
 
-    testWidgets('success refresca listado y cierra formulario sin pulsar Cerrar',
+    testWidgets(
+        'success refresca listado y cierra formulario sin pulsar Cerrar',
         (tester) async {
       await pumpUpsertDialog(tester, typeOperation: TypeOperation.create);
 
@@ -335,16 +413,28 @@ class _FakeListRepository implements UsersAdminRepository {
 }
 
 class _FakeUsersAdminRepository implements UsersAdminRepository {
+  @override
+  Future<Result<UserAdmin, Failure>> update(
+      String id, UserUpdateInput input) async {
+    lastUpdateInput = input;
+    return Ok(_entity);
+  }
+
   Result<UserAdmin, Failure>? createResult;
   Completer<void>? createGate;
+  UserCreateInput? lastCreateInput;
+  UserUpdateInput? lastUpdateInput;
+  int rolesCalls = 0;
 
   @override
   Future<Result<List<RoleOption>, Failure>> listRoles() async {
+    rolesCalls++;
     return Ok([_role]);
   }
 
   @override
   Future<Result<UserAdmin, Failure>> create(UserCreateInput input) async {
+    lastCreateInput = input;
     if (createGate != null) {
       await createGate!.future;
     }
@@ -398,3 +488,5 @@ class _FakeEmployeesAdminRepository implements EmployeesAdminRepository {
   @override
   noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
+
+class _FakeAuthRepository extends Fake implements AuthenticationRepository {}

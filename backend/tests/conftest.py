@@ -255,6 +255,13 @@ def master_data_role(db: Session, master_data_permissions: list[Permission]) -> 
     db.flush()
     for perm in master_data_permissions:
         db.add(RolePermission(role_id=role.id, permission_id=perm.id))
+    # Full administration test fixture explicitly opts into C4 role assignment.
+    assignment = db.scalar(select(Permission).where(Permission.code == "master_data.roles.assign"))
+    if assignment is None:
+        assignment = Permission(id=uuid.uuid4(), code="master_data.roles.assign")
+        db.add(assignment)
+        db.flush()
+    db.add(RolePermission(role_id=role.id, permission_id=assignment.id))
     db.commit()
     db.refresh(role)
     return role

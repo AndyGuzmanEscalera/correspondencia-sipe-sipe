@@ -1,3 +1,5 @@
+import 'package:correspondencia_sipe_sipe/core/auth/permissions.dart';
+import 'package:correspondencia_sipe_sipe/features/app/cubit/app_session_cubit.dart';
 import 'package:correspondencia_sipe_sipe/core/helpers/full_widget_generics.dart';
 import 'package:correspondencia_sipe_sipe/core/helpers/listener/listener_generic.dart';
 import 'package:correspondencia_sipe_sipe/core/util/enums.dart';
@@ -59,6 +61,10 @@ class UpsertUsersView extends StatelessWidget {
     final listCubit = context.read<UsersCubit>();
     final upsertCubit = context.read<UpsertUsersCubit>();
     final selected = listCubit.state.selected;
+    final canAssignRoles = hasPermission(
+      context.watch<AppSessionCubit>().state.userSession,
+      Permissions.rolesAssign,
+    );
 
     return AdminUpsertBlocListener<UpsertUsersCubit, UpsertUsersState>(
       hostDialogContext: hostDialogContext,
@@ -73,13 +79,14 @@ class UpsertUsersView extends StatelessWidget {
           onInit: () {
             if (inherited.typeOperation == TypeOperation.create) {
               inherited.clear();
-              upsertCubit.init();
+              upsertCubit.init(canAssignRoles: canAssignRoles);
               return;
             }
 
             if (selected != null) {
               inherited.setData(selected);
-              upsertCubit.init(editing: selected);
+              upsertCubit.init(
+                  editing: selected, canAssignRoles: canAssignRoles);
             }
           },
           onDispose: inherited.dispose,
@@ -123,6 +130,10 @@ class _UpsertUsersBodyState extends State<UpsertUsersBody> {
     final upsertCubit = context.read<UpsertUsersCubit>();
     final listCubit = context.read<UsersCubit>();
     final selected = listCubit.state.selected;
+    final canAssignRoles = hasPermission(
+      context.watch<AppSessionCubit>().state.userSession,
+      Permissions.rolesAssign,
+    );
 
     return BlocBuilder<UpsertUsersCubit, UpsertUsersState>(
       builder: (context, state) {
@@ -154,7 +165,7 @@ class _UpsertUsersBodyState extends State<UpsertUsersBody> {
             child: const Padding(
               padding: EdgeInsets.symmetric(vertical: 24),
               child: Text(
-                'No se pudieron cargar los roles del sistema.',
+                'No se pudieron cargar los datos del formulario.',
               ),
             ),
           );
@@ -169,15 +180,14 @@ class _UpsertUsersBodyState extends State<UpsertUsersBody> {
         return AppFormDialog(
           title: isCreate ? 'Nuevo usuario' : 'Editar usuario',
           subtitle: isCreate
-              ? 'Defina credenciales y asignación de roles'
-              : 'Actualice los datos y roles del usuario',
+              ? 'Defina las credenciales del usuario'
+              : 'Actualice los datos del usuario',
           maxWidth: 540,
           isLoading: isLoading,
           isSubmitDisabled: isLoading || (isCreate && noEmployeesAvailable),
           submitLabel: isCreate ? 'Registrar' : 'Guardar',
           onSubmit: () {
-            final validResult =
-                inherited.valid(isCreate: isCreate);
+            final validResult = inherited.valid(isCreate: isCreate);
             if (!validResult.isPassed) return;
 
             final employeeId = inherited.employee.get();
@@ -186,7 +196,10 @@ class _UpsertUsersBodyState extends State<UpsertUsersBody> {
               return;
             }
 
-            final roleIds = inherited.selectedRoleIds.toList();
+            final roleIds =
+                canAssignRoles && (isCreate || inherited.rolesChanged)
+                    ? inherited.selectedRoleIds.toList()
+                    : null;
 
             if (isCreate) {
               upsertCubit.save(
@@ -245,7 +258,12 @@ class _UpsertUsersBodyState extends State<UpsertUsersBody> {
                     RequiredValid(error: 'Seleccione un funcionario'),
                   ],
                 ),
-                UserRolesSection(roles: state.roles),
+                UserRolesSection(
+                  roles: state.roles,
+                  canAssignRoles: canAssignRoles,
+                  currentRoleCodes:
+                      isCreate ? const [] : selected?.roleCodes ?? const [],
+                ),
               ],
             ),
           ),

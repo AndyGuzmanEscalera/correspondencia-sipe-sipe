@@ -22,14 +22,20 @@ class UpsertUsersCubit extends Cubit<UpsertUsersState> {
 
   static const _employeePageSize = 100;
 
-  Future<void> init({repo.UserAdmin? editing}) async {
-    final rolesResult = await _usersRepository.listRoles();
+  Future<void> init({
+    repo.UserAdmin? editing,
+    bool canAssignRoles = false,
+  }) async {
+    final rolesResult = canAssignRoles
+        ? await _usersRepository.listRoles()
+        : const Ok<List<repo.RoleOption>, Failure>([]);
     final employeesResult = await _loadAvailableEmployees(editing: editing);
 
     if (rolesResult case Err(:final failure)) {
       emit(
         state.copyWith(
           catalogLoaded: true,
+          catalogReady: false,
           generalStatus: GeneralStatus.error,
           dialogMessage: DialogMessage(
             title: 'Error',
@@ -47,6 +53,7 @@ class UpsertUsersCubit extends Cubit<UpsertUsersState> {
       emit(
         state.copyWith(
           catalogLoaded: true,
+          catalogReady: false,
           generalStatus: GeneralStatus.error,
           dialogMessage: DialogMessage(
             title: 'Error',
@@ -70,6 +77,8 @@ class UpsertUsersCubit extends Cubit<UpsertUsersState> {
           editing: editing,
         ),
         catalogLoaded: true,
+        catalogReady: true,
+        canAssignRoles: canAssignRoles,
       ),
     );
   }
@@ -107,7 +116,7 @@ class UpsertUsersCubit extends Cubit<UpsertUsersState> {
     required String username,
     required String employeeId,
     required String initialPassword,
-    required List<String> roleIds,
+    List<String>? roleIds,
     String? email,
   }) async {
     emit(
@@ -124,7 +133,7 @@ class UpsertUsersCubit extends Cubit<UpsertUsersState> {
         username: username.trim(),
         employeeId: employeeId,
         initialPassword: initialPassword,
-        roleIds: roleIds,
+        roleIds: state.canAssignRoles ? roleIds : null,
         email: _optional(email),
       ),
     );
@@ -162,7 +171,7 @@ class UpsertUsersCubit extends Cubit<UpsertUsersState> {
     required repo.UserAdmin entity,
     required String username,
     required String employeeId,
-    required List<String> roleIds,
+    List<String>? roleIds,
     String? email,
   }) async {
     emit(
@@ -179,7 +188,7 @@ class UpsertUsersCubit extends Cubit<UpsertUsersState> {
       repo.UserUpdateInput(
         username: username.trim(),
         employeeId: employeeId,
-        roleIds: roleIds,
+        roleIds: state.canAssignRoles ? roleIds : null,
         email: _optional(email),
       ),
     );

@@ -73,7 +73,9 @@ class UserAdminService:
             self._ensure_email_unique(email)
         employee = self._get_active_employee(body.employee_id)
         self._ensure_employee_available(employee.id)
-        self._rbac.validate_active_role_ids(body.role_ids)
+        if body.role_ids:
+            self._assert_can_assign_roles(actor)
+            self._rbac.validate_active_role_ids(body.role_ids)
 
         row = User(
             username=username,
@@ -110,13 +112,23 @@ class UserAdminService:
             self._ensure_email_unique(email, exclude_id=user_id)
         employee = self._get_active_employee(body.employee_id)
         self._ensure_employee_available(employee.id, exclude_user_id=user_id)
-        self._rbac.validate_active_role_ids(body.role_ids)
+        current_role_ids = set(self._db.scalars(
+            select(UserRole.role_id).where(UserRole.user_id == row.id)
+        ).all())
+        roles_changed = (
+            body.role_ids is not None and set(body.role_ids) != current_role_ids
+        )
+        if roles_changed:
+            self._assert_can_assign_roles(actor)
+            if body.role_ids:
+                self._rbac.validate_active_role_ids(body.role_ids)
 
         row.username = username
         row.email = email
         row.employee_id = employee.id
         apply_audit(row, actor.id)
-        self._replace_roles(row.id, body.role_ids, actor.id)
+        if roles_changed:
+            self._replace_roles(row.id, body.role_ids, actor.id)
         commit_or_conflict(
             self._db,
             values={"username": username, "email": email or ""},
@@ -138,6 +150,13 @@ class UserAdminService:
         self._db.refresh(row)
         return self._to_response(row)
 
+    def _assert_can_assign_roles(self, actor: User) -> None:
+        if "master_data.roles.assign" not in self._rbac.get_user_permission_codes(actor.id):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No tienes permisos para asignar roles.",
+            )
+
     def _replace_roles(
         self,
         user_id: uuid.UUID,
@@ -149,7 +168,7 @@ class UserAdminService:
         ).all()
         for item in existing:
             self._db.delete(item)
-        for role_id in role_ids:
+        for role_id in set(role_ids):
             self._db.add(
                 UserRole(
                     user_id=user_id,
@@ -222,7 +241,11 @@ class UserAdminService:
                 if employee.unit_id:
                     unit = self._db.get(OrganizationalUnit, employee.unit_id)
                     unit_name = unit.name if unit else None
-        role_codes = self._rbac.get_user_role_codes(row.id)
+        assigned_roles = self._db.scalars(
+            select(Role).join(UserRole, UserRole.role_id == Role.id)
+            .where(UserRole.user_id == row.id).order_by(Role.code)
+        ).all()
+        role_codes = [role.code for role in assigned_roles]
         return UserAdminResponse(
             id=row.id,
             username=row.username,

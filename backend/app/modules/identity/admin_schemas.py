@@ -24,11 +24,11 @@ class CreateUserRequest(BaseModel):
     email: str | None = Field(default=None, max_length=150)
     employee_id: uuid.UUID
     initial_password: str = Field(min_length=8, max_length=255)
-    role_ids: list[uuid.UUID] = Field(min_length=1)
+    role_ids: list[uuid.UUID] = Field(default_factory=list)
 
 
 class UpdateUserRequest(BaseModel):
     username: str = Field(min_length=1, max_length=50)
     email: str | None = Field(default=None, max_length=150)
     employee_id: uuid.UUID
-    role_ids: list[uuid.UUID] = Field(min_length=1)
+    role_ids: list[uuid.UUID] | None = None

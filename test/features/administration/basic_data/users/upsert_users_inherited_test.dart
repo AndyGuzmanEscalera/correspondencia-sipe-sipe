@@ -8,7 +8,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('UpsertUsersInherited', () {
-    testWidgets('setData precarga username, email, employee y roles', (tester) async {
+    testWidgets('setData precarga username, email, employee y roles',
+        (tester) async {
       late UpsertUsersInherited inherited;
 
       await tester.pumpWidget(
@@ -79,7 +80,7 @@ void main() {
       inherited.dispose();
     });
 
-    testWidgets('valid create exige password y roles', (tester) async {
+    testWidgets('C4 valid create permite omitir roles', (tester) async {
       late UpsertUsersInherited inherited;
       ResultValidate? result;
 
@@ -127,7 +128,6 @@ void main() {
 
       inherited.username.setValue('admin');
       inherited.password.setValue('Secret123');
-      inherited.selectedRoleIds.add('r-1');
       await tester.tap(find.text('Validar'));
       await tester.pumpAndSettle();
 
