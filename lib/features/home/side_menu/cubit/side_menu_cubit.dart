@@ -25,14 +25,18 @@ class SideMenuCubit extends Cubit<SideMenuState> {
   /// Último count real de enviados. Nunca se rellena desde LocalStore.
   int? _lastSentCount;
 
+  /// Permisos efectivos de la sesión (reutilizados al refrescar badges).
+  List<String> _sessionPermissions = const [];
+
   repo.InboxScope? _pendingInboxScope;
 
   void init({List<String> permissions = const []}) {
+    _sessionPermissions = permissions;
     _emitMenus(
       counts: _buildMenuCounts(),
       permissions: permissions,
     );
-    unawaited(refreshBadges(permissions: permissions));
+    unawaited(refreshBadges());
   }
 
   void select(MenuItemData menu, {bool preservePendingInboxScope = false}) {
@@ -58,7 +62,10 @@ class SideMenuCubit extends Cubit<SideMenuState> {
     return scope;
   }
 
-  Future<void> refreshBadges({List<String> permissions = const []}) async {
+  Future<void> refreshBadges({List<String>? permissions}) async {
+    if (permissions != null) {
+      _sessionPermissions = permissions;
+    }
     final results = await Future.wait([
       _fetchInboxMineCount(),
       _fetchSentCount(),
@@ -71,7 +78,7 @@ class SideMenuCubit extends Cubit<SideMenuState> {
     if (sentCount != null) {
       _lastSentCount = sentCount;
     }
-    _emitMenus(counts: _buildMenuCounts(), permissions: permissions);
+    _emitMenus(counts: _buildMenuCounts(), permissions: _sessionPermissions);
   }
 
   Future<int?> _fetchInboxMineCount() async {

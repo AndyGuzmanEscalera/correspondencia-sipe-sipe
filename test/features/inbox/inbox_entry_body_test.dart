@@ -64,7 +64,7 @@ class _StubSideMenuCubit extends Cubit<SideMenuState> implements SideMenuCubit {
   void init({List<String> permissions = const []}) {}
 
   @override
-  Future<void> refreshBadges({List<String> permissions = const []}) async {
+  Future<void> refreshBadges({List<String>? permissions}) async {
     refreshBadgesCalls++;
   }
 

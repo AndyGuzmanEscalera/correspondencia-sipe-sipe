@@ -22,6 +22,9 @@ class ReportsView extends StatelessWidget {
   }
 }
 
+/// Reporte operativo basado en [LocalStore] (mock/demo). Visible para cualquier
+/// usuario autenticado; un permiso `reports.view` quedará para C5 cuando exista
+/// backend de reportes institucional.
 class ReportsBody extends StatelessWidget {
   const ReportsBody({super.key});
 

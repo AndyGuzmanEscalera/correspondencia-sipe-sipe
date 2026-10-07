@@ -128,6 +128,6 @@ class MenuOptions {
       }
     }
 
-    return result.isEmpty ? items.take(1).toList() : result;
+    return result;
   }
 }

@@ -22,7 +22,7 @@ class PermissionGuard extends StatelessWidget {
       return const AdminContent(
         child: EmptyState(
           title: 'Acceso restringido',
-          message: 'No tiene permisos para acceder a esta sección.',
+          message: 'No tienes permisos para acceder a esta sección.',
           icon: Icons.lock_outline,
         ),
       );
