@@ -1,6 +1,5 @@
 import 'package:correspondencia_repository/correspondencia_repository.dart';
 import 'package:correspondencia_sipe_sipe/core/util/enums.dart';
-import 'package:correspondencia_sipe_sipe/core/util/form/models/form_option.dart';
 import 'package:correspondencia_sipe_sipe/features/administration/basic_data/employees/list_employees/cubit/employees_cubit.dart';
 import 'package:correspondencia_sipe_sipe/features/administration/basic_data/employees/upsert_employees/cubit/upsert_employees_cubit.dart';
 import 'package:correspondencia_sipe_sipe/features/administration/basic_data/employees/upsert_employees/helpers/upsert_employees_inherited.dart';
@@ -134,8 +133,10 @@ void main() {
       await tester.enterText(find.byType(TextFormField).at(1), 'Pérez');
       await tester.enterText(find.byType(TextFormField).at(2), '123456');
 
-      await _selectDropdownOption(tester, dropdownIndex: 0, optionText: 'Recepción');
-      await _selectDropdownOption(tester, dropdownIndex: 1, optionText: 'Técnico');
+      await _selectDropdownOption(tester,
+          dropdownIndex: 0, optionText: 'Recepción');
+      await _selectDropdownOption(tester,
+          dropdownIndex: 1, optionText: 'Técnico');
 
       await tester.tap(find.text('Registrar'));
       await tester.pump();
@@ -163,8 +164,10 @@ void main() {
       await tester.enterText(find.byType(TextFormField).at(1), 'López');
       await tester.enterText(find.byType(TextFormField).at(2), '654321');
 
-      await _selectDropdownOption(tester, dropdownIndex: 0, optionText: 'Recepción');
-      await _selectDropdownOption(tester, dropdownIndex: 1, optionText: 'Técnico');
+      await _selectDropdownOption(tester,
+          dropdownIndex: 0, optionText: 'Recepción');
+      await _selectDropdownOption(tester,
+          dropdownIndex: 1, optionText: 'Técnico');
 
       await tester.tap(find.text('Registrar'));
       await tester.pump();
@@ -185,8 +188,10 @@ void main() {
       await tester.enterText(find.byType(TextFormField).at(1), 'López');
       await tester.enterText(find.byType(TextFormField).at(2), '654321');
 
-      await _selectDropdownOption(tester, dropdownIndex: 0, optionText: 'Recepción');
-      await _selectDropdownOption(tester, dropdownIndex: 1, optionText: 'Técnico');
+      await _selectDropdownOption(tester,
+          dropdownIndex: 0, optionText: 'Recepción');
+      await _selectDropdownOption(tester,
+          dropdownIndex: 1, optionText: 'Técnico');
 
       await tester.tap(find.text('Registrar'));
       await tester.pump();

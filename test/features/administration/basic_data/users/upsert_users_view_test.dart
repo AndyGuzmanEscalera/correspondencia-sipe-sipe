@@ -5,7 +5,6 @@ import 'package:correspondencia_sipe_sipe/features/app/cubit/app_session_cubit.d
 
 import 'package:correspondencia_repository/correspondencia_repository.dart';
 import 'package:correspondencia_sipe_sipe/core/util/enums.dart';
-import 'package:correspondencia_sipe_sipe/core/util/form/models/form_option.dart';
 import 'package:correspondencia_sipe_sipe/features/administration/basic_data/users/list_users/cubit/users_cubit.dart';
 import 'package:correspondencia_sipe_sipe/features/administration/basic_data/users/upsert_users/cubit/upsert_users_cubit.dart';
 import 'package:correspondencia_sipe_sipe/features/administration/basic_data/users/upsert_users/helpers/upsert_users_inherited.dart';
@@ -142,7 +141,8 @@ void main() {
       expect(find.text('Agregar rol'), findsOneWidget);
       await _selectRole(tester, roleName: 'Administrador');
       expect(
-        find.descendant(of: find.byType(Chip), matching: find.text('Administrador')),
+        find.descendant(
+            of: find.byType(Chip), matching: find.text('Administrador')),
         findsOneWidget,
       );
       expect(usersRepository.rolesCalls, 1);

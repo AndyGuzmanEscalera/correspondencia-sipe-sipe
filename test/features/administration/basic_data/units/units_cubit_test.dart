@@ -148,15 +148,6 @@ final _entity = OrganizationalUnitAdmin(
   updatedAt: _date,
 );
 
-final _parent = OrganizationalUnitAdmin(
-  id: 'u-2',
-  code: 'SEC',
-  name: 'Secretaría',
-  isActive: true,
-  createdAt: _date,
-  updatedAt: _date,
-);
-
 final _inactive = OrganizationalUnitAdmin(
   id: 'u-1',
   code: 'REC',

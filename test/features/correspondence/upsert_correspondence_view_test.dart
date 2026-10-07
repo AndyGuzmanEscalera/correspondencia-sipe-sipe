@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:correspondencia_repository/correspondencia_repository.dart'
     as repo;
 import 'package:correspondencia_sipe_sipe/core/util/enums.dart';
-import 'package:correspondencia_sipe_sipe/core/util/form/models/form_option.dart';
 import 'package:correspondencia_sipe_sipe/core/presentation/widget/responsive_breakpoints.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/detail/cubit/correspondence_detail_cubit.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/detail/cubit/correspondence_document_actions_cubit.dart';
@@ -83,7 +82,8 @@ class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
   }
 
   @override
-  Future<Result<repo.InstitutionalMayor, Failure>> getInstitutionalMayor() async {
+  Future<Result<repo.InstitutionalMayor, Failure>>
+      getInstitutionalMayor() async {
     return Ok(
       const repo.InstitutionalMayor(
         userId: 'mayor-user',
@@ -274,8 +274,7 @@ void main() {
                               create: (_) => UpsertCorrespondenceCubit(
                                 correspondenceRepository:
                                     correspondenceRepository,
-                                organizationRepository:
-                                    organizationRepository,
+                                organizationRepository: organizationRepository,
                               ),
                               child: UpsertCorrespondenceView(
                                 hostDialogContext: dialogContext,
@@ -362,7 +361,8 @@ void main() {
       expect(find.text('Registro exitoso'), findsOneWidget);
     });
 
-    testWidgets('success cierra diálogo de creación al confirmar', (tester) async {
+    testWidgets('success cierra diálogo de creación al confirmar',
+        (tester) async {
       await pumpCreateDialog(tester);
       await _fillMinimumExternalForm(tester);
       await tester.tap(find.text('Registrar'));

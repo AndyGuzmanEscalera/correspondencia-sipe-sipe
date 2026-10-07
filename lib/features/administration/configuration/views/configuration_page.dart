@@ -93,7 +93,8 @@ class _ConfigurationBodyState extends State<ConfigurationBody> {
       onInit: () => context.read<ConfigurationCubit>().load(),
       child: BlocListener<ConfigurationCubit, ConfigurationState>(
         listenWhen: (prev, next) =>
-            next.loaded && (!prev.loaded || prev.mayorDisplayName != next.mayorDisplayName),
+            next.loaded &&
+            (!prev.loaded || prev.mayorDisplayName != next.mayorDisplayName),
         listener: (context, state) {
           _mayorNameController.setValue(state.mayorDisplayName);
         },
@@ -101,7 +102,7 @@ class _ConfigurationBodyState extends State<ConfigurationBody> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              SectionHeader(
+              const SectionHeader(
                 title: 'Configuración institucional',
                 subtitle:
                     'Parámetros visibles en encadenamiento y documentos oficiales',
@@ -156,18 +157,20 @@ class _ConfigurationBodyState extends State<ConfigurationBody> {
                               Align(
                                 alignment: Alignment.centerRight,
                                 child: FilledButton.icon(
-                                  onPressed:
-                                      (!state.loaded || state.generalStatus == GeneralStatus.loading)
-                                          ? null
-                                          : () {
-                                              if (!_formKey.currentState!
-                                                  .validate()) {
-                                                return;
-                                              }
-                                              context
-                                                  .read<ConfigurationCubit>()
-                                                  .save(_mayorNameController.getValue());
-                                            },
+                                  onPressed: (!state.loaded ||
+                                          state.generalStatus ==
+                                              GeneralStatus.loading)
+                                      ? null
+                                      : () {
+                                          if (!_formKey.currentState!
+                                              .validate()) {
+                                            return;
+                                          }
+                                          context
+                                              .read<ConfigurationCubit>()
+                                              .save(_mayorNameController
+                                                  .getValue());
+                                        },
                                   icon: const Icon(Icons.save_outlined),
                                   label: const Text('Guardar'),
                                 ),

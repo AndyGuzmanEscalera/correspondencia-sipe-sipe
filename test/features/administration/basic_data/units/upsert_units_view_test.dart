@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:correspondencia_repository/correspondencia_repository.dart';
 import 'package:correspondencia_sipe_sipe/core/util/enums.dart';
-import 'package:correspondencia_sipe_sipe/core/util/form/models/form_option.dart';
 import 'package:correspondencia_sipe_sipe/features/administration/basic_data/units/list_units/cubit/units_cubit.dart';
 import 'package:correspondencia_sipe_sipe/features/administration/basic_data/units/upsert_units/cubit/upsert_units_cubit.dart';
 import 'package:correspondencia_sipe_sipe/features/administration/basic_data/units/upsert_units/helpers/upsert_units_inherited.dart';
@@ -140,7 +139,8 @@ void main() {
       expect(find.text('Nueva unidad'), findsOneWidget);
       expect(find.text('Error'), findsOneWidget);
       expect(
-        find.text('Ya existe una unidad organizacional con el código indicado.'),
+        find.text(
+            'Ya existe una unidad organizacional con el código indicado.'),
         findsOneWidget,
       );
 
@@ -151,7 +151,8 @@ void main() {
       expect(find.text('Registrar'), findsOneWidget);
     });
 
-    testWidgets('success refresca listado y cierra formulario sin pulsar Cerrar',
+    testWidgets(
+        'success refresca listado y cierra formulario sin pulsar Cerrar',
         (tester) async {
       await pumpUpsertDialog(tester, typeOperation: TypeOperation.create);
 
