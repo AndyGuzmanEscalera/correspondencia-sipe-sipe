@@ -1,10 +1,25 @@
 import 'package:correspondencia_sipe_sipe/core/presentation/widget/responsive_breakpoints.dart';
 import 'package:correspondencia_sipe_sipe/features/reports/views/reports_page.dart';
 import 'package:correspondencia_sipe_sipe/features/public_consult/views/public_consult_page.dart';
+import 'package:correspondencia_sipe_sipe/core/util/enums.dart';
+import 'package:correspondencia_sipe_sipe/features/inbox/views/inbox_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  testWidgets('bandejas heredadas no activan datos de demostración',
+      (tester) async {
+    for (final type in [
+      InboxType.received,
+      InboxType.observed,
+      InboxType.archived
+    ]) {
+      await tester.pumpWidget(
+          MaterialApp(home: Scaffold(body: InboxPage(inboxType: type))));
+      expect(find.textContaining('todavía no está disponible'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    }
+  });
   testWidgets('reportes no presentan cifras ni exportaciones simuladas',
       (tester) async {
     await tester.pumpWidget(MaterialApp(
