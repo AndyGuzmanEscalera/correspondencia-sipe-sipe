@@ -12,7 +12,7 @@ import 'package:correspondencia_sipe_sipe/features/administration/basic_data/use
 import 'package:correspondencia_sipe_sipe/features/administration/common/admin_upsert_bloc_listener.dart';
 import 'package:correspondencia_sipe_sipe/injection/injection_bloc.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/app_form_dialog.dart';
-import 'package:correspondencia_sipe_sipe/shared/widgets/form/app_searchable_dropdown.dart';
+import 'package:correspondencia_sipe_sipe/shared/widgets/form/app_dropdown.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/form/app_text_field.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/form/app_text_password.dart';
 import 'package:flutter/material.dart';
@@ -245,7 +245,7 @@ class _UpsertUsersBodyState extends State<UpsertUsersBody> {
                       RequiredValid(error: 'Campo requerido'),
                     ],
                   ),
-                AppSearchableDropdown<String>(
+                AppDropdown<String>(
                   controller: inherited.employee,
                   label: 'Funcionario',
                   hint: 'Seleccione un funcionario',

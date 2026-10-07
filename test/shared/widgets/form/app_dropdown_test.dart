@@ -5,6 +5,16 @@ import 'package:correspondencia_sipe_sipe/shared/widgets/form/app_dropdown.dart'
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+Future<void> _openDropdownAndSelect(
+  WidgetTester tester,
+  String optionText,
+) async {
+  await tester.tap(find.byIcon(Icons.search_rounded).first);
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(optionText).last);
+  await tester.pumpAndSettle();
+}
+
 void main() {
   group('AppDropdown', () {
     late ControllerFieldDropdown<String> controller;
@@ -38,7 +48,7 @@ void main() {
       );
     }
 
-    testWidgets('renderiza opciones simples sin descripción', (tester) async {
+    testWidgets('renderiza opciones simples y permite seleccionar', (tester) async {
       final items = [
         const FormOption(id: 1, text: 'Opción 1', value: 'opt1'),
         const FormOption(id: 2, text: 'Opción 2', value: 'opt2'),
@@ -49,21 +59,12 @@ void main() {
       expect(find.text('Test Dropdown'), findsOneWidget);
       expect(find.text('Seleccione una opción'), findsOneWidget);
 
-      await tester.tap(find.byType(DropdownButtonFormField<FormOption<String>>));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Opción 1'), findsOneWidget);
-      expect(find.text('Opción 2'), findsOneWidget);
-
-      await tester.tap(find.text('Opción 1').last);
-      await tester.pumpAndSettle();
+      await _openDropdownAndSelect(tester, 'Opción 1');
 
       expect(controller.value.value, 'opt1');
     });
 
-    testWidgets('renderiza opción con descripción en menú emergente', (
-      tester,
-    ) async {
+    testWidgets('renderiza opción con descripción en el picker', (tester) async {
       final items = [
         const FormOption(
           id: 1,
@@ -81,7 +82,7 @@ void main() {
 
       await tester.pumpWidget(buildTestHarness(items: items));
 
-      await tester.tap(find.byType(DropdownButtonFormField<FormOption<String>>));
+      await tester.tap(find.byIcon(Icons.search_rounded).first);
       await tester.pumpAndSettle();
 
       expect(find.text('EDIE'), findsOneWidget);
@@ -93,8 +94,25 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(controller.value.value, 'edie');
-      // En el campo cerrado, selectedItemBuilder muestra solo el texto principal
       expect(find.text('EDIE'), findsOneWidget);
+    });
+
+    testWidgets('filtra opciones con el buscador', (tester) async {
+      final items = [
+        const FormOption(id: 1, text: 'Alpha', value: 'a'),
+        const FormOption(id: 2, text: 'Beta', value: 'b'),
+      ];
+
+      await tester.pumpWidget(buildTestHarness(items: items));
+
+      await tester.tap(find.byIcon(Icons.search_rounded).first);
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), 'bet');
+      await tester.pumpAndSettle();
+
+      expect(find.text('Beta'), findsOneWidget);
+      expect(find.text('Alpha'), findsNothing);
     });
 
     testWidgets('valida campo requerido', (tester) async {
@@ -126,6 +144,10 @@ void main() {
 
       expect(isValid, isFalse);
       expect(find.text('Campo obligatorio'), findsOneWidget);
+      await _openDropdownAndSelect(tester, 'Opción A');
+      expect(formKey.currentState!.validate(), isTrue);
+      controller.clear();
+      expect(formKey.currentState!.validate(), isFalse);
     });
 
     testWidgets('mobile 390px no genera overflow', (tester) async {
@@ -145,7 +167,7 @@ void main() {
         buildTestHarness(items: items, size: const Size(390, 844)),
       );
 
-      await tester.tap(find.byType(DropdownButtonFormField<FormOption<String>>));
+      await tester.tap(find.byIcon(Icons.search_rounded).first);
       await tester.pumpAndSettle();
 
       expect(find.text('Nombre muy largo de una opción documental municipal'), findsOneWidget);

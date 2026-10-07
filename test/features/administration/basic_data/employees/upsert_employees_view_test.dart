@@ -12,6 +12,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../../../test_helpers/app_dropdown_test_helpers.dart';
+
 void main() {
   group('UpsertEmployeesView', () {
     late _TrackingEmployeesCubit listCubit;
@@ -114,8 +116,7 @@ void main() {
       expect(find.text('Cargo'), findsOneWidget);
       expect(find.byType(CircularProgressIndicator), findsNothing);
 
-      await tester.tap(find.byType(DropdownButtonFormField<FormOption<String>>).first);
-      await tester.pumpAndSettle();
+      await openAppDropdown(tester, index: 0);
 
       expect(find.text('Recepción'), findsOneWidget);
     });
@@ -260,18 +261,12 @@ Future<void> _selectDropdownOption(
   required int dropdownIndex,
   required String optionText,
 }) async {
-  final dropdown =
-      find.byType(DropdownButtonFormField<FormOption<String>>).at(dropdownIndex);
-  await tester.scrollUntilVisible(
-    dropdown,
-    48,
+  await selectAppDropdownOption(
+    tester,
+    dropdownIndex: dropdownIndex,
+    optionText: optionText,
     scrollable: find.byType(Scrollable).first,
   );
-  await tester.pumpAndSettle();
-  await tester.tap(dropdown);
-  await tester.pumpAndSettle();
-  await tester.tap(find.text(optionText).last);
-  await tester.pumpAndSettle();
 }
 
 class _TrackingEmployeesCubit extends EmployeesCubit {

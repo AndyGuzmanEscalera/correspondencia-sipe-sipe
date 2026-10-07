@@ -15,6 +15,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../../../test_helpers/app_dropdown_test_helpers.dart';
+
 void main() {
   group('UpsertUsersView', () {
     late _TrackingUsersCubit listCubit;
@@ -382,18 +384,12 @@ Future<void> _selectRole(
   WidgetTester tester, {
   required String roleName,
 }) async {
-  final roleDropdown =
-      find.byType(DropdownButtonFormField<FormOption<String>>).first;
-  await tester.scrollUntilVisible(
-    roleDropdown,
-    48,
+  await selectAppDropdownOption(
+    tester,
+    dropdownIndex: 1,
+    optionText: roleName,
     scrollable: find.byType(Scrollable).first,
   );
-  await tester.pumpAndSettle();
-  await tester.tap(roleDropdown);
-  await tester.pumpAndSettle();
-  await tester.tap(find.text(roleName).last);
-  await tester.pumpAndSettle();
 }
 
 class _TrackingUsersCubit extends UsersCubit {

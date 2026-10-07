@@ -5,8 +5,8 @@ import 'package:correspondencia_sipe_sipe/core/util/form/validator_field/validat
 import 'package:correspondencia_sipe_sipe/shared/widgets/form/app_form_field_style.dart';
 import 'package:flutter/material.dart';
 
-/// Dropdown estilo Inventario (`DropdownCustomPro`) con diseño Correspondencia.
-class AppDropdown<T> extends StatelessWidget {
+/// Dropdown con buscador integrado (patrón Inventario `DropdownCustomPro`).
+class AppDropdown<T> extends StatefulWidget {
   const AppDropdown({
     required this.controller,
     required this.items,
@@ -14,8 +14,12 @@ class AppDropdown<T> extends StatelessWidget {
     super.key,
     this.title,
     this.hint = 'Seleccione una opción',
+    this.searchHint = 'Buscar...',
+    this.emptyItemsMessage = 'No hay opciones disponibles.',
+    this.emptySearchMessage = 'No se encontraron resultados.',
     this.validators,
     this.onChanged,
+    this.matchesQuery,
   });
 
   final ControllerFieldDropdown<T> controller;
@@ -23,72 +27,128 @@ class AppDropdown<T> extends StatelessWidget {
   final String label;
   final String? title;
   final String hint;
+  final String searchHint;
+  final String emptyItemsMessage;
+  final String emptySearchMessage;
   final List<AbstractValid>? validators;
   final void Function(FormOption<T>)? onChanged;
+  final bool Function(FormOption<T> item, String query)? matchesQuery;
 
+  @override
+  State<AppDropdown<T>> createState() => _AppDropdownState<T>();
+}
+
+class _AppDropdownState<T> extends State<AppDropdown<T>> {
   String? _validate(FormOption<T>? value) {
-    if (validators == null || validators!.isEmpty) return null;
-    final text = value?.text ?? '';
-    return Validator.validation(text, validators!);
+    if (widget.validators == null || widget.validators!.isEmpty) return null;
+    final text = widget.controller.isExist() ? widget.controller.value.text : '';
+    return Validator.validation(text, widget.validators!);
+  }
+
+  bool _defaultMatch(FormOption<T> item, String query) {
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) return true;
+    if (item.text.toLowerCase().contains(q)) return true;
+    final description = item.description;
+    if (description != null && description.toLowerCase().contains(q)) {
+      return true;
+    }
+    final keywords = item.keywords;
+    if (keywords != null) {
+      for (final keyword in keywords) {
+        if (keyword.toLowerCase().contains(q)) return true;
+      }
+    }
+    return false;
+  }
+
+  Future<void> _openPicker() async {
+    if (widget.items.isEmpty) return;
+
+    final selected = await showModalBottomSheet<FormOption<T>>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (sheetContext) {
+        return SearchableDropdownPickerSheet<T>(
+          items: widget.items,
+          searchHint: widget.searchHint,
+          emptyItemsMessage: widget.emptyItemsMessage,
+          emptySearchMessage: widget.emptySearchMessage,
+          matchesQuery: widget.matchesQuery ?? _defaultMatch,
+          initialSelection: widget.controller.isExist()
+              ? widget.controller.value
+              : null,
+        );
+      },
+    );
+
+    if (!mounted || selected == null) return;
+    widget.controller.setValue(selected);
+    widget.onChanged?.call(selected);
+    widget.controller.fieldKey.currentState?.didChange(selected);
+    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
-    final selected = controller.isExist() ? controller.value : null;
+    final selected =
+        widget.controller.isExist() ? widget.controller.value : null;
+    final displayText = selected?.text ?? widget.hint;
+    final hasSelection = selected != null;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (title != null) ...[
-            Text(title!, style: AppFormFieldStyle.title),
+          if (widget.title != null) ...[
+            Text(widget.title!, style: AppFormFieldStyle.title),
             const SizedBox(height: 8),
           ],
-          DropdownButtonFormField<FormOption<T>>(
-            key: controller.fieldKey,
-            focusNode: controller.focusNode,
-            isExpanded: true,
-            value: selected,
-            autovalidateMode: AutovalidateMode.onUserInteraction,
+          FormField<FormOption<T>>(
+            key: widget.controller.fieldKey,
             validator: _validate,
-            hint: Text(
-              hint,
-              style: AppFormFieldStyle.fieldText.copyWith(
-                color: AppFormFieldStyle.fieldText.color?.withOpacity(0.55),
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-            icon: const Icon(Icons.keyboard_arrow_down_rounded),
-            style: AppFormFieldStyle.fieldText,
-            decoration: AppFormFieldStyle.dropdownDecoration(label: label),
-            selectedItemBuilder: (context) {
-              return items
-                  .map(
-                    (item) => Align(
-                      alignment: Alignment.centerLeft,
+            initialValue: selected,
+            builder: (field) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  InkWell(
+                    onTap: widget.items.isEmpty ? null : _openPicker,
+                    borderRadius: BorderRadius.circular(12),
+                    child: InputDecorator(
+                      decoration: AppFormFieldStyle.dropdownDecoration(
+                        label: widget.label,
+                      ).copyWith(
+                        errorText: field.errorText,
+                        suffixIcon: const Icon(Icons.search_rounded),
+                      ),
                       child: Text(
-                        item.text,
+                        hasSelection ? displayText : widget.hint,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: AppFormFieldStyle.fieldText,
+                        style: AppFormFieldStyle.fieldText.copyWith(
+                          color: hasSelection
+                              ? AppFormFieldStyle.fieldText.color
+                              : AppFormFieldStyle.fieldText.color
+                                  ?.withOpacity(0.55),
+                          fontWeight:
+                              hasSelection ? FontWeight.w500 : FontWeight.w400,
+                        ),
                       ),
                     ),
-                  )
-                  .toList();
-            },
-            items: items
-                .map(
-                  (item) => DropdownMenuItem<FormOption<T>>(
-                    value: item,
-                    child: _DropdownOptionLabel(item: item),
                   ),
-                )
-                .toList(),
-            onChanged: (value) {
-              if (value == null) return;
-              controller.setValue(value);
-              onChanged?.call(value);
+                  if (widget.items.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6, left: 4),
+                      child: Text(
+                        widget.emptyItemsMessage,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                ],
+              );
             },
           ),
         ],
@@ -97,41 +157,116 @@ class AppDropdown<T> extends StatelessWidget {
   }
 }
 
-class _DropdownOptionLabel<T> extends StatelessWidget {
-  const _DropdownOptionLabel({required this.item});
+/// Hoja modal reutilizable para listas filtrables (dropdowns con buscador).
+class SearchableDropdownPickerSheet<T> extends StatefulWidget {
+  const SearchableDropdownPickerSheet({
+    required this.items,
+    required this.searchHint,
+    required this.emptyItemsMessage,
+    required this.emptySearchMessage,
+    required this.matchesQuery,
+    this.initialSelection,
+    super.key,
+  });
 
-  final FormOption<T> item;
+  final List<FormOption<T>> items;
+  final String searchHint;
+  final String emptyItemsMessage;
+  final String emptySearchMessage;
+  final bool Function(FormOption<T> item, String query) matchesQuery;
+  final FormOption<T>? initialSelection;
+
+  @override
+  State<SearchableDropdownPickerSheet<T>> createState() =>
+      _SearchableDropdownPickerSheetState<T>();
+}
+
+class _SearchableDropdownPickerSheetState<T>
+    extends State<SearchableDropdownPickerSheet<T>> {
+  late final TextEditingController _searchController;
+  String _query = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    if (item.description == null || item.description!.isEmpty) {
-      return Text(
-        item.text,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-      );
-    }
+    final filtered = widget.items
+        .where((item) => widget.matchesQuery(item, _query))
+        .toList();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          item.text,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: AppFormFieldStyle.fieldText.copyWith(
-            fontWeight: FontWeight.w600,
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.65,
+      minChildSize: 0.4,
+      maxChildSize: 0.92,
+      builder: (context, scrollController) {
+        return Material(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                child: TextField(
+                  controller: _searchController,
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    hintText: widget.searchHint,
+                    prefixIcon: const Icon(Icons.search_rounded),
+                    border: const OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  onChanged: (value) => setState(() => _query = value),
+                ),
+              ),
+              Expanded(
+                child: widget.items.isEmpty
+                    ? Center(child: Text(widget.emptyItemsMessage))
+                    : filtered.isEmpty
+                        ? Center(child: Text(widget.emptySearchMessage))
+                        : ListView.builder(
+                            controller: scrollController,
+                            itemCount: filtered.length,
+                            itemBuilder: (context, index) {
+                              final item = filtered[index];
+                              final isSelected =
+                                  widget.initialSelection?.value == item.value;
+                              return ListTile(
+                                selected: isSelected,
+                                title: Text(
+                                  item.text,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppFormFieldStyle.fieldText.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                subtitle: item.description == null ||
+                                        item.description!.isEmpty
+                                    ? null
+                                    : Text(
+                                        item.description!,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                onTap: () => Navigator.of(context).pop(item),
+                              );
+                            },
+                          ),
+              ),
+            ],
           ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          item.description!,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
-      ],
+        );
+      },
     );
   }
 }

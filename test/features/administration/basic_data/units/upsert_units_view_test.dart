@@ -13,6 +13,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../../../test_helpers/app_dropdown_test_helpers.dart';
+
 void main() {
   group('UpsertUnitsView', () {
     late _TrackingUnitsCubit listCubit;
@@ -114,8 +116,7 @@ void main() {
       expect(find.text('Unidad superior (opcional)'), findsOneWidget);
       expect(find.byType(CircularProgressIndicator), findsNothing);
 
-      await tester.tap(find.byType(DropdownButtonFormField<FormOption<String>>));
-      await tester.pumpAndSettle();
+      await openAppDropdown(tester);
 
       expect(find.text('Sin unidad superior'), findsOneWidget);
       expect(find.text('Secretaría'), findsOneWidget);
