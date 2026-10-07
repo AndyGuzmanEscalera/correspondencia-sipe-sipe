@@ -14,21 +14,25 @@ class Endpoints {
   static const String institutionalMayor = '/institutional-mayor';
   static const String correspondences = '/correspondences';
   static const String correspondencesInbox = '/correspondences/inbox';
-  static const String correspondencesInboxCounts = '/correspondences/inbox/counts';
+  static const String correspondencesInboxCounts =
+      '/correspondences/inbox/counts';
   static const String correspondencesSent = '/correspondences/sent';
   static const String correspondencesSentCount = '/correspondences/sent/count';
   static String correspondence(String id) => '/correspondences/$id';
-  static String correspondenceDerive(String id) => '/correspondences/$id/derive';
+  static String correspondenceDerive(String id) =>
+      '/correspondences/$id/derive';
   static String correspondenceConclude(String id) =>
       '/correspondences/$id/conclude';
-  static String correspondenceReopen(String id) => '/correspondences/$id/reopen';
+  static String correspondenceReopen(String id) =>
+      '/correspondences/$id/reopen';
   static String correspondenceMovements(String id) =>
       '/correspondences/$id/movements';
   static String correspondenceEncadenamientoPdf(String id) =>
       '/correspondences/$id/encadenamiento.pdf';
   static String correspondenceAttachments(String id) =>
       '/correspondences/$id/attachments';
-  static String correspondenceAttachment(String correspondenceId, String attachmentId) =>
+  static String correspondenceAttachment(
+          String correspondenceId, String attachmentId) =>
       '/correspondences/$correspondenceId/attachments/$attachmentId';
   static String correspondenceAttachmentDownload(
     String correspondenceId,
@@ -67,4 +71,6 @@ class Endpoints {
 
   static const String adminSystemSettingsInstitutional =
       '/admin/system-settings/institutional';
+  static const String adminSystemSettingsAuthorityEmployees =
+      '/admin/system-settings/authority-employees';
 }

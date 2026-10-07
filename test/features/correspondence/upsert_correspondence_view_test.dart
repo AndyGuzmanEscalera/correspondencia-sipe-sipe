@@ -14,6 +14,7 @@ import 'package:correspondencia_sipe_sipe/features/home/side_menu/cubit/side_men
 import 'package:correspondencia_sipe_sipe/injection/injection_bloc.dart';
 import 'package:failures/failures.dart';
 import 'package:flutter/material.dart';
+import 'package:correspondencia_sipe_sipe/shared/widgets/app_form_dialog.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -36,6 +37,7 @@ class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
   Result<repo.Correspondence, Failure>? createResult;
   Completer<void>? createGate;
   int createCalls = 0;
+  bool missingAuthority = false;
 
   @override
   Future<Result<repo.Correspondence, Failure>> createCorrespondence(
@@ -84,6 +86,10 @@ class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
   @override
   Future<Result<repo.InstitutionalMayor, Failure>>
       getInstitutionalMayor() async {
+    if (missingAuthority) {
+      return const Err(ValidationFailure(
+          'Debe configurar al Alcalde/Máxima Autoridad Ejecutiva antes de registrar documentos EDIE.'));
+    }
     return Ok(
       const repo.InstitutionalMayor(
         userId: 'mayor-user',
@@ -304,6 +310,35 @@ void main() {
       expect(find.text('Nueva correspondencia'), findsOneWidget);
       expect(find.text('Tipo de documento'), findsOneWidget);
       expect(find.byType(CircularProgressIndicator), findsNothing);
+    });
+
+    testWidgets('EDIE usa autoridad automática y mantiene segundo destinatario',
+        (tester) async {
+      await pumpCreateDialog(tester);
+      expect(find.text('Primer destinatario'), findsOneWidget);
+      expect(find.text('Jaime Montero López'), findsOneWidget);
+      expect(find.text('Segundo destinatario'), findsOneWidget);
+      await _fillMinimumExternalForm(tester);
+      await tester.tap(find.text('Registrar'));
+      await tester.pumpAndSettle();
+      expect(correspondenceRepository.createCalls, 1);
+    });
+
+    testWidgets('EDIE sin autoridad muestra validación y no registra',
+        (tester) async {
+      correspondenceRepository.missingAuthority = true;
+      await pumpCreateDialog(tester);
+      expect(
+          find.text(
+              'Debe configurar al Alcalde/Máxima Autoridad Ejecutiva antes de registrar documentos EDIE.'),
+          findsOneWidget);
+      await _fillMinimumExternalForm(tester);
+      expect(correspondenceRepository.createCalls, 0);
+      expect(
+          tester
+              .widget<AppFormDialog>(find.byType(AppFormDialog))
+              .isSubmitDisabled,
+          isTrue);
     });
 
     testWidgets('INTERNAL oculta campos externos en encadenamiento', (

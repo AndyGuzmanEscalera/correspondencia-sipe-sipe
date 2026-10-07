@@ -7,7 +7,7 @@ from app.modules.correspondence.correspondence_movement import CorrespondenceMov
 from app.modules.identity.user import User
 from app.modules.organization.employee import Employee
 from app.modules.organization.position import Position
-from app.modules.system.constants import INSTITUTIONAL_MAYOR_DISPLAY_NAME
+from app.modules.system.constants import INSTITUTIONAL_MAYOR_DISPLAY_NAME, INSTITUTIONAL_MAYOR_EMPLOYEE_ID
 from app.modules.system.system_setting import SystemSetting
 from tests.test_correspondence import _create_payload
 
@@ -23,14 +23,14 @@ def test_display_override_never_changes_routing(db, mayor_user):
     db.commit()
     try:
         overridden = resolve_institutional_mayor(db)
-        assert overridden.employee_name == setting.value
+        assert overridden.employee_name == original.employee_name
         assert (overridden.user_id, overridden.unit_id) == (original.user_id, original.unit_id)
     finally:
         setting.value = old_value
         db.commit()
 
 
-def test_multiple_active_titulars_are_rejected(db, org_unit):
+def test_other_employees_with_mayor_position_do_not_change_explicit_selection(db, org_unit):
     position = db.scalar(select(Position).where(Position.code == "ALCALDE"))
     employee = Employee(first_name="Otro", last_name="Titular", unit_id=org_unit.id, position_id=position.id, is_active=True)
     db.add(employee)
@@ -39,9 +39,7 @@ def test_multiple_active_titulars_are_rejected(db, org_unit):
     db.add(user)
     db.commit()
     try:
-        with pytest.raises(HTTPException) as error:
-            resolve_institutional_mayor(db)
-        assert error.value.status_code == 422
+        assert resolve_institutional_mayor(db).employee_id != employee.id
     finally:
         user.is_active = False
         db.commit()
@@ -51,7 +49,9 @@ def test_inactive_mayor_is_not_a_recipient(db, mayor_user):
     mayor_user.is_active = False
     db.commit()
     try:
-        assert resolve_institutional_mayor(db) is None
+        with pytest.raises(HTTPException) as error:
+            resolve_institutional_mayor(db)
+        assert error.value.status_code == 422
     finally:
         mayor_user.is_active = True
         db.commit()
@@ -98,6 +98,8 @@ def test_pdf_uses_historical_recipient_after_change_of_titular(client, db, auth_
     replacement = User(employee_id=employee.id, username=f'replacement_{uuid.uuid4().hex}', password_hash='unused', is_active=True)
     db.add(replacement)
     mayor_user.is_active = False
+    setting = db.get(SystemSetting, INSTITUTIONAL_MAYOR_EMPLOYEE_ID)
+    setting.value = str(employee.id)
     db.commit()
     contexts = []
     def render(context):
@@ -112,4 +114,5 @@ def test_pdf_uses_historical_recipient_after_change_of_titular(client, db, auth_
     finally:
         replacement.is_active = False
         mayor_user.is_active = True
+        setting.value = str(original.employee_id)
         db.commit()

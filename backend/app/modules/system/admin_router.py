@@ -9,6 +9,7 @@ from app.modules.identity.user import User
 from app.modules.system.schemas import (
     InstitutionalSettingsResponse,
     UpdateInstitutionalSettingsRequest,
+    AuthorityEmployeeResponse,
 )
 from app.modules.system.service import SystemSettingsService
 
@@ -20,6 +21,14 @@ router = APIRouter(
 
 def _service(db: Annotated[Session, Depends(get_db)]) -> SystemSettingsService:
     return SystemSettingsService(db)
+
+
+@router.get("/authority-employees", response_model=list[AuthorityEmployeeResponse])
+def list_authority_employees(
+    service: Annotated[SystemSettingsService, Depends(_service)],
+    _user: Annotated[User, Depends(require_permission("system.settings.manage"))],
+) -> list[AuthorityEmployeeResponse]:
+    return service.list_authority_employees()
 
 
 @router.get(

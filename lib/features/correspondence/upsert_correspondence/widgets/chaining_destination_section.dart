@@ -33,7 +33,7 @@ class ChainingDestinationSection extends StatelessWidget {
           child: mayor == null
               ? Text(
                   errorMessage ??
-                      'No se pudo cargar el titular ejecutivo municipal (Alcalde/Alcaldesa).',
+                      'Debe configurar al Alcalde/Máxima Autoridad Ejecutiva antes de registrar documentos EDIE.',
                 )
               : Container(
                   width: double.infinity,

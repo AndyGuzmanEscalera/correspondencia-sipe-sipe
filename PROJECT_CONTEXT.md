@@ -7,14 +7,14 @@ Handoff del Sistema de Gestión de Correspondencia y Documentos / Hoja de Ruta d
 ## 1. Estado de cierre y límites
 
 Actualizado el 7 de octubre de 2026. Se trabaja directamente en `develop`.
-HEAD de código al redactar: `d87d106d8ed0ca3d22a9b68854c0a59b3a62f6d7`; el commit documental posterior se consulta con Git.
+Base anterior al bloque de autoridad institucional: `35a711f78deb6e0ae7184ef3be3fc0cac67665b3`. Su commit posterior se consulta con Git.
 
 - C3 y C4 están cerrados y committeados; no son WIP.
-- Los diez commits del lote final están cerrados.
+- Los diez commits del lote final están cerrados. Después se implementó el requisito adicional de selección explícita de máxima autoridad institucional; ya no se infiere el destinatario EDIE por cargo.
 - Configuración Apache demo committeada; instalación y verificación en servidor pendientes.
 - No se hizo push ni deploy en este cierre. No asumir que una referencia remota prueba el estado desplegado.
 - `git fetch origin` confirmó `origin/develop = 9828a7559fcd00bb7295aa96dd57045999c044df` (C2: roles institucionales base).
-- El rango remoto → HEAD de código contiene 16 commits, incluidos **tres del sitio público website**. El commit documental agrega otro. Un push de develop publicaría también esos tres; excluir el WIP de website del índice no los excluye del historial.
+- El historial desde origin/develop incluye **tres commits del sitio público website**, además del sistema. Un push de develop publicaría también esos tres; excluir su WIP del índice no los excluye del historial. Consultar el rango actualizado con Git.
 - No crear rama/worktree ni reescribir historial sin instrucción. No ejecutar limpieza/reset de datos. No stagear en bloque: auditar rutas y hunks.
 
 ### Bloques previos cerrados
@@ -110,10 +110,12 @@ Para users, employees, positions, units y document_types:
 - `system.settings.read`: lectura de configuración.
 - `system.settings.manage`: edición.
 - Backend: `backend/app/modules/system/`; GET/PUT `/admin/system-settings/institutional`.
-- Tabla system_settings, clave `institutional.mayor_display_name`.
-- Normalización trim; valor vacío limpia override y permite fallback; máximo 200 caracteres.
-- UI guarda cuando cargó el estado y tiene permiso manage.
-- Override es nombre de presentación, no cambio de usuario, funcionario, titularidad ni ownership.
+- Tabla system_settings: `institutional.mayor_employee_id` guarda UUID del funcionario existente, validado al actualizar y al crear EDIE. Null limpia la selección; omitir conserva la selección.
+- GET devuelve referencia, datos institucionales y error cuando la referencia ya no es operativa.
+- Catálogo `/admin/system-settings/authority-employees` requiere system.settings.manage; no exige permisos master_data adicionales.
+- UI usa selector buscable por nombre, CI, cargo y unidad; solo lectura sin manage, sin texto libre.
+- Funcionario, cargo, unidad y User vinculados deben estar activos. User es necesario porque movimientos EDIE usan to_user_id; users.employee_id es único.
+- `institutional.mayor_display_name` se conserva solo por compatibilidad legacy del API; ya no altera EDIE, PDF ni enrutamiento.
 - ADMIN recibe ambos permisos de configuración por migración; no asumir que users.manage o roles.assign los otorgan.
 
 ## 5. Alembic
@@ -124,9 +126,10 @@ Cadena final committeada del tramo reciente:
 a7c8d9e0f1a2
   → c9d0e1f2a3b4  roles.assign
   → b8c9d0e1f2a3  system_settings y permisos de configuración
+  → d0e1f2a3b4c5  snapshot histórico de autoridad EDIE
 ```
 
-Una sola head: `b8c9d0e1f2a3`.
+Una sola head: `d0e1f2a3b4c5`. La nueva migración agrega JSONB nullable en correspondences, congela datos disponibles de destinatarios originales de EDIE previos, es idempotente y conserva snapshots en downgrade. No selecciona automáticamente una autoridad para la institución.
 b8 ya está committeada en 336f449; no sigue siendo migración solo-WIP.
 C4 depende directamente de a7, no de b8. Después, b8 se conectó a c9.
 Ambas migraciones son aditivas, preservan custom roles y no borran sus datos/grants en downgrade.
@@ -148,9 +151,10 @@ No modificar migraciones históricas para introducir funcionalidades posteriores
 
 ### EDIE/S y titular institucional
 
-El titular se resuelve desde User + Employee + Position + Unit activos, con códigos de cargo configurados (defaults ALCALDE/ALCALDESA).
-Cero titulares válidos significa indisponibilidad; múltiples titulares generan validación de ambigüedad.
-La selección usa IDs institucionales, nunca un nombre personal hardcodeado.
+El titular se resuelve exclusivamente desde institutional.mayor_employee_id y su estructura User + Employee + Position + Unit activa. No hay fallback por nombre/código de cargo.
+Sin selección, EDIE se bloquea con: "Debe configurar al Alcalde/Máxima Autoridad Ejecutiva antes de registrar documentos EDIE."
+Una selección inválida también bloquea antes de numeración, inserciones y movimientos, con validación clara.
+El primer destinatario es automático; el usuario solo selecciona el segundo.
 Endpoint autenticado de consulta: /institutional-mayor.
 
 Al registrar encadenamiento:
@@ -172,9 +176,9 @@ Al registrar encadenamiento:
 ### PDF histórico
 
 PDF de encadenamiento bajo /correspondences/{id}/encadenamiento.pdf.
-El destinatario histórico se toma del primer DERIVED no cancelado; no se reemplaza por el titular vigente al descargar.
-Se preservan referencias a destinatarios que luego quedaron inactivos.
-Esto preserva identidad por IDs; no equivale a guardar una fotografía inmutable de todos los nombres. El override de presentación puede seguir afectando el texto mostrado.
+Los EDIE nuevos guardan institutional_authority_snapshot en la misma transacción: IDs, nombre, cargo, unidad y etiqueta PARA del primer destinatario. PDF e historial usan ese snapshot para su paso de entrada y salida, sin consultar la autoridad actual ni el override legacy.
+Cambiar autoridad A → B afecta EDIE nuevos; los anteriores preservan A, incluso si luego cambian su nombre/cargo/unidad o estado activo.
+Migración de documentos previos: congela los datos disponibles de su destinatario original, nunca el setting vigente. No puede recuperar textos anteriores a la migración si ya se habían editado los maestros, porque antes no existía snapshot. Registros incompletos conservan fallback por referencias históricas.
 
 ## 7. Administración, errores y datos reales
 
@@ -222,17 +226,17 @@ No se ejecutó deploy ni se tocó Debian durante este cierre.
 
 ## 9. Validación del cierre
 
-Resultados finales del lote, revalidar tras el commit documental:
+Resultados revalidados para el bloque de autoridad institucional:
 | Suite | Resultado validado |
 | --- | --- |
-| Backend | 166/166 |
-| Flutter raíz | 382/382 |
-| Package API | 11/11 |
-| Package repository | 19/19 |
-| Package failures | 4/4 |
-| Chrome API_BASE_URL=/api | 2/2 |
+| Backend | 179/179 |
+| Flutter raíz | 389/389 |
+| Package API | 13/13 |
+| Package repository | 21/21 |
+| Package failures | 4/4 (validación previa; sin cambios en este bloque) |
+| Chrome API_BASE_URL=/api | 2/2 (validación previa; resolución base sin cambios) |
 | Flutter analyze | 0 errors, 0 warnings; 88 infos |
-| Alembic | Una sola head b8c9d0e1f2a3 |
+| Alembic | Una sola head d0e1f2a3b4c5 |
 
 Los cuatro fallos globales de derivación y el bloqueo backend por entorno citados en auditorías antiguas ya no describen el estado validado del lote.
 Infos del analyzer no se cuentan como warnings; pueden producir exit code 1 aunque haya cero errors/warnings.
@@ -296,4 +300,4 @@ Riesgos auditados:
 4. Validar Apache y cookie real en navegador, incluida renovación y eliminación, cuando se autorice deploy.
 5. Revisar TLS y variables del servidor: los tests locales no certifican infraestructura productiva.
 
-Este cierre termina con commit documental selectivo, índice vacío y resto del WIP intacto. Consultar git status y el historial antes de la siguiente acción.
+El bloque de autoridad institucional se cierra con commit selectivo, índice vacío y resto del WIP intacto. Antes de habilitar EDIE en un entorno actualizado, seleccionar explícitamente un funcionario válido en Configuración. Consultar git status y el historial antes de la siguiente acción.

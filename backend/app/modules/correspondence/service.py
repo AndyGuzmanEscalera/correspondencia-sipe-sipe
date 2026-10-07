@@ -65,7 +65,6 @@ from app.modules.correspondence.pdf.encadenamiento_pdf import (
 from app.modules.identity.user import User
 from app.modules.organization.employee import Employee
 from app.modules.organization.organizational_unit import OrganizationalUnit
-from app.modules.system.service import apply_mayor_display_name
 from app.modules.organization.position import Position
 
 
@@ -244,23 +243,23 @@ class CorrespondenceService:
         subject = self._resolve_subject(body, profile)
         description = self._normalize_optional_text(body.description)
 
-        route_year, route_sequence, route_number = self._allocate_route_number()
-        doc_year, doc_sequence, doc_number = self._allocate_document_number(
-            body.document_type_id
-        )
-
         is_chaining = profile == DocumentFormProfile.CHAINING
         if is_chaining:
+            mayor = self._require_institutional_mayor()
             self._validate_chaining_second_destination(
                 body.initial_to_unit_id,
                 body.initial_to_user_id,
             )
-            mayor = self._require_institutional_mayor()
             if body.initial_to_user_id == mayor.user_id:
                 raise HTTPException(status_code=422, detail="El segundo destinatario debe ser distinto del titular ejecutivo.")
         else:
             self._validate_destination(body.initial_to_unit_id, body.initial_to_user_id)
             mayor = None
+
+        route_year, route_sequence, route_number = self._allocate_route_number()
+        doc_year, doc_sequence, doc_number = self._allocate_document_number(
+            body.document_type_id
+        )
 
         correspondence = Correspondence(
             route_number=route_number,
@@ -272,6 +271,12 @@ class CorrespondenceService:
             correspondence_type=origin.correspondence_type,
             document_type_id=body.document_type_id,
             subject=subject,
+            institutional_authority_snapshot=(
+                dict(employee_id=str(mayor.employee_id), user_id=str(mayor.user_id),
+                     unit_id=str(mayor.unit_id), employee_name=mayor.employee_name,
+                     position_name=mayor.position_name, unit_name=mayor.unit_name,
+                     para_label=mayor.para_label) if mayor else None
+            ),
             reference=self._normalize_optional_text(body.reference),
             description=description,
             priority=body.priority,
@@ -834,8 +839,7 @@ class CorrespondenceService:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail=(
-                    "No hay un titular ejecutivo municipal configurado "
-                    "(cargo ALCALDE/ALCALDESA con usuario activo)."
+                    "Debe configurar al Alcalde/Máxima Autoridad Ejecutiva antes de registrar documentos EDIE."
                 ),
             )
         return mayor
@@ -1173,6 +1177,9 @@ class CorrespondenceService:
         return (current_max or 0) + 1
 
     def _historical_mayor_para(self, correspondence_id: uuid.UUID) -> str | None:
+        correspondence = self._db.get(Correspondence, correspondence_id)
+        if correspondence and correspondence.institutional_authority_snapshot:
+            return correspondence.institutional_authority_snapshot["para_label"]
         first = self._db.scalar(
             select(CorrespondenceMovement)
             .where(
@@ -1185,21 +1192,7 @@ class CorrespondenceService:
         )
         if first is None or first.to_user_id is None:
             return None
-        recipient = self._db.get(User, first.to_user_id)
-        employee = (
-            self._db.get(Employee, recipient.employee_id)
-            if recipient and recipient.employee_id else None
-        )
-        position = (
-            self._db.get(Position, employee.position_id)
-            if employee and employee.position_id else None
-        )
-        if (position is None or position.code not in
-                get_settings().institutional_mayor_position_codes_list):
-            return None
-        name = apply_mayor_display_name(
-            self._db, self._user_display_name(first.to_user_id) or ''
-        )
+        name = self._user_display_name(first.to_user_id) or ''
         return ' — '.join(
             value for value in [self._unit_name(first.to_unit_id), name] if value
         )
@@ -1213,15 +1206,22 @@ class CorrespondenceService:
             .where(CorrespondenceMovement.correspondence_id == correspondence_id)
             .order_by(CorrespondenceMovement.sequence_number)
         ).all()
+        correspondence = self._db.get(Correspondence, correspondence_id)
+        snapshot = correspondence.institutional_authority_snapshot if correspondence else None
+        def historical_party(row, side):
+            if snapshot and ((row.sequence_number == 2 and side == "to") or
+                             (row.sequence_number == 3 and side == "from")):
+                return snapshot["unit_name"], snapshot["employee_name"]
+            return self._unit_name(getattr(row, f"{side}_unit_id")), self._user_display_name(getattr(row, f"{side}_user_id"))
         return [
             EncadenamientoMovementRow(
                 sequence_number=row.sequence_number,
                 movement_type=row.movement_type,
                 movement_type_label=movement_type_label(row.movement_type),
-                from_unit=self._unit_name(row.from_unit_id),
-                from_user=self._user_display_name(row.from_user_id),
-                to_unit=self._unit_name(row.to_unit_id),
-                to_user=self._user_display_name(row.to_user_id),
+                from_unit=historical_party(row, "from")[0],
+                from_user=historical_party(row, "from")[1],
+                to_unit=historical_party(row, "to")[0],
+                to_user=historical_party(row, "to")[1],
                 instruction=row.instruction,
                 created_at=row.created_at,
                 is_cancelled=row.cancelled_at is not None,
@@ -1381,14 +1381,24 @@ class CorrespondenceService:
 
     def _to_movement(self, movement: CorrespondenceMovement) -> CorrespondenceMovementResponse:
         creator = self._db.get(User, movement.created_by_user_id)
+        correspondence = self._db.get(Correspondence, movement.correspondence_id)
+        snapshot = correspondence.institutional_authority_snapshot if correspondence else None
+        from_unit = self._unit_name(movement.from_unit_id)
+        from_user = self._user_display_name(movement.from_user_id)
+        to_unit = self._unit_name(movement.to_unit_id)
+        to_user = self._user_display_name(movement.to_user_id)
+        if snapshot and movement.sequence_number == 2:
+            to_unit, to_user = snapshot["unit_name"], snapshot["employee_name"]
+        if snapshot and movement.sequence_number == 3:
+            from_unit, from_user = snapshot["unit_name"], snapshot["employee_name"]
         return CorrespondenceMovementResponse(
             id=movement.id,
             sequence_number=movement.sequence_number,
             movement_type=movement.movement_type,
-            from_unit_name=self._unit_name(movement.from_unit_id),
-            from_user_name=self._user_display_name(movement.from_user_id),
-            to_unit_name=self._unit_name(movement.to_unit_id),
-            to_user_name=self._user_display_name(movement.to_user_id),
+            from_unit_name=from_unit,
+            from_user_name=from_user,
+            to_unit_name=to_unit,
+            to_user_name=to_user,
             instruction=movement.instruction,
             observation=movement.observation,
             created_by_username=creator.username if creator else "",

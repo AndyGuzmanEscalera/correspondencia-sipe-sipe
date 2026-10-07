@@ -20,6 +20,7 @@ class AppDropdown<T> extends StatefulWidget {
     this.validators,
     this.onChanged,
     this.matchesQuery,
+    this.enabled = true,
   });
 
   final ControllerFieldDropdown<T> controller;
@@ -33,6 +34,7 @@ class AppDropdown<T> extends StatefulWidget {
   final List<AbstractValid>? validators;
   final void Function(FormOption<T>)? onChanged;
   final bool Function(FormOption<T> item, String query)? matchesQuery;
+  final bool enabled;
 
   @override
   State<AppDropdown<T>> createState() => _AppDropdownState<T>();
@@ -41,7 +43,8 @@ class AppDropdown<T> extends StatefulWidget {
 class _AppDropdownState<T> extends State<AppDropdown<T>> {
   String? _validate(FormOption<T>? value) {
     if (widget.validators == null || widget.validators!.isEmpty) return null;
-    final text = widget.controller.isExist() ? widget.controller.value.text : '';
+    final text =
+        widget.controller.isExist() ? widget.controller.value.text : '';
     return Validator.validation(text, widget.validators!);
   }
 
@@ -63,7 +66,7 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
   }
 
   Future<void> _openPicker() async {
-    if (widget.items.isEmpty) return;
+    if (!widget.enabled || widget.items.isEmpty) return;
 
     final selected = await showModalBottomSheet<FormOption<T>>(
       context: context,
@@ -76,9 +79,8 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
           emptyItemsMessage: widget.emptyItemsMessage,
           emptySearchMessage: widget.emptySearchMessage,
           matchesQuery: widget.matchesQuery ?? _defaultMatch,
-          initialSelection: widget.controller.isExist()
-              ? widget.controller.value
-              : null,
+          initialSelection:
+              widget.controller.isExist() ? widget.controller.value : null,
         );
       },
     );
@@ -115,12 +117,15 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   InkWell(
-                    onTap: widget.items.isEmpty ? null : _openPicker,
+                    onTap: !widget.enabled || widget.items.isEmpty
+                        ? null
+                        : _openPicker,
                     borderRadius: BorderRadius.circular(12),
                     child: InputDecorator(
                       decoration: AppFormFieldStyle.dropdownDecoration(
                         label: widget.label,
                       ).copyWith(
+                        enabled: widget.enabled,
                         errorText: field.errorText,
                         suffixIcon: const Icon(Icons.search_rounded),
                       ),

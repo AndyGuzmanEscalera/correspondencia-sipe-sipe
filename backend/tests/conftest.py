@@ -2,7 +2,7 @@ import uuid
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import select
+from sqlalchemy import select, inspect
 from sqlalchemy.orm import Session
 
 from app.core.database import SessionLocal
@@ -17,6 +17,8 @@ from app.modules.identity.user_role import UserRole
 from app.modules.organization.employee import Employee
 from app.modules.organization.organizational_unit import OrganizationalUnit
 from app.modules.organization.position import Position
+from app.modules.system.system_setting import SystemSetting
+from app.modules.system.constants import INSTITUTIONAL_MAYOR_EMPLOYEE_ID
 
 MASTER_DATA_PERMISSION_CODES = [
     "master_data.organizational_units.read",
@@ -63,6 +65,9 @@ def client() -> TestClient:
 @pytest.fixture(autouse=True)
 def seed_institutional_mayor(db: Session, org_unit: OrganizationalUnit) -> None:
     """Titular ALCALDE/ALCALDESA para encadenamiento (PARA / primer destinatario)."""
+    # Las suites de identidad aisladas no incluyen configuración/correspondencia.
+    if not inspect(db.get_bind()).has_table("system_settings"):
+        return
     for code, name in (("ALCALDE", "Alcalde Municipal"), ("ALCALDESA", "Alcaldesa Municipal")):
         existing = db.scalar(select(Position).where(Position.code == code))
         if existing is None:
@@ -108,6 +113,13 @@ def seed_institutional_mayor(db: Session, org_unit: OrganizationalUnit) -> None:
         )
         db.add(mayor_user)
         db.commit()
+
+    setting = db.get(SystemSetting, INSTITUTIONAL_MAYOR_EMPLOYEE_ID)
+    if setting is None:
+        db.add(SystemSetting(key=INSTITUTIONAL_MAYOR_EMPLOYEE_ID, value=str(mayor_employee.id)))
+    else:
+        setting.value = str(mayor_employee.id)
+    db.commit()
 
 
 @pytest.fixture()

@@ -16,13 +16,23 @@ class SystemSettingsAdminApi {
   }
 
   Future<InstitutionalSettingsResponse> updateInstitutionalSettings({
-    required String? mayorDisplayName,
+    required String? mayorEmployeeId,
   }) async {
     final json = await _mainApi.put(
       Endpoints.adminSystemSettingsInstitutional,
-      data: {'mayor_display_name': mayorDisplayName},
+      data: {'mayor_employee_id': mayorEmployeeId},
       operation: 'systemSettings.updateInstitutional',
     );
     return InstitutionalSettingsResponse.fromJson(json);
+  }
+
+  Future<List<AuthorityEmployeeResponse>> getAuthorityEmployees() async {
+    final items = await _mainApi.getList(
+      Endpoints.adminSystemSettingsAuthorityEmployees,
+      operation: 'systemSettings.authorityEmployees',
+    );
+    return items
+        .map((item) => AuthorityEmployeeResponse.fromJson(item))
+        .toList();
   }
 }
