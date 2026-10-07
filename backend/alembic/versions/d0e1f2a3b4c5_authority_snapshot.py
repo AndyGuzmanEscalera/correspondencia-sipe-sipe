@@ -32,7 +32,7 @@ def upgrade():
             'unit_id', ou.id::text,
             'employee_name', trim(e.first_name || ' ' || e.last_name),
             'position_name', p.name, 'unit_name', ou.name,
-            'para_label', ou.name || ' — ' || trim(e.first_name || ' ' || e.last_name) || ' (' || p.name || ')')
+            'para_label', ou.name || ' — ' || trim(e.first_name || ' ' || e.last_name))
         FROM first_recipient m, users u, employees e, positions p,
              organizational_units ou, document_types dt
         WHERE c.id = m.correspondence_id AND c.document_type_id = dt.id

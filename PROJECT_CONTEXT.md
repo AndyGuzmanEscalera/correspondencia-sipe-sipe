@@ -178,7 +178,7 @@ Al registrar encadenamiento:
 PDF de encadenamiento bajo /correspondences/{id}/encadenamiento.pdf.
 Los EDIE nuevos guardan institutional_authority_snapshot en la misma transacción: IDs, nombre, cargo, unidad y etiqueta PARA del primer destinatario. PDF e historial usan ese snapshot para su paso de entrada y salida, sin consultar la autoridad actual ni el override legacy.
 Cambiar autoridad A → B afecta EDIE nuevos; los anteriores preservan A, incluso si luego cambian su nombre/cargo/unidad o estado activo.
-Migración de documentos previos: congela los datos disponibles de su destinatario original, nunca el setting vigente. No puede recuperar textos anteriores a la migración si ya se habían editado los maestros, porque antes no existía snapshot. Registros incompletos conservan fallback por referencias históricas.
+Migración de documentos previos: congela los datos disponibles de su destinatario original, nunca el setting vigente, conservando el formato anterior de PARA (unidad — nombre). No puede recuperar textos anteriores a la migración si ya se habían editado los maestros o se usaban overrides de nombre, porque antes no existía snapshot. Registros incompletos conservan fallback por referencias históricas.
 
 ## 7. Administración, errores y datos reales
 

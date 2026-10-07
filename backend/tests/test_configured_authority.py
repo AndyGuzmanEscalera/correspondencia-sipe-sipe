@@ -114,6 +114,7 @@ def test_snapshot_migration_freezes_original_recipient_and_preserves_existing_sn
         db.expire_all()
         frozen = correspondence.institutional_authority_snapshot.copy()
         assert frozen["employee_id"] == str(mayor_user.employee_id)
+        assert frozen["para_label"] == f'{frozen["unit_name"]} — {frozen["employee_name"]}'
         migration.upgrade()
         migration.downgrade()
         db.expire_all()
