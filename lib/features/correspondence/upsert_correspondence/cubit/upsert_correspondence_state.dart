@@ -9,6 +9,8 @@ class UpsertCorrespondenceState extends Equatable implements StatusState {
     this.catalogLoaded = false,
     this.unitUsersLoading = false,
     this.defaultDocumentTypeId,
+    this.institutionalMayor,
+    this.institutionalMayorError,
     this.createdCorrespondence,
     this.attachmentUploadFailures = const [],
     this.dialogMessage = const DialogMessage.empty(),
@@ -22,6 +24,8 @@ class UpsertCorrespondenceState extends Equatable implements StatusState {
   final bool catalogLoaded;
   final bool unitUsersLoading;
   final String? defaultDocumentTypeId;
+  final repo.InstitutionalMayor? institutionalMayor;
+  final String? institutionalMayorError;
   final repo.Correspondence? createdCorrespondence;
   final List<String> attachmentUploadFailures;
 
@@ -35,6 +39,9 @@ class UpsertCorrespondenceState extends Equatable implements StatusState {
     required bool isExternal,
   }) {
     if (!hasBaseCatalog) return false;
+    if (profile == DocumentFormProfile.chaining && institutionalMayor == null) {
+      return false;
+    }
     if (!requiresOriginEmployee(profile: profile, isExternal: isExternal)) {
       return true;
     }
@@ -55,6 +62,9 @@ class UpsertCorrespondenceState extends Equatable implements StatusState {
     bool? catalogLoaded,
     bool? unitUsersLoading,
     String? defaultDocumentTypeId,
+    repo.InstitutionalMayor? institutionalMayor,
+    bool clearInstitutionalMayor = false,
+    String? institutionalMayorError,
     repo.Correspondence? createdCorrespondence,
     bool clearCreatedCorrespondence = false,
     List<String>? attachmentUploadFailures,
@@ -65,14 +75,18 @@ class UpsertCorrespondenceState extends Equatable implements StatusState {
   }) {
     return UpsertCorrespondenceState(
       documentTypes: documentTypes ?? this.documentTypes,
-      organizationalUnits:
-          organizationalUnits ?? this.organizationalUnits,
+      organizationalUnits: organizationalUnits ?? this.organizationalUnits,
       employees: employees ?? this.employees,
       unitUsers: clearUnitUsers ? const [] : (unitUsers ?? this.unitUsers),
       catalogLoaded: catalogLoaded ?? this.catalogLoaded,
       unitUsersLoading: unitUsersLoading ?? this.unitUsersLoading,
       defaultDocumentTypeId:
           defaultDocumentTypeId ?? this.defaultDocumentTypeId,
+      institutionalMayor: clearInstitutionalMayor
+          ? null
+          : (institutionalMayor ?? this.institutionalMayor),
+      institutionalMayorError:
+          institutionalMayorError ?? this.institutionalMayorError,
       createdCorrespondence: clearCreatedCorrespondence
           ? null
           : (createdCorrespondence ?? this.createdCorrespondence),
@@ -93,6 +107,8 @@ class UpsertCorrespondenceState extends Equatable implements StatusState {
         catalogLoaded,
         unitUsersLoading,
         defaultDocumentTypeId,
+        institutionalMayor,
+        institutionalMayorError,
         createdCorrespondence,
         attachmentUploadFailures,
         dialogMessage,

@@ -60,6 +60,56 @@ def client() -> TestClient:
     app.dependency_overrides.clear()
 
 
+@pytest.fixture(autouse=True)
+def seed_institutional_mayor(db: Session, org_unit: OrganizationalUnit) -> None:
+    """Titular ALCALDE/ALCALDESA para encadenamiento (PARA / primer destinatario)."""
+    for code, name in (("ALCALDE", "Alcalde Municipal"), ("ALCALDESA", "Alcaldesa Municipal")):
+        existing = db.scalar(select(Position).where(Position.code == code))
+        if existing is None:
+            db.add(
+                Position(
+                    id=uuid.uuid4(),
+                    code=code,
+                    name=name,
+                    is_active=True,
+                )
+            )
+    db.commit()
+
+    mayor_position = db.scalar(select(Position).where(Position.code == "ALCALDE"))
+    assert mayor_position is not None
+
+    mayor_employee = db.scalar(
+        select(Employee).where(Employee.document_number == "MAYOR_TEST_DOC")
+    )
+    if mayor_employee is None:
+        mayor_employee = Employee(
+            id=uuid.uuid4(),
+            first_name="Jaime",
+            last_name="Montero López",
+            document_number="MAYOR_TEST_DOC",
+            unit_id=org_unit.id,
+            position_id=mayor_position.id,
+            is_active=True,
+        )
+        db.add(mayor_employee)
+        db.commit()
+        db.refresh(mayor_employee)
+
+    mayor_user = db.scalar(select(User).where(User.username == "mayor_test"))
+    if mayor_user is None:
+        mayor_user = User(
+            id=uuid.uuid4(),
+            employee_id=mayor_employee.id,
+            username="mayor_test",
+            email="mayor_test@example.com",
+            password_hash=hash_password("TestPass123!"),
+            is_active=True,
+        )
+        db.add(mayor_user)
+        db.commit()
+
+
 @pytest.fixture()
 def encadenamiento_document_type(db: Session) -> DocumentType:
     existing = db.scalar(
@@ -200,6 +250,13 @@ def user(db: Session, employee: Employee) -> User:
     db.add(user)
     db.commit()
     db.refresh(user)
+    return user
+
+
+@pytest.fixture()
+def mayor_user(db: Session) -> User:
+    user = db.scalar(select(User).where(User.username == "mayor_test"))
+    assert user is not None
     return user
 
 

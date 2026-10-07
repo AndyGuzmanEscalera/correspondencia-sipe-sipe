@@ -13,6 +13,7 @@ import '../models/create_correspondence_request.dart';
 import '../models/derive_correspondence_request.dart';
 import '../models/document_type_response.dart';
 import '../models/employee_option_response.dart';
+import '../models/institutional_mayor_response.dart';
 
 class CorrespondenceApi {
   CorrespondenceApi({required ApiMethod mainApi}) : _mainApi = mainApi;
@@ -33,6 +34,14 @@ class CorrespondenceApi {
       operation: 'correspondence.employees',
     );
     return items.map(EmployeeOptionResponse.fromJson).toList();
+  }
+
+  Future<InstitutionalMayorResponse> getInstitutionalMayor() async {
+    final json = await _mainApi.get(
+      Endpoints.institutionalMayor,
+      operation: 'correspondence.institutionalMayor',
+    );
+    return InstitutionalMayorResponse.fromJson(json);
   }
 
   Future<CorrespondenceListResponse> getInbox({

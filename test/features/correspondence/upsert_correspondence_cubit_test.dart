@@ -53,6 +53,21 @@ class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
   }
 
   @override
+  Future<Result<repo.InstitutionalMayor, Failure>> getInstitutionalMayor() async {
+    return Ok(
+      const repo.InstitutionalMayor(
+        userId: 'mayor-user',
+        employeeId: 'mayor-emp',
+        unitId: 'unit-mayor',
+        employeeName: 'Jaime Montero López',
+        positionName: 'Alcalde Municipal',
+        unitName: 'Alcaldía',
+        paraLabel: 'Alcaldía — Jaime Montero López',
+      ),
+    );
+  }
+
+  @override
   Future<Result<List<repo.EmployeeOption>, Failure>> listEmployees() async {
     return Ok([
       repo.EmployeeOption(
@@ -183,6 +198,7 @@ void main() {
         priorityLabel: 'Alta',
         documentTypeId: 'dt-edie',
         initialToUnitId: 'unit-2',
+        initialToUserId: 'user-dest',
         senderName: 'Ciudadano',
       );
 
@@ -231,6 +247,7 @@ void main() {
         priorityLabel: 'Baja',
         documentTypeId: 'dt-edie',
         initialToUnitId: 'unit-2',
+        initialToUserId: 'user-dest',
         senderName: 'Remitente',
         pendingAttachments: const [
           PendingAttachment(filename: 'a.pdf', bytes: [1]),
@@ -258,6 +275,7 @@ void main() {
         priorityLabel: 'Baja',
         documentTypeId: 'dt-edie',
         initialToUnitId: 'unit-2',
+        initialToUserId: 'user-dest',
         senderName: 'Remitente',
         pendingAttachments: const [
           PendingAttachment(filename: 'a.pdf', bytes: [1]),
@@ -285,6 +303,7 @@ void main() {
         priorityLabel: 'Baja',
         documentTypeId: 'dt-edie',
         initialToUnitId: 'unit-2',
+        initialToUserId: 'user-dest',
         senderName: 'Remitente',
       );
 

@@ -7,6 +7,7 @@ import '../entities/correspondence_movement.dart';
 import '../entities/create_correspondence_input.dart';
 import '../entities/document_type.dart';
 import '../entities/employee_option.dart';
+import '../entities/institutional_mayor.dart';
 import '../entities/inbox_counts.dart';
 import '../entities/inbox_scope.dart';
 import '../entities/sent_count.dart';
@@ -37,6 +38,25 @@ class CorrespondenceRepository {
       },
       feature: 'correspondence',
       operation: 'listEmployees',
+    );
+  }
+
+  Future<Result<InstitutionalMayor, Failure>> getInstitutionalMayor() {
+    return handleExceptions<InstitutionalMayor>(
+      () async {
+        final item = await _correspondenceApi.getInstitutionalMayor();
+        return InstitutionalMayor(
+          userId: item.userId,
+          employeeId: item.employeeId,
+          unitId: item.unitId,
+          employeeName: item.employeeName,
+          positionName: item.positionName,
+          unitName: item.unitName,
+          paraLabel: item.paraLabel,
+        );
+      },
+      feature: 'correspondence',
+      operation: 'getInstitutionalMayor',
     );
   }
 

@@ -11,6 +11,7 @@ import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_corresp
 import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/helpers/upsert_correspondence_inherited.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/widgets/attachments_section.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/widgets/chaining_fields.dart';
+import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/widgets/chaining_destination_section.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/widgets/destination_section.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/widgets/document_type_section.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/widgets/generic_fields.dart';
@@ -292,11 +293,20 @@ class _UpsertCorrespondenceBodyState extends State<UpsertCorrespondenceBody> {
                   const InternalNoteFields(),
                 if (_profile == DocumentFormProfile.generic)
                   const GenericFields(),
-                DestinationSection(
-                  organizationalUnits: state.organizationalUnits,
-                  unitUsers: state.unitUsers,
-                  unitUsersLoading: state.unitUsersLoading,
-                ),
+                if (_profile == DocumentFormProfile.chaining)
+                  ChainingDestinationSection(
+                    institutionalMayor: state.institutionalMayor,
+                    errorMessage: state.institutionalMayorError,
+                    organizationalUnits: state.organizationalUnits,
+                    unitUsers: state.unitUsers,
+                    unitUsersLoading: state.unitUsersLoading,
+                  )
+                else
+                  DestinationSection(
+                    organizationalUnits: state.organizationalUnits,
+                    unitUsers: state.unitUsers,
+                    unitUsersLoading: state.unitUsersLoading,
+                  ),
                 const AttachmentsSection(),
               ],
             ),

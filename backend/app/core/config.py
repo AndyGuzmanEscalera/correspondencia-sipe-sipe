@@ -40,6 +40,10 @@ class Settings(BaseSettings):
 
     storage_root: Path = Field(default=Path("storage"))
     institutional_logo_path: Path | None = Field(default=None)
+    institutional_mayor_position_codes: str = Field(
+        default="ALCALDE,ALCALDESA",
+        description="Códigos de cargo del titular ejecutivo municipal (PARA / primer destinatario)",
+    )
     max_attachment_size_mb: int = Field(default=25)
     attachment_allowed_mime_types: str = Field(
         default=(
@@ -76,6 +80,14 @@ class Settings(BaseSettings):
     @property
     def max_attachment_size_bytes(self) -> int:
         return self.max_attachment_size_mb * 1024 * 1024
+
+    @property
+    def institutional_mayor_position_codes_list(self) -> list[str]:
+        return [
+            code.strip().upper()
+            for code in self.institutional_mayor_position_codes.split(",")
+            if code.strip()
+        ]
 
     @property
     def attachment_allowed_mime_types_list(self) -> list[str]:

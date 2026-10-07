@@ -21,6 +21,7 @@ from app.modules.correspondence.schemas import (
     DeriveCorrespondenceRequest,
     DocumentTypeResponse,
     EmployeeOptionResponse,
+    InstitutionalMayorResponse,
 )
 from app.modules.correspondence.service import CorrespondenceService
 from app.modules.identity.user import User
@@ -53,6 +54,17 @@ def list_active_employees(
     _user: Annotated[User, Depends(get_current_user)],
 ) -> list[EmployeeOptionResponse]:
     return service.list_active_employees()
+
+
+@catalog_router.get(
+    "/institutional-mayor",
+    response_model=InstitutionalMayorResponse,
+)
+def get_institutional_mayor(
+    service: Annotated[CorrespondenceService, Depends(_service)],
+    _user: Annotated[User, Depends(get_current_user)],
+) -> InstitutionalMayorResponse:
+    return service.get_institutional_mayor()
 
 
 @router.post(

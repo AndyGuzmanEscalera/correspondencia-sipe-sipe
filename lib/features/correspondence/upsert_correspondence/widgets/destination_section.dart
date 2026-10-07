@@ -14,12 +14,16 @@ class DestinationSection extends StatelessWidget {
     required this.organizationalUnits,
     required this.unitUsers,
     required this.unitUsersLoading,
+    this.sectionTitle = 'Destino e instrucción',
+    this.requireSpecificUser = false,
     super.key,
   });
 
   final List<OrganizationalUnit> organizationalUnits;
   final List<UnitUser> unitUsers;
   final bool unitUsersLoading;
+  final String sectionTitle;
+  final bool requireSpecificUser;
 
   @override
   Widget build(BuildContext context) {
@@ -36,19 +40,21 @@ class DestinationSection extends StatelessWidget {
         )
         .toList();
 
-    final userItems = [
-      UpsertCorrespondenceInherited.noUserOption,
-      ...unitUsers.map(
-        (user) => FormOption<String>(
-          id: user.id.hashCode,
-          text: user.displayName,
-          value: user.id,
-        ),
-      ),
-    ];
+    final userItems = unitUsers
+        .map(
+          (user) => FormOption<String>(
+            id: user.id.hashCode,
+            text: user.displayName,
+            value: user.id,
+          ),
+        )
+        .toList();
+    if (!requireSpecificUser) {
+      userItems.insert(0, UpsertCorrespondenceInherited.noUserOption);
+    }
 
     return UpsertFormSection(
-      title: 'Destino e instrucción',
+      title: sectionTitle,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -82,8 +88,13 @@ class DestinationSection extends StatelessWidget {
             ),
           AppDropdown<String>(
             controller: inherited.toUser,
-            label: 'Usuario destino (opcional)',
+            label: requireSpecificUser
+                ? 'Funcionario destino'
+                : 'Usuario destino (opcional)',
             items: userItems,
+            validators: requireSpecificUser
+                ? [RequiredValid(error: 'Seleccione un funcionario destino')]
+                : null,
           ),
         ],
           AppTextField(

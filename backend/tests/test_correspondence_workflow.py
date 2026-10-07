@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.modules.correspondence.correspondence import Correspondence
 from app.modules.correspondence.document_type import DocumentType
+from app.modules.identity.user import User
 from app.modules.organization.employee import Employee
 from app.modules.organization.organizational_unit import OrganizationalUnit
 from tests.test_correspondence import _create_payload
@@ -18,6 +19,7 @@ def test_document_number_is_per_document_type(
     encadenamiento_document_type: DocumentType,
     document_type: DocumentType,
     second_org_unit: OrganizationalUnit,
+    second_user: User,
 ) -> None:
     first = client.post(
         "/correspondences",
@@ -26,6 +28,7 @@ def test_document_number_is_per_document_type(
             encadenamiento_document_type,
             "Encadenamiento 1",
             unit_id=second_org_unit.id,
+            user_id=second_user.id,
             sender_name="Externo A",
         ),
     )
@@ -53,6 +56,7 @@ def test_document_number_is_per_document_type(
             encadenamiento_document_type,
             "Encadenamiento 2",
             unit_id=second_org_unit.id,
+            user_id=second_user.id,
             sender_name="Externo C",
         ),
     )
@@ -65,6 +69,7 @@ def test_chaining_external_requires_sender_name(
     auth_headers: dict[str, str],
     encadenamiento_document_type: DocumentType,
     second_org_unit: OrganizationalUnit,
+    second_user: User,
 ) -> None:
     response = client.post(
         "/correspondences",
@@ -73,6 +78,7 @@ def test_chaining_external_requires_sender_name(
             encadenamiento_document_type,
             "Sin remitente",
             unit_id=second_org_unit.id,
+            user_id=second_user.id,
             correspondence_type="EXTERNAL",
             sender_name="",
         ),
@@ -86,6 +92,7 @@ def test_chaining_employee_origin(
     encadenamiento_document_type: DocumentType,
     second_org_unit: OrganizationalUnit,
     employee: Employee,
+    second_user: User,
 ) -> None:
     response = client.post(
         "/correspondences",
@@ -95,6 +102,7 @@ def test_chaining_employee_origin(
                 encadenamiento_document_type,
                 "Origen funcionario",
                 unit_id=second_org_unit.id,
+                user_id=second_user.id,
                 correspondence_type="INTERNAL",
             ),
             "origin_employee_id": str(employee.id),
@@ -139,6 +147,7 @@ def test_upload_list_download_and_deactivate_attachment(
     auth_headers: dict[str, str],
     encadenamiento_document_type: DocumentType,
     second_org_unit: OrganizationalUnit,
+    second_user: User,
 ) -> None:
     create = client.post(
         "/correspondences",
@@ -147,6 +156,7 @@ def test_upload_list_download_and_deactivate_attachment(
             encadenamiento_document_type,
             "Con adjunto",
             unit_id=second_org_unit.id,
+            user_id=second_user.id,
             sender_name="Remitente",
         ),
     )
@@ -195,6 +205,7 @@ def test_correspondence_persists_when_upload_fails(
     auth_headers: dict[str, str],
     encadenamiento_document_type: DocumentType,
     second_org_unit: OrganizationalUnit,
+    second_user: User,
     db: Session,
 ) -> None:
     create = client.post(
@@ -204,6 +215,7 @@ def test_correspondence_persists_when_upload_fails(
             encadenamiento_document_type,
             "Persiste sin adjunto",
             unit_id=second_org_unit.id,
+            user_id=second_user.id,
             sender_name="Remitente",
         ),
     )

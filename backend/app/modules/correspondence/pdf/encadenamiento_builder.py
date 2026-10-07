@@ -56,7 +56,11 @@ def resolve_para(
     current_unit_name: str | None,
     current_user_name: str | None,
     movement_rows: list[EncadenamientoMovementRow],
+    mayor_para: str | None = None,
 ) -> str:
+    if mayor_para and mayor_para.strip():
+        return mayor_para.strip()
+
     derived = [
         movement
         for movement in movement_rows

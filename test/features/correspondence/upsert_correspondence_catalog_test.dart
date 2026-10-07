@@ -14,7 +14,8 @@ class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
   Future<Result<List<repo.DocumentType>, Failure>> listDocumentTypes() async {
     return Ok([
       repo.DocumentType(id: 'dt-edie', code: 'EDIE', name: 'Encadenamiento'),
-      repo.DocumentType(id: 'dt-informe', code: 'INFORME', name: 'Informe Técnico'),
+      repo.DocumentType(
+          id: 'dt-informe', code: 'INFORME', name: 'Informe Técnico'),
       repo.DocumentType(id: 'dt-nota', code: 'NOTA', name: 'Nota Interna'),
     ]);
   }
@@ -25,8 +26,34 @@ class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
   }
 
   @override
+  Future<Result<repo.InstitutionalMayor, Failure>>
+      getInstitutionalMayor() async {
+    return Ok(
+      const repo.InstitutionalMayor(
+        userId: 'mayor-user',
+        employeeId: 'mayor-emp',
+        unitId: 'unit-mayor',
+        employeeName: 'Jaime Montero López',
+        positionName: 'Alcalde Municipal',
+        unitName: 'Alcaldía',
+        paraLabel: 'Alcaldía — Jaime Montero López',
+      ),
+    );
+  }
+
+  @override
   noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
+
+const _testMayor = repo.InstitutionalMayor(
+  userId: 'mayor-user',
+  employeeId: 'mayor-emp',
+  unitId: 'unit-mayor',
+  employeeName: 'Jaime Montero López',
+  positionName: 'Alcalde Municipal',
+  unitName: 'Alcaldía',
+  paraLabel: 'Alcaldía — Jaime Montero López',
+);
 
 class _FakeOrganizationRepository implements repo.OrganizationRepository {
   @override
@@ -41,12 +68,15 @@ class _FakeOrganizationRepository implements repo.OrganizationRepository {
   noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-UpsertCorrespondenceState _loadedState({List<repo.EmployeeOption> employees = const []}) {
+UpsertCorrespondenceState _loadedState(
+    {List<repo.EmployeeOption> employees = const []}) {
   return UpsertCorrespondenceState(
     catalogLoaded: true,
+    institutionalMayor: _testMayor,
     documentTypes: const [
       repo.DocumentType(id: 'dt-edie', code: 'EDIE', name: 'Encadenamiento'),
-      repo.DocumentType(id: 'dt-informe', code: 'INFORME', name: 'Informe Técnico'),
+      repo.DocumentType(
+          id: 'dt-informe', code: 'INFORME', name: 'Informe Técnico'),
       repo.DocumentType(id: 'dt-nota', code: 'NOTA', name: 'Nota Interna'),
     ],
     organizationalUnits: const [
@@ -58,6 +88,22 @@ UpsertCorrespondenceState _loadedState({List<repo.EmployeeOption> employees = co
 
 void main() {
   group('UpsertCorrespondenceState.isCatalogReadyFor', () {
+    test('sin titular bloquea EDIE y mantiene disponibles otros perfiles', () {
+      final state = _loadedState().copyWith(
+          clearInstitutionalMayor: true,
+          employees: const [
+            repo.EmployeeOption(id: 'e1', fullName: 'Funcionario')
+          ]);
+      expect(
+          state.isCatalogReadyFor(
+              profile: DocumentFormProfile.chaining, isExternal: true),
+          isFalse);
+      expect(
+          state.isCatalogReadyFor(
+              profile: DocumentFormProfile.internalNote, isExternal: false),
+          isTrue);
+    });
+
     test('EDIE EXTERNAL funciona con employees vacío', () {
       final state = _loadedState();
 

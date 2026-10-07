@@ -40,6 +40,16 @@ class EmployeeOptionResponse(BaseModel):
     document_number: str | None
 
 
+class InstitutionalMayorResponse(BaseModel):
+    user_id: uuid.UUID
+    employee_id: uuid.UUID
+    unit_id: uuid.UUID
+    employee_name: str
+    position_name: str
+    unit_name: str
+    para_label: str
+
+
 class CreateCorrespondenceRequest(BaseModel):
     correspondence_type: Literal["INTERNAL", "EXTERNAL"]
     document_type_id: uuid.UUID

@@ -27,6 +27,7 @@ class UpsertCorrespondenceCubit extends Cubit<UpsertCorrespondenceState> {
     final typesResult = await _correspondenceRepository.listDocumentTypes();
     final unitsResult = await _organizationRepository.listActiveUnits();
     final employeesResult = await _correspondenceRepository.listEmployees();
+    final mayorResult = await _correspondenceRepository.getInstitutionalMayor();
 
     if (typesResult case Err(:final failure)) {
       emit(
@@ -71,6 +72,16 @@ class UpsertCorrespondenceCubit extends Cubit<UpsertCorrespondenceState> {
         documentTypes: documentTypes,
         organizationalUnits: unitsResult.valueOrNull() ?? const [],
         employees: employeesResult.valueOrNull() ?? const [],
+        institutionalMayor: mayorResult.valueOrNull(),
+        clearInstitutionalMayor: mayorResult is Err,
+        institutionalMayorError: mayorResult.when(
+          ok: (_) => '',
+          err: (failure) => FailureGeneric.message(
+            failure: failure,
+            messageResult:
+                'No se pudo cargar el titular ejecutivo municipal. Revise su configuración institucional.',
+          ),
+        ),
         defaultDocumentTypeId: defaultType?.id,
         catalogLoaded: true,
         clearUnitUsers: true,
@@ -110,7 +121,8 @@ class UpsertCorrespondenceCubit extends Cubit<UpsertCorrespondenceState> {
               title: 'Error',
               message: FailureGeneric.message(
                 failure: failure,
-                messageResult: 'No se pudieron cargar los usuarios de la unidad',
+                messageResult:
+                    'No se pudieron cargar los usuarios de la unidad',
               ),
             ),
           ),
@@ -201,7 +213,8 @@ class UpsertCorrespondenceCubit extends Cubit<UpsertCorrespondenceState> {
         attachmentUploadFailures: uploadFailures,
         generalStatus: GeneralStatus.success,
         dialogMessage: DialogMessage(
-          title: uploadFailures.isEmpty ? 'Registro exitoso' : 'Registro parcial',
+          title:
+              uploadFailures.isEmpty ? 'Registro exitoso' : 'Registro parcial',
           message: successMessage,
         ),
       ),
@@ -245,8 +258,8 @@ class UpsertCorrespondenceCubit extends Cubit<UpsertCorrespondenceState> {
       case DocumentFormProfile.chaining:
         final isExternal = type == CorrespondenceTypeCode.ce;
         return repo.CreateCorrespondenceInput(
-          correspondenceType:
-              correspondenceTypeCodeFromUi(isExternal ? type : CorrespondenceTypeCode.ci),
+          correspondenceType: correspondenceTypeCodeFromUi(
+              isExternal ? type : CorrespondenceTypeCode.ci),
           documentTypeId: documentTypeId,
           subject: _optional(subject),
           priority: priority,

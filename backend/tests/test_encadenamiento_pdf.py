@@ -111,6 +111,7 @@ def test_create_correspondence_does_not_persist_encadenamiento_attachment(
     auth_headers: dict[str, str],
     encadenamiento_document_type: DocumentType,
     second_org_unit: OrganizationalUnit,
+    second_user: User,
     db: Session,
 ) -> None:
     response = client.post(
@@ -120,6 +121,7 @@ def test_create_correspondence_does_not_persist_encadenamiento_attachment(
             encadenamiento_document_type,
             "Solicitud sin PDF en create",
             unit_id=second_org_unit.id,
+            user_id=second_user.id,
             priority="HIGH",
             initial_instruction="Derivar",
             sender_name="Remitente externo",
@@ -144,6 +146,7 @@ def test_download_encadenamiento_pdf_on_demand(
     auth_headers: dict[str, str],
     encadenamiento_document_type: DocumentType,
     second_org_unit: OrganizationalUnit,
+    second_user: User,
 ) -> None:
     create = client.post(
         "/correspondences",
@@ -152,6 +155,7 @@ def test_download_encadenamiento_pdf_on_demand(
             encadenamiento_document_type,
             "Descarga on-demand",
             unit_id=second_org_unit.id,
+            user_id=second_user.id,
             sender_name="Remitente externo",
         ),
     )
@@ -173,6 +177,7 @@ def test_download_encadenamiento_pdf_requires_auth(
     encadenamiento_document_type: DocumentType,
     second_org_unit: OrganizationalUnit,
     auth_headers: dict[str, str],
+    second_user: User,
 ) -> None:
     create = client.post(
         "/correspondences",
@@ -181,6 +186,7 @@ def test_download_encadenamiento_pdf_requires_auth(
             encadenamiento_document_type,
             "Auth required",
             unit_id=second_org_unit.id,
+            user_id=second_user.id,
             sender_name="Remitente externo",
         ),
     )
@@ -206,6 +212,7 @@ def test_download_encadenamiento_pdf_reflects_new_derivation(
     second_org_unit: OrganizationalUnit,
     org_unit: OrganizationalUnit,
     second_user: User,
+    user: User,
     db: Session,
 ) -> None:
     create = client.post(
@@ -215,22 +222,25 @@ def test_download_encadenamiento_pdf_reflects_new_derivation(
             encadenamiento_document_type,
             "Derivación posterior",
             unit_id=second_org_unit.id,
+            user_id=second_user.id,
             sender_name="Remitente externo",
         ),
     )
+    assert create.status_code == 201, create.text
     correspondence_id = create.json()["id"]
 
     from app.core.security import create_access_token
 
-    second_headers = {
+    destination_headers = {
         "Authorization": f"Bearer {create_access_token(second_user.id)[0]}"
     }
     derive = client.post(
         f"/correspondences/{correspondence_id}/derive",
-        headers=second_headers,
+        headers=destination_headers,
         json={
             "to_unit_id": str(org_unit.id),
-            "instruction": "Segunda derivación",
+            "to_user_id": str(user.id),
+            "instruction": "Tercera derivación",
         },
     )
     assert derive.status_code == 200, derive.text
@@ -240,7 +250,7 @@ def test_download_encadenamiento_pdf_reflects_new_derivation(
         .where(CorrespondenceMovement.correspondence_id == uuid.UUID(correspondence_id))
         .order_by(CorrespondenceMovement.sequence_number)
     ).all()
-    assert len(movements) == 3
+    assert len(movements) == 4
 
     pdf_response = client.get(
         f"/correspondences/{correspondence_id}/encadenamiento.pdf",
@@ -298,6 +308,7 @@ def test_download_encadenamiento_pdf_generation_failure_returns_500(
     auth_headers: dict[str, str],
     encadenamiento_document_type: DocumentType,
     second_org_unit: OrganizationalUnit,
+    second_user: User,
 ) -> None:
     create = client.post(
         "/correspondences",
@@ -306,6 +317,7 @@ def test_download_encadenamiento_pdf_generation_failure_returns_500(
             encadenamiento_document_type,
             "Fallo generación PDF",
             unit_id=second_org_unit.id,
+            user_id=second_user.id,
             sender_name="Remitente externo",
         ),
     )

@@ -18,6 +18,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../test_helpers/app_dropdown_test_helpers.dart';
+
 class _TrackingCorrespondenceCubit extends CorrespondenceCubit {
   _TrackingCorrespondenceCubit(super.repository);
 
@@ -78,6 +80,21 @@ class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
         unitName: 'Sistemas',
       ),
     ]);
+  }
+
+  @override
+  Future<Result<repo.InstitutionalMayor, Failure>> getInstitutionalMayor() async {
+    return Ok(
+      const repo.InstitutionalMayor(
+        userId: 'mayor-user',
+        employeeId: 'mayor-emp',
+        unitId: 'unit-mayor',
+        employeeName: 'Jaime Montero López',
+        positionName: 'Alcalde Municipal',
+        unitName: 'Alcaldía',
+        paraLabel: 'Alcaldía — Jaime Montero López',
+      ),
+    );
   }
 
   @override
@@ -407,6 +424,7 @@ Future<void> _fillMinimumExternalForm(WidgetTester tester) async {
   await tester.enterText(find.byType(TextFormField).at(0), 'Ciudadano');
   await tester.enterText(find.byType(TextFormField).at(4), 'Solicitud externa');
   await _selectDestinationUnit(tester, unitName: 'Sistemas');
+  await _selectDestinationUser(tester, userName: 'Usuario Destino');
 }
 
 Future<void> _fillExternalFormWithoutSubject(WidgetTester tester) async {
@@ -418,6 +436,25 @@ Future<void> _fillExternalFormWithoutSubject(WidgetTester tester) async {
   );
   await tester.pumpAndSettle();
   await _selectDestinationUnit(tester, unitName: 'Sistemas');
+  await _selectDestinationUser(tester, userName: 'Usuario Destino');
+}
+
+Future<void> _selectDestinationUser(
+  WidgetTester tester, {
+  required String userName,
+}) async {
+  await tester.scrollUntilVisible(
+    find.text('Funcionario destino'),
+    48,
+    scrollable: find.byType(Scrollable).first,
+  );
+  await tester.pumpAndSettle();
+  await selectAppDropdownOption(
+    tester,
+    dropdownIndex: 4,
+    optionText: userName,
+    scrollable: find.byType(Scrollable).first,
+  );
 }
 
 Future<void> _selectDestinationUnit(
@@ -431,28 +468,28 @@ Future<void> _selectDestinationUnit(
     scrollable: find.byType(Scrollable).first,
   );
   await tester.pumpAndSettle();
-  await tester.tap(
-    find.byType(DropdownButtonFormField<FormOption<String>>).at(2),
+  await selectAppDropdownOption(
+    tester,
+    dropdownIndex: 3,
+    optionText: unitName,
+    scrollable: find.byType(Scrollable).first,
   );
-  await tester.pumpAndSettle();
-  await tester.tap(find.text(unitName).last);
-  await tester.pumpAndSettle();
 }
 
 Future<void> _selectTypeDropdown(
   WidgetTester tester, {
   required String optionText,
 }) async {
-  final dropdown =
-      find.byType(DropdownButtonFormField<FormOption<CorrespondenceTypeCode>>);
   await tester.scrollUntilVisible(
-    dropdown,
+    find.text('Tipo de correspondencia'),
     48,
     scrollable: find.byType(Scrollable).first,
   );
   await tester.pumpAndSettle();
-  await tester.tap(dropdown);
-  await tester.pumpAndSettle();
-  await tester.tap(find.text(optionText).last);
-  await tester.pumpAndSettle();
+  await selectAppDropdownOption(
+    tester,
+    dropdownIndex: 2,
+    optionText: optionText,
+    scrollable: find.byType(Scrollable).first,
+  );
 }

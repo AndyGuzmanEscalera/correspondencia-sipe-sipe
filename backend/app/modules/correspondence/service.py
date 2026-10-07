@@ -34,6 +34,10 @@ from app.modules.correspondence.document_type_profiles import (
     resolve_document_form_profile,
     supports_encadenamiento_pdf,
 )
+from app.modules.correspondence.institutional_mayor import (
+    InstitutionalMayor,
+    resolve_institutional_mayor,
+)
 from app.modules.correspondence.schemas import (
     CorrespondenceDetail,
     CorrespondenceInboxCountsResponse,
@@ -46,6 +50,7 @@ from app.modules.correspondence.schemas import (
     DeriveCorrespondenceRequest,
     DocumentTypeResponse,
     EmployeeOptionResponse,
+    InstitutionalMayorResponse,
 )
 from app.modules.correspondence.pdf.encadenamiento_builder import (
     build_encadenamiento_context,
@@ -243,7 +248,18 @@ class CorrespondenceService:
             body.document_type_id
         )
 
-        self._validate_destination(body.initial_to_unit_id, body.initial_to_user_id)
+        is_chaining = profile == DocumentFormProfile.CHAINING
+        if is_chaining:
+            self._validate_chaining_second_destination(
+                body.initial_to_unit_id,
+                body.initial_to_user_id,
+            )
+            mayor = self._require_institutional_mayor()
+            if body.initial_to_user_id == mayor.user_id:
+                raise HTTPException(status_code=422, detail="El segundo destinatario debe ser distinto del titular ejecutivo.")
+        else:
+            self._validate_destination(body.initial_to_unit_id, body.initial_to_user_id)
+            mayor = None
 
         correspondence = Correspondence(
             route_number=route_number,
@@ -274,9 +290,10 @@ class CorrespondenceService:
         self._db.add(correspondence)
         self._db.flush()
 
+        sequence_number = 1
         self._add_movement(
             correspondence=correspondence,
-            sequence_number=1,
+            sequence_number=sequence_number,
             movement_type=MOVEMENT_CREATED,
             from_unit_id=None,
             from_user_id=None,
@@ -287,12 +304,28 @@ class CorrespondenceService:
             created_by_user_id=user.id,
         )
 
+        if mayor is not None:
+            sequence_number += 1
+            self._add_movement(
+                correspondence=correspondence,
+                sequence_number=sequence_number,
+                movement_type=MOVEMENT_DERIVED,
+                from_unit_id=responsible.unit_id,
+                from_user_id=responsible.user_id,
+                to_unit_id=mayor.unit_id,
+                to_user_id=mayor.user_id,
+                instruction=None,
+                observation=None,
+                created_by_user_id=user.id,
+            )
+
+        sequence_number += 1
         self._add_movement(
             correspondence=correspondence,
-            sequence_number=2,
+            sequence_number=sequence_number,
             movement_type=MOVEMENT_DERIVED,
-            from_unit_id=responsible.unit_id,
-            from_user_id=responsible.user_id,
+            from_unit_id=mayor.unit_id if mayor is not None else responsible.unit_id,
+            from_user_id=mayor.user_id if mayor is not None else responsible.user_id,
             to_unit_id=body.initial_to_unit_id,
             to_user_id=body.initial_to_user_id,
             instruction=body.initial_instruction,
@@ -328,6 +361,13 @@ class CorrespondenceService:
 
         self._assert_current_unit_operator(user, correspondence)
         self._validate_destination(body.to_unit_id, body.to_user_id)
+        doc_type = self._document_type(correspondence.document_type_id)
+        if resolve_document_form_profile(doc_type.code) == DocumentFormProfile.CHAINING:
+            if body.to_user_id is None:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="Seleccione un funcionario destino específico.",
+                )
         self._assert_derivation_changes_assignment(correspondence, body)
 
         next_sequence = self._next_movement_sequence(correspondence.id)
@@ -474,10 +514,17 @@ class CorrespondenceService:
         if logo_path is not None and not logo_path.is_file():
             logo_path = None
 
+        mayor_para: str | None = None
+        if supports_encadenamiento_pdf(doc_type.code):
+            mayor = resolve_institutional_mayor(self._db)
+            if mayor is not None:
+                mayor_para = mayor.para_label
+
         para = resolve_para(
             current_unit_name=self._unit_name(correspondence.current_unit_id),
             current_user_name=self._user_display_name(correspondence.current_user_id),
             movement_rows=movement_rows,
+            mayor_para=mayor_para,
         )
         de = resolve_de(
             correspondence=correspondence,
@@ -772,13 +819,53 @@ class CorrespondenceService:
             total_pages=0,
         )
 
+    def get_institutional_mayor(self) -> InstitutionalMayorResponse:
+        mayor = self._require_institutional_mayor()
+        return InstitutionalMayorResponse(
+            user_id=mayor.user_id,
+            employee_id=mayor.employee_id,
+            unit_id=mayor.unit_id,
+            employee_name=mayor.employee_name,
+            position_name=mayor.position_name,
+            unit_name=mayor.unit_name,
+            para_label=mayor.para_label,
+        )
+
+    def _require_institutional_mayor(self) -> InstitutionalMayor:
+        mayor = resolve_institutional_mayor(self._db)
+        if mayor is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=(
+                    "No hay un titular ejecutivo municipal configurado "
+                    "(cargo ALCALDE/ALCALDESA con usuario activo)."
+                ),
+            )
+        return mayor
+
+    def _validate_chaining_second_destination(
+        self,
+        to_unit_id: uuid.UUID,
+        to_user_id: uuid.UUID | None,
+    ) -> None:
+        self._validate_destination(to_unit_id, to_user_id)
+        if to_user_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=(
+                    "El segundo destinatario requiere un funcionario destino "
+                    "específico."
+                ),
+            )
+
     def _resolve_institutional_responsible(self, user: User) -> InstitutionalResponsible:
         if user.employee_id is None:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail=(
-                    "El usuario no tiene un funcionario asociado. "
-                    "No puede registrar correspondencia."
+                    "Su cuenta de usuario no está vinculada a un funcionario. "
+                    "Un administrador debe asociar su usuario a un empleado "
+                    "activo en Administración → Datos básicos → Usuarios."
                 ),
             )
         employee = self._db.get(Employee, user.employee_id)

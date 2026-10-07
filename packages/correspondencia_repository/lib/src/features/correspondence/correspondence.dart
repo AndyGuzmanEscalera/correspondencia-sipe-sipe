@@ -1,4 +1,5 @@
 export 'entities/correspondence.dart';
+export 'entities/institutional_mayor.dart';
 export 'entities/correspondence_attachment.dart';
 export 'entities/correspondence_movement.dart';
 export 'entities/create_correspondence_input.dart';

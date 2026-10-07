@@ -11,6 +11,7 @@ class Endpoints {
 
   static const String documentTypes = '/document-types';
   static const String employees = '/employees';
+  static const String institutionalMayor = '/institutional-mayor';
   static const String correspondences = '/correspondences';
   static const String correspondencesInbox = '/correspondences/inbox';
   static const String correspondencesInboxCounts = '/correspondences/inbox/counts';
@@ -63,6 +64,7 @@ class Endpoints {
   static String adminDocumentType(String id) => '/admin/document-types/$id';
   static String adminDocumentTypeActive(String id) =>
       '/admin/document-types/$id/active';
+
   static const String adminSystemSettingsInstitutional =
       '/admin/system-settings/institutional';
 }
