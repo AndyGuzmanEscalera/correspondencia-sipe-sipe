@@ -50,13 +50,14 @@ def list_units_admin(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     search: str | None = None,
-    is_active: bool | None = None,
+    is_active: bool = True,
+    include_deleted: bool = False,
 ) -> PaginatedResponse[OrganizationalUnitAdminResponse]:
     return service.list_units(
         page=page,
         page_size=page_size,
         search=search,
-        is_active=is_active,
+        is_active=None if include_deleted else is_active,
     )
 
 
@@ -109,13 +110,14 @@ def list_positions_admin(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     search: str | None = None,
-    is_active: bool | None = None,
+    is_active: bool = True,
+    include_deleted: bool = False,
 ) -> PaginatedResponse[PositionAdminResponse]:
     return service.list_positions(
         page=page,
         page_size=page_size,
         search=search,
-        is_active=is_active,
+        is_active=None if include_deleted else is_active,
     )
 
 
@@ -168,7 +170,8 @@ def list_employees_admin(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     search: str | None = None,
-    is_active: bool | None = None,
+    is_active: bool = True,
+    include_deleted: bool = False,
     unit_id: uuid.UUID | None = None,
     position_id: uuid.UUID | None = None,
     available_for_user: bool = False,
@@ -178,7 +181,7 @@ def list_employees_admin(
         page=page,
         page_size=page_size,
         search=search,
-        is_active=is_active,
+        is_active=None if include_deleted else is_active,
         unit_id=unit_id,
         position_id=position_id,
         available_for_user=available_for_user,

@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.modules.identity.user import User
 from app.modules.organization.employee import Employee
+from app.modules.organization.position import Position
 from app.modules.organization.organizational_unit import OrganizationalUnit
 from app.modules.organization.schemas import OrganizationalUnitResponse, UnitUserResponse
 
@@ -41,9 +42,11 @@ class OrganizationService:
         rows = self._db.execute(
             select(User, Employee)
             .join(Employee, User.employee_id == Employee.id)
+            .join(Position, Position.id == Employee.position_id)
             .where(
                 Employee.unit_id == unit_id,
                 Employee.is_active == True,  # noqa: E712
+                Position.is_active.is_(True),
                 User.is_active == True,  # noqa: E712
             )
             .order_by(Employee.last_name, Employee.first_name)

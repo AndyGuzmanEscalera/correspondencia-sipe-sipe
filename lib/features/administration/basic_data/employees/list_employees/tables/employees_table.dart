@@ -53,8 +53,8 @@ List<AppDataGridColumn<EmployeeAdmin>> employeesTableColumns() {
       cellBuilder: (context, item, value) {
         final active = value == true;
         return active
-            ? const AppStatusBadge.success('Activo')
-            : const AppStatusBadge.inactive('Inactivo');
+            ? const AppStatusBadge.success('Disponible')
+            : const AppStatusBadge.inactive('Eliminado');
       },
     ),
   ];

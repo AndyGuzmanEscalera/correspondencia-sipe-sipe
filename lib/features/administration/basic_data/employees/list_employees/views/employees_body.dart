@@ -96,20 +96,21 @@ class EmployeesBody extends StatelessWidget {
                           ),
                           AppDataGridAction<EmployeeAdmin>(
                             icon: Icons.check_circle_outline,
-                            tooltip: 'Activar',
+                            tooltip: 'Restaurar',
                             visibleWhen: (item) => !item.isActive,
                             onPressed: cubit.reactivate,
                           ),
                           AppDataGridAction<EmployeeAdmin>(
                             icon: Icons.delete_outline,
-                            tooltip: 'Desactivar',
+                            tooltip: 'Eliminar',
                             visibleWhen: (item) => item.isActive,
                             onPressed: (item) async {
                               final confirmed = await confirmAdminLogicalDelete(
                                 context,
-                                title: 'Desactivar funcionario',
-                                message: '¿Desactivar a "${item.fullName}"? '
-                                    'Dejará de estar disponible (eliminación lógica).',
+                                title: 'Eliminar funcionario',
+                                message:
+                                    '¿Está seguro de eliminar a "${item.fullName}"? '
+                                    'Dejará de estar disponible para nuevas operaciones. Su historial se conservará.',
                               );
                               if (confirmed && context.mounted) {
                                 await cubit.deleteLogically(item);

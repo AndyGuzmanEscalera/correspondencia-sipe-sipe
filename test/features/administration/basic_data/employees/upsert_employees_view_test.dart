@@ -1,3 +1,4 @@
+import 'package:correspondencia_sipe_sipe/shared/widgets/form/app_dropdown.dart';
 import 'package:correspondencia_repository/correspondencia_repository.dart';
 import 'package:correspondencia_sipe_sipe/core/util/enums.dart';
 import 'package:correspondencia_sipe_sipe/features/administration/basic_data/employees/list_employees/cubit/employees_cubit.dart';
@@ -86,6 +87,34 @@ void main() {
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
     }
+
+    testWidgets(
+        'edición muestra relación eliminada sin ofrecerla como selección',
+        (tester) async {
+      final historical = EmployeeAdmin(
+          id: 'historical',
+          firstName: 'Juan',
+          lastName: 'Pérez',
+          documentNumber: 'historical-doc',
+          unitId: 'deleted-unit',
+          unitName: 'Unidad histórica',
+          positionId: 'deleted-position',
+          positionName: 'Cargo histórico',
+          isActive: false,
+          createdAt: _date,
+          updatedAt: _date);
+      await pumpUpsertDialog(tester,
+          typeOperation: TypeOperation.update, selected: historical);
+      final selectors = tester
+          .widgetList<AppDropdown<String>>(find.byType(AppDropdown<String>))
+          .toList();
+      expect(selectors.length, 2);
+      expect(selectors[0].controller.value.text, 'Unidad histórica');
+      expect(selectors[1].controller.value.text, 'Cargo histórico');
+      expect(selectors[0].items.any((x) => x.value == 'deleted-unit'), isFalse);
+      expect(selectors[1].items.any((x) => x.value == 'deleted-position'),
+          isFalse);
+    });
 
     testWidgets('create dialog muestra formulario vacío', (tester) async {
       await pumpUpsertDialog(tester, typeOperation: TypeOperation.create);

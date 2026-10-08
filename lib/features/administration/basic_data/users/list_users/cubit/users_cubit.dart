@@ -71,7 +71,7 @@ class UsersCubit extends Cubit<UsersState> {
         generalStatus: GeneralStatus.loading,
         dialogMessage: DialogMessage(
           message:
-              isActive ? 'Activando usuario...' : 'Desactivando usuario...',
+              isActive ? 'Restaurando usuario...' : 'Eliminando usuario...',
         ),
       ),
     );
@@ -103,8 +103,8 @@ class UsersCubit extends Cubit<UsersState> {
             generalStatus: GeneralStatus.success,
             dialogMessage: DialogMessage(
               message: isActive
-                  ? 'Usuario activado correctamente.'
-                  : 'Usuario desactivado correctamente.',
+                  ? 'Usuario restaurado correctamente.'
+                  : 'Usuario eliminado correctamente.',
             ),
           ),
         );

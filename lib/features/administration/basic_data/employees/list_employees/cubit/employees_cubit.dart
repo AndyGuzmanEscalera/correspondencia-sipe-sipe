@@ -71,8 +71,8 @@ class EmployeesCubit extends Cubit<EmployeesState> {
         generalStatus: GeneralStatus.loading,
         dialogMessage: DialogMessage(
           message: isActive
-              ? 'Activando funcionario...'
-              : 'Desactivando funcionario...',
+              ? 'Restaurando funcionario...'
+              : 'Eliminando funcionario...',
         ),
       ),
     );
@@ -104,8 +104,8 @@ class EmployeesCubit extends Cubit<EmployeesState> {
             generalStatus: GeneralStatus.success,
             dialogMessage: DialogMessage(
               message: isActive
-                  ? 'Funcionario activado correctamente.'
-                  : 'Funcionario desactivado correctamente.',
+                  ? 'Funcionario restaurado correctamente.'
+                  : 'Funcionario eliminado correctamente.',
             ),
           ),
         );

@@ -2,13 +2,30 @@ import uuid
 from sqlalchemy import select
 from app.modules.correspondence.correspondence import Correspondence
 from app.modules.correspondence.correspondence_movement import CorrespondenceMovement
+from app.modules.organization.employee import Employee
+from app.modules.organization.position import Position
+from app.modules.identity.user import User
+from app.modules.correspondence.document_type import DocumentType
 from tests.test_correspondence import _create_payload
 
 
 def test_deactivation_filters_and_history_preserve_references(client, db, admin_headers, document_type, second_org_unit, second_employee, second_user, position):
+    document_type = DocumentType(code='HIST_' + uuid.uuid4().hex[:8], name='Tipo solo histórico', is_active=True)
+    db.add(document_type)
+    db.commit()
     created = client.post('/correspondences', headers=admin_headers, json=_create_payload(document_type, 'Historia preservada', unit_id=second_org_unit.id, user_id=second_user.id))
     assert created.status_code == 201, created.text
     correspondence_id = uuid.UUID(created.json()['id'])
+    # Eliminar maestros usados solo por historia; el operador activo conserva otro cargo.
+    row = db.get(Correspondence, correspondence_id)
+    row.status = 'CONCLUDED'
+    operator = db.get(Employee, db.get(User, row.created_by_user_id).employee_id)
+    replacement = Position(code='DEL_' + uuid.uuid4().hex[:8], name='Cargo operador', is_active=True)
+    db.add(replacement)
+    db.flush()
+    original_position_id = operator.position_id
+    operator.position_id = replacement.id
+    db.commit()
     movements_before = list(db.scalars(select(CorrespondenceMovement.id).where(CorrespondenceMovement.correspondence_id == correspondence_id)))
     targets = [
         ('users', second_user.id),
@@ -47,6 +64,8 @@ def test_deactivation_filters_and_history_preserve_references(client, db, admin_
         assert db.get(Correspondence, correspondence_id) is not None
         assert list(db.scalars(select(CorrespondenceMovement.id).where(CorrespondenceMovement.correspondence_id == correspondence_id))) == movements_before
     finally:
+        operator.position_id = original_position_id
+        db.commit()
         for resource, item_id in reversed(changed):
             restored = client.patch(f'/admin/{resource}/{item_id}/active', headers=admin_headers, json={'is_active': True})
             assert restored.status_code == 200, restored.text

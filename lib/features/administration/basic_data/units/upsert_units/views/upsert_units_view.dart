@@ -107,6 +107,7 @@ class UpsertUnitsBody extends StatelessWidget {
           UpsertUnitsInherited.noParent,
           ...upsertCubit
               .parentOptions(excludeUnitId: selected?.id)
+              .where((unit) => unit.isActive)
               .map(
                 (unit) => FormOption<String>(
                   id: unit.id.hashCode,

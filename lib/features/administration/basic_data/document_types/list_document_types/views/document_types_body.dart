@@ -96,20 +96,21 @@ class DocumentTypesBody extends StatelessWidget {
                           ),
                           AppDataGridAction<DocumentTypeAdmin>(
                             icon: Icons.check_circle_outline,
-                            tooltip: 'Activar',
+                            tooltip: 'Restaurar',
                             visibleWhen: (item) => !item.isActive,
                             onPressed: cubit.reactivate,
                           ),
                           AppDataGridAction<DocumentTypeAdmin>(
                             icon: Icons.delete_outline,
-                            tooltip: 'Desactivar',
+                            tooltip: 'Eliminar',
                             visibleWhen: (item) => item.isActive,
                             onPressed: (item) async {
                               final confirmed = await confirmAdminLogicalDelete(
                                 context,
-                                title: 'Desactivar tipo de documento',
-                                message: '¿Desactivar "${item.name}"? '
-                                    'Dejará de estar disponible (eliminación lógica).',
+                                title: 'Eliminar tipo de documento',
+                                message:
+                                    '¿Está seguro de eliminar "${item.name}"? '
+                                    'Dejará de estar disponible para nuevas operaciones. Su historial se conservará.',
                               );
                               if (confirmed && context.mounted) {
                                 await cubit.deleteLogically(item);

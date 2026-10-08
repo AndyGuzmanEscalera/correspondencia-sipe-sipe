@@ -135,6 +135,7 @@ class UpsertEmployeesBody extends StatelessWidget {
         }
 
         final unitItems = state.units
+            .where((unit) => unit.isActive)
             .map(
               (unit) => FormOption<String>(
                 id: unit.id.hashCode,
@@ -144,6 +145,7 @@ class UpsertEmployeesBody extends StatelessWidget {
             )
             .toList();
         final positionItems = state.positions
+            .where((position) => position.isActive)
             .map(
               (position) => FormOption<String>(
                 id: position.id.hashCode,

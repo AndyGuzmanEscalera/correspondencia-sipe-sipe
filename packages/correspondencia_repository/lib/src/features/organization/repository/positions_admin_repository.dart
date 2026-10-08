@@ -14,7 +14,7 @@ class PositionsAdminRepository {
     int page = 1,
     int pageSize = 50,
     String? search,
-    bool? isActive,
+    bool? isActive = true,
   }) {
     return handleExceptions<AdminPage<PositionAdmin>>(
       () async {

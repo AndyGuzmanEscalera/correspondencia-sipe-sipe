@@ -5,6 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.common.audit import apply_audit
+from app.common.master_data_deletion import validate_deletion
 from app.common.db_commit import commit_or_conflict, conflict
 from app.common.normalize import normalize_code
 from app.common.schemas import PaginatedResponse, paginate
@@ -89,6 +90,8 @@ class DocumentTypeAdminService:
         is_active: bool,
     ) -> DocumentTypeAdminResponse:
         row = self._get_or_404(document_type_id)
+        if not is_active and row.is_active:
+            validate_deletion(self._db, 'document_types', row)
         row.is_active = is_active
         apply_audit(row, actor.id)
         self._db.commit()

@@ -77,7 +77,11 @@ def test_units_crud_and_cycle(
         headers=admin_headers,
         json={"is_active": False},
     )
-    assert inactive.status_code == 200
+    assert inactive.status_code == 409
+    assert client.patch(f"/admin/organizational-units/{child_id}/active",
+        headers=admin_headers, json={"is_active": False}).status_code == 200
+    assert client.patch(f"/admin/organizational-units/{unit_id}/active",
+        headers=admin_headers, json={"is_active": False}).status_code == 200
 
     operational = client.get("/organizational-units", headers=admin_headers)
     assert operational.status_code == 200
@@ -195,7 +199,7 @@ def test_employee_deactivate_blocked_with_active_user(
         headers=admin_headers,
         json={"is_active": False},
     )
-    assert response.status_code == 422
+    assert response.status_code == 409
     assert "cuenta de usuario activa" in response.json()["detail"]
 
 

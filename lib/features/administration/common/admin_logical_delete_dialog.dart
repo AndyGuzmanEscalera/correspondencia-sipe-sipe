@@ -19,7 +19,7 @@ Future<bool> confirmAdminLogicalDelete(
           ),
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Desactivar'),
+            child: const Text('Eliminar'),
           ),
         ],
       );

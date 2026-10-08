@@ -70,7 +70,7 @@ class PositionsCubit extends Cubit<PositionsState> {
       state.copyWith(
         generalStatus: GeneralStatus.loading,
         dialogMessage: DialogMessage(
-          message: isActive ? 'Activando cargo...' : 'Desactivando cargo...',
+          message: isActive ? 'Restaurando cargo...' : 'Eliminando cargo...',
         ),
       ),
     );
@@ -102,8 +102,8 @@ class PositionsCubit extends Cubit<PositionsState> {
             generalStatus: GeneralStatus.success,
             dialogMessage: DialogMessage(
               message: isActive
-                  ? 'Cargo activado correctamente.'
-                  : 'Cargo desactivado correctamente.',
+                  ? 'Cargo restaurado correctamente.'
+                  : 'Cargo eliminado correctamente.',
             ),
           ),
         );

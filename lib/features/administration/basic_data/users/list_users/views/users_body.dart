@@ -96,21 +96,21 @@ class UsersBody extends StatelessWidget {
                           ),
                           AppDataGridAction<UserAdmin>(
                             icon: Icons.check_circle_outline,
-                            tooltip: 'Activar',
+                            tooltip: 'Restaurar',
                             visibleWhen: (item) => !item.isActive,
                             onPressed: cubit.reactivate,
                           ),
                           AppDataGridAction<UserAdmin>(
                             icon: Icons.delete_outline,
-                            tooltip: 'Desactivar',
+                            tooltip: 'Eliminar',
                             visibleWhen: (item) => item.isActive,
                             onPressed: (item) async {
                               final confirmed = await confirmAdminLogicalDelete(
                                 context,
-                                title: 'Desactivar usuario',
+                                title: 'Eliminar usuario',
                                 message:
-                                    '¿Desactivar el usuario "${item.username}"? '
-                                    'Dejará de estar disponible (eliminación lógica).',
+                                    '¿Está seguro de eliminar el usuario "${item.username}"? '
+                                    'Dejará de estar disponible para nuevas operaciones. Su historial se conservará.',
                               );
                               if (confirmed && context.mounted) {
                                 await cubit.deleteLogically(item);

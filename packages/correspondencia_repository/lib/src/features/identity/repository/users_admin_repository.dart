@@ -19,7 +19,7 @@ class UsersAdminRepository {
     int page = 1,
     int pageSize = 50,
     String? search,
-    bool? isActive,
+    bool? isActive = true,
     String? unitId,
   }) {
     return handleExceptions<AdminPage<UserAdmin>>(

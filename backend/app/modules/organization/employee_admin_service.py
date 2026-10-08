@@ -5,6 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.common.audit import apply_audit
+from app.common.master_data_deletion import validate_deletion, validate_employee_restoration
 from app.common.db_commit import commit_or_conflict, conflict
 from app.common.normalize import normalize_document_number
 from app.common.schemas import PaginatedResponse, paginate
@@ -128,20 +129,9 @@ class EmployeeAdminService:
     ) -> EmployeeAdminResponse:
         row = self._get_or_404(employee_id)
         if not is_active and row.is_active:
-            linked_user = self._db.scalar(
-                select(User).where(
-                    User.employee_id == employee_id,
-                    User.is_active == True,  # noqa: E712
-                )
-            )
-            if linked_user is not None:
-                raise HTTPException(
-                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    detail=(
-                        "No se puede desactivar el funcionario porque tiene "
-                        "una cuenta de usuario activa vinculada"
-                    ),
-                )
+            validate_deletion(self._db, 'employees', row)
+        if is_active and not row.is_active:
+            validate_employee_restoration(self._db, row)
         row.is_active = is_active
         apply_audit(row, actor.id)
         self._db.commit()

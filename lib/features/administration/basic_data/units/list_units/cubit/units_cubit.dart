@@ -71,7 +71,7 @@ class UnitsCubit extends Cubit<UnitsState> {
       state.copyWith(
         generalStatus: GeneralStatus.loading,
         dialogMessage: DialogMessage(
-          message: isActive ? 'Activando unidad...' : 'Desactivando unidad...',
+          message: isActive ? 'Restaurando unidad...' : 'Eliminando unidad...',
         ),
       ),
     );

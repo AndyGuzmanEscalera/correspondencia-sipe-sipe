@@ -29,13 +29,14 @@ def list_document_types_admin(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     search: str | None = None,
-    is_active: bool | None = None,
+    is_active: bool = True,
+    include_deleted: bool = False,
 ) -> PaginatedResponse[DocumentTypeAdminResponse]:
     return service.list_document_types(
         page=page,
         page_size=page_size,
         search=search,
-        is_active=is_active,
+        is_active=None if include_deleted else is_active,
     )
 
 

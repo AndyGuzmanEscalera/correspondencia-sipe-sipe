@@ -120,6 +120,9 @@ class CorrespondenceService:
     def list_active_employees(self) -> list[EmployeeOptionResponse]:
         rows = self._db.scalars(
             select(Employee)
+            .join(Position, Position.id == Employee.position_id)
+            .join(OrganizationalUnit, OrganizationalUnit.id == Employee.unit_id)
+            .where(Position.is_active.is_(True), OrganizationalUnit.is_active.is_(True))
             .where(Employee.is_active == True)  # noqa: E712
             .order_by(Employee.last_name, Employee.first_name)
         ).all()
@@ -1139,6 +1142,9 @@ class CorrespondenceService:
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="El funcionario destino no está activo",
             )
+        position = self._db.get(Position, employee.position_id) if employee.position_id else None
+        if position is None or not position.is_active:
+            raise HTTPException(status_code=422, detail="El cargo del funcionario destino no está disponible")
         if employee.unit_id != to_unit_id:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

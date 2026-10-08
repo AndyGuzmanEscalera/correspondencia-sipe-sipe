@@ -13,7 +13,7 @@ class DocumentTypesAdminApi {
     int page = 1,
     int pageSize = 50,
     String? search,
-    bool? isActive,
+    bool? isActive = true,
   }) async {
     final json = await _mainApi.get(
       Endpoints.adminDocumentTypes,
@@ -22,6 +22,7 @@ class DocumentTypesAdminApi {
         'page_size': pageSize,
         if (search != null && search.isNotEmpty) 'search': search,
         if (isActive != null) 'is_active': isActive,
+        if (isActive == null) 'include_deleted': true,
       },
       operation: 'admin.documentTypes.list',
     );

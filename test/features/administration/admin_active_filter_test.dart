@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   testWidgets(
-      'filtro envía true, false y null; desactivación requiere confirmación',
+      'filtro envía true, false y null; eliminación requiere confirmación',
       (tester) async {
     final filters = <bool?>[];
     bool? confirmed;
@@ -17,11 +17,11 @@ void main() {
           builder: (context) => TextButton(
               onPressed: () async {
                 confirmed = await confirmAdminLogicalDelete(context,
-                    title: 'Desactivar', message: 'Conserva su historial');
+                    title: 'Eliminar', message: 'Conserva su historial');
               },
               child: const Text('Abrir'))),
     ]))));
-    for (final label in ['Inactivos', 'Todos', 'Activos']) {
+    for (final label in ['Eliminados', 'Todos', 'Activos']) {
       await tester.tap(find
           .byWidgetPredicate((widget) => widget is DropdownButtonFormField));
       await tester.pumpAndSettle();
@@ -36,7 +36,7 @@ void main() {
     expect(confirmed, isFalse);
     await tester.tap(find.text('Abrir'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Desactivar').last);
+    await tester.tap(find.text('Eliminar').last);
     await tester.pumpAndSettle();
     expect(confirmed, isTrue);
   });

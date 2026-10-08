@@ -53,14 +53,15 @@ def list_users_admin(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     search: str | None = None,
-    is_active: bool | None = None,
+    is_active: bool = True,
+    include_deleted: bool = False,
     unit_id: uuid.UUID | None = None,
 ) -> PaginatedResponse[UserAdminResponse]:
     return service.list_users(
         page=page,
         page_size=page_size,
         search=search,
-        is_active=is_active,
+        is_active=None if include_deleted else is_active,
         unit_id=unit_id,
     )
 

@@ -171,8 +171,10 @@ class _UpsertUsersBodyState extends State<UpsertUsersBody> {
           );
         }
 
-        final employeeItems =
-            state.employees.map(employeeToFormOption).toList();
+        final employeeItems = state.employees
+            .where((employee) => employee.isActive)
+            .map(employeeToFormOption)
+            .toList();
 
         final isLoading = state.generalStatus == GeneralStatus.loading;
         final noEmployeesAvailable = employeeItems.isEmpty;

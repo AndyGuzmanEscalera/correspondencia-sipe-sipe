@@ -140,8 +140,8 @@ void main() {
       );
       expect(find.byType(DataTable2), findsOneWidget);
       expect(find.text('Secretaría General Municipal'), findsWidgets);
-      expect(find.text('ACTIVO'), findsOneWidget);
-      expect(find.text('INACTIVO'), findsOneWidget);
+      expect(find.text('DISPONIBLE'), findsOneWidget);
+      expect(find.text('ELIMINADO'), findsOneWidget);
 
       // Mobile 390
       await pumpGridWidget(

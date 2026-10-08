@@ -77,8 +77,8 @@ class DocumentTypesCubit extends Cubit<DocumentTypesState> {
         generalStatus: GeneralStatus.loading,
         dialogMessage: DialogMessage(
           message: isActive
-              ? 'Activando tipo de documento...'
-              : 'Desactivando tipo de documento...',
+              ? 'Restaurando tipo de documento...'
+              : 'Eliminando tipo de documento...',
         ),
       ),
     );
@@ -110,8 +110,8 @@ class DocumentTypesCubit extends Cubit<DocumentTypesState> {
             generalStatus: GeneralStatus.success,
             dialogMessage: DialogMessage(
               message: isActive
-                  ? 'Tipo de documento activado correctamente.'
-                  : 'Tipo de documento desactivado correctamente.',
+                  ? 'Tipo de documento restaurado correctamente.'
+                  : 'Tipo de documento eliminado correctamente.',
             ),
           ),
         );

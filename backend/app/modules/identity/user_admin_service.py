@@ -5,6 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.common.audit import apply_audit
+from app.common.master_data_deletion import validate_deletion, validate_employee_restoration
 from app.common.db_commit import commit_or_conflict, conflict, flush_or_conflict
 from app.core.security import hash_password
 from app.common.schemas import PaginatedResponse, paginate
@@ -144,6 +145,11 @@ class UserAdminService:
         is_active: bool,
     ) -> UserAdminResponse:
         row = self._get_or_404(user_id)
+        if not is_active and row.is_active:
+            validate_deletion(self._db, 'users', row)
+        if is_active and not row.is_active and row.employee_id is not None:
+            employee = self._get_active_employee(row.employee_id)
+            validate_employee_restoration(self._db, employee)
         row.is_active = is_active
         apply_audit(row, actor.id)
         self._db.commit()

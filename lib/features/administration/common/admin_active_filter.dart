@@ -19,7 +19,8 @@ class _AdminActiveFilterState extends State<AdminActiveFilter> {
           decoration: const InputDecoration(labelText: 'Estado'),
           items: const [
             DropdownMenuItem(value: _Status.active, child: Text('Activos')),
-            DropdownMenuItem(value: _Status.inactive, child: Text('Inactivos')),
+            DropdownMenuItem(
+                value: _Status.inactive, child: Text('Eliminados')),
             DropdownMenuItem(value: _Status.all, child: Text('Todos')),
           ],
           onChanged: (value) {
