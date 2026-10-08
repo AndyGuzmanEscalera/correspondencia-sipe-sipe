@@ -64,18 +64,18 @@ class UpsertPositionsView extends StatelessWidget {
           ),
         ],
         child: FullWidgetGeneric(
-        onInit: () {
-          if (inherited.typeOperation == TypeOperation.create) {
-            inherited.clear();
-            return;
-          }
+          onInit: () {
+            if (inherited.typeOperation == TypeOperation.create) {
+              inherited.clear();
+              return;
+            }
 
-          final selected = listCubit.state.selected;
-          if (selected != null) {
-            inherited.setData(selected);
-          }
-        },
-        onDispose: inherited.dispose,
+            final selected = listCubit.state.selected;
+            if (selected != null) {
+              inherited.setData(selected);
+            }
+          },
+          onDispose: inherited.dispose,
           child: const UpsertPositionsBody(),
         ),
       ),
@@ -114,6 +114,8 @@ class UpsertPositionsBody extends StatelessWidget {
                 code: inherited.code.getValue(),
                 name: inherited.name.getValue(),
                 description: inherited.description.getValue(),
+                canViewUnitCorrespondence:
+                    inherited.canViewUnitCorrespondence.value,
               );
             } else {
               final selected = listCubit.state.selected;
@@ -122,6 +124,8 @@ class UpsertPositionsBody extends StatelessWidget {
                 entity: selected,
                 name: inherited.name.getValue(),
                 description: inherited.description.getValue(),
+                canViewUnitCorrespondence:
+                    inherited.canViewUnitCorrespondence.value,
               );
             }
           },
@@ -144,6 +148,19 @@ class UpsertPositionsBody extends StatelessWidget {
                   validators: [
                     RequiredValid(error: 'Campo requerido'),
                   ],
+                ),
+                ValueListenableBuilder<bool>(
+                  valueListenable: inherited.canViewUnitCorrespondence,
+                  builder: (context, value, _) => SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text(
+                        'Puede ver toda la correspondencia de su unidad'),
+                    value: value,
+                    onChanged: isLoading
+                        ? null
+                        : (value) =>
+                            inherited.canViewUnitCorrespondence.value = value,
+                  ),
                 ),
                 AppTextField(
                   controller: inherited.description,

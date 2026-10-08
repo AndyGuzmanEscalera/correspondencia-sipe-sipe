@@ -37,6 +37,7 @@ class PositionAdminResponse(BaseModel):
     code: str | None
     name: str
     description: str | None
+    can_view_unit_correspondence: bool = False
     is_active: bool
     created_at: datetime
     updated_at: datetime
@@ -48,12 +49,14 @@ class CreatePositionRequest(BaseModel):
     code: str = Field(min_length=1, max_length=50)
     name: str = Field(min_length=1, max_length=200)
     description: str | None = Field(default=None, max_length=255)
+    can_view_unit_correspondence: bool = False
 
 
 class UpdatePositionRequest(BaseModel):
     code: str = Field(min_length=1, max_length=50)
     name: str = Field(min_length=1, max_length=200)
     description: str | None = Field(default=None, max_length=255)
+    can_view_unit_correspondence: bool = False
 
 
 class EmployeeAdminResponse(BaseModel):

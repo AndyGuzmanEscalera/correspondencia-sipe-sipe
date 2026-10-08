@@ -48,7 +48,9 @@ class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
   @override
   Future<Result<repo.InboxCounts, Failure>> getInboxCounts() async {
     countsCalls++;
-    return countsResult ?? const Ok(repo.InboxCounts(mine: 0, unit: 0));
+    return countsResult ??
+        const Ok(repo.InboxCounts(
+            mine: 0, unit: 0, canViewUnitCorrespondence: true));
   }
 
   @override
@@ -84,7 +86,8 @@ void main() {
             totalPages: 1,
           ),
         ),
-        countsResult: const Ok(repo.InboxCounts(mine: 4, unit: 12)),
+        countsResult: const Ok(repo.InboxCounts(
+            mine: 4, unit: 12, canViewUnitCorrespondence: true)),
       );
       final cubit = InboxEntryCubit(repository);
 
@@ -108,6 +111,43 @@ void main() {
       expect(repository.lastInboxScope, repo.InboxScope.unit);
       expect(cubit.state.scope, repo.InboxScope.unit);
       expect(cubit.state.page, 1);
+      await cubit.close();
+    });
+
+    test('cargo false bloquea unit y conserva Mis documentos', () async {
+      final repository = _FakeCorrespondenceRepository(
+        countsResult: const Ok(repo.InboxCounts(mine: 1, unit: 0)),
+      );
+      final cubit = InboxEntryCubit(repository);
+      await cubit.init(scope: repo.InboxScope.unit);
+      expect(cubit.state.scope, repo.InboxScope.mine);
+      final calls = repository.inboxCalls;
+      await cubit.changeScope(repo.InboxScope.unit);
+      expect(repository.inboxCalls, calls);
+      expect(repository.lastInboxScope, repo.InboxScope.mine);
+      await cubit.close();
+    });
+
+    test(
+        'revocar alcance en refresh vuelve a mine y elimina items de compañeros',
+        () async {
+      final repository = _FakeCorrespondenceRepository(
+        inboxResult: Ok(repo.CorrespondencePage(
+            items: [_sampleCorrespondence()],
+            page: 1,
+            pageSize: 20,
+            total: 1,
+            totalPages: 1)),
+      );
+      final cubit = InboxEntryCubit(repository);
+      await cubit.init(scope: repo.InboxScope.unit);
+      expect(cubit.state.items, isNotEmpty);
+      repository.countsResult = const Ok(repo.InboxCounts(mine: 0, unit: 0));
+      repository.inboxResult = const Err(ServerFailure('Lectura revocada'));
+      await cubit.refresh();
+      expect(cubit.state.scope, repo.InboxScope.mine);
+      expect(cubit.state.items, isEmpty);
+      expect(cubit.state.total, 0);
       await cubit.close();
     });
 

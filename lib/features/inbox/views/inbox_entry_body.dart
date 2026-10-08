@@ -62,9 +62,8 @@ class InboxEntryBody extends StatelessWidget {
           const SizedBox(height: 20),
           BlocBuilder<InboxEntryCubit, InboxEntryState>(
             builder: (context, state) {
-              final isLoading =
-                  state.generalStatus == GeneralStatus.loading &&
-                      state.items.isEmpty;
+              final isLoading = state.generalStatus == GeneralStatus.loading &&
+                  state.items.isEmpty;
               final lacksInstitutionalContext = context
                       .read<AppSessionCubit>()
                       .state
@@ -115,7 +114,8 @@ class InboxEntryBody extends StatelessWidget {
     return 'No hay correspondencias pendientes en su unidad.';
   }
 
-  Future<void> _openDetail(BuildContext context, CorrespondenceEntity item) async {
+  Future<void> _openDetail(
+      BuildContext context, CorrespondenceEntity item) async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => CorrespondenceDetailPage(correspondenceId: item.id),
@@ -158,6 +158,7 @@ class _InboxScopeTabs extends StatelessWidget {
           ButtonSegment(
             value: repo.InboxScope.unit,
             label: Text('De mi unidad (${counts.unit})'),
+            enabled: counts.canViewUnitCorrespondence,
           ),
         ],
         selected: {scope},

@@ -17,6 +17,7 @@ from app.core.storage import get_storage_service
 from app.modules.correspondence.correspondence import Correspondence
 from app.modules.correspondence.correspondence_attachment import CorrespondenceAttachment
 from app.modules.correspondence.schemas import CorrespondenceAttachmentResponse
+from app.modules.correspondence.service import CorrespondenceService
 from app.modules.identity.user import User
 
 _FILENAME_SAFE = re.compile(r"[^A-Za-z0-9._-]+")
@@ -55,6 +56,7 @@ class CorrespondenceAttachmentService:
             correspondence_id,
             active_only=active_only,
         )
+        CorrespondenceService(self._db).assert_current_unit_operator(user, correspondence)
         settings = get_settings()
         payload = await upload.read()
         if not payload:
@@ -149,7 +151,8 @@ class CorrespondenceAttachmentService:
         reason: str | None = None,
         active_only: bool = True,
     ) -> CorrespondenceAttachmentResponse:
-        self._get_correspondence_or_404(correspondence_id, active_only=active_only)
+        correspondence = self._get_correspondence_or_404(correspondence_id, active_only=active_only)
+        CorrespondenceService(self._db).assert_current_unit_operator(user, correspondence)
         row = self._db.scalar(
             select(CorrespondenceAttachment).where(
                 CorrespondenceAttachment.id == attachment_id,

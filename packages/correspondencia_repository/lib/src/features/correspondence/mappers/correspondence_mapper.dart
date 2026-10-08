@@ -78,7 +78,10 @@ extension CorrespondenceListResponseMapper on CorrespondenceListResponse {
 
 extension CorrespondenceInboxCountsResponseMapper
     on CorrespondenceInboxCountsResponse {
-  InboxCounts toEntity() => InboxCounts(mine: mine, unit: unit);
+  InboxCounts toEntity() => InboxCounts(
+      mine: mine,
+      unit: unit,
+      canViewUnitCorrespondence: canViewUnitCorrespondence);
 }
 
 extension CorrespondenceMovementResponseMapper on CorrespondenceMovementResponse {

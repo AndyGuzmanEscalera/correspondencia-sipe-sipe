@@ -42,6 +42,7 @@ extension PositionAdminResponseMapper on PositionAdminResponse {
         id: id,
         code: code,
         name: name,
+        canViewUnitCorrespondence: canViewUnitCorrespondence,
         description: description,
         isActive: isActive,
         createdAt: createdAt,
@@ -53,12 +54,14 @@ extension PositionInputMapper on PositionInput {
   CreatePositionRequest toCreateRequest() => CreatePositionRequest(
         code: code,
         name: name,
+        canViewUnitCorrespondence: canViewUnitCorrespondence,
         description: description,
       );
 
   UpdatePositionRequest toUpdateRequest() => UpdatePositionRequest(
         code: code,
         name: name,
+        canViewUnitCorrespondence: canViewUnitCorrespondence,
         description: description,
       );
 }

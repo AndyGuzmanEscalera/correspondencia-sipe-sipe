@@ -18,6 +18,7 @@ class UpsertPositionsCubit extends Cubit<UpsertPositionsState> {
     required String code,
     required String name,
     String? description,
+    bool canViewUnitCorrespondence = false,
   }) async {
     emit(
       state.copyWith(
@@ -30,6 +31,7 @@ class UpsertPositionsCubit extends Cubit<UpsertPositionsState> {
 
     final result = await _repository.create(
       repo.PositionInput(
+        canViewUnitCorrespondence: canViewUnitCorrespondence,
         code: code.trim(),
         name: name.trim(),
         description: _optional(description),
@@ -69,6 +71,7 @@ class UpsertPositionsCubit extends Cubit<UpsertPositionsState> {
     required repo.PositionAdmin entity,
     required String name,
     String? description,
+    bool? canViewUnitCorrespondence,
   }) async {
     emit(
       state.copyWith(
@@ -82,6 +85,8 @@ class UpsertPositionsCubit extends Cubit<UpsertPositionsState> {
     final result = await _repository.update(
       entity.id,
       repo.PositionInput(
+        canViewUnitCorrespondence:
+            canViewUnitCorrespondence ?? entity.canViewUnitCorrespondence,
         code: entity.code ?? '',
         name: name.trim(),
         description: _optional(description),

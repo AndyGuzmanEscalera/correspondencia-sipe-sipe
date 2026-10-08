@@ -37,9 +37,12 @@ def test_deactivation_filters_and_history_preserve_references(client, db, admin_
             assert str(item_id) in ids(inactive, 'false')
             assert str(item_id) not in ids(active, 'true')
         detail = client.get(f'/correspondences/{correspondence_id}', headers=admin_headers)
+        # El creador conserva seguimiento aunque los maestros se desactiven.
         assert detail.status_code == 200, detail.text
-        assert detail.json()['current_user_id'] == str(second_user.id)
-        assert detail.json()['current_unit_id'] == str(second_org_unit.id)
+        assert detail.json()["current_user_is_active"] is False
+        row = db.get(Correspondence, correspondence_id)
+        assert row.current_user_id == second_user.id
+        assert row.current_unit_id == second_org_unit.id
         db.expire_all()
         assert db.get(Correspondence, correspondence_id) is not None
         assert list(db.scalars(select(CorrespondenceMovement.id).where(CorrespondenceMovement.correspondence_id == correspondence_id))) == movements_before

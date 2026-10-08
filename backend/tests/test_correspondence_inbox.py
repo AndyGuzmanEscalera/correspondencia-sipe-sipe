@@ -1,3 +1,4 @@
+import pytest
 import uuid
 
 from fastapi.testclient import TestClient
@@ -368,7 +369,7 @@ def test_inbox_user_without_employee_returns_empty(
 
     counts = client.get("/correspondences/inbox/counts", headers=headers)
     assert counts.status_code == 200
-    assert counts.json() == {"mine": 0, "unit": 0}
+    assert counts.json() == {"mine": 0, "unit": 0, "can_view_unit_correspondence": False}
 
 
 def test_inbox_pagination_and_search(
@@ -468,3 +469,9 @@ def test_inbox_invalid_scope_rejected(
         params={"scope": "sent"},
     )
     assert response.status_code == 422
+
+
+@pytest.fixture(autouse=True)
+def unit_scope_for_existing_unit_reader_tests(db, position):
+    position.can_view_unit_correspondence = True
+    db.commit()

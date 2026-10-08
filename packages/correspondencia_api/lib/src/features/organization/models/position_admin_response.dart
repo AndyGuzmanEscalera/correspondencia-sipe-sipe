@@ -7,6 +7,7 @@ class PositionAdminResponse {
     required this.updatedAt,
     this.code,
     this.description,
+    this.canViewUnitCorrespondence = false,
     this.createdByUserId,
     this.updatedByUserId,
   });
@@ -17,6 +18,8 @@ class PositionAdminResponse {
       code: json['code'] as String?,
       name: json['name'] as String,
       description: json['description'] as String?,
+      canViewUnitCorrespondence:
+          json['can_view_unit_correspondence'] as bool? ?? false,
       isActive: json['is_active'] as bool? ?? true,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
@@ -29,6 +32,7 @@ class PositionAdminResponse {
   final String? code;
   final String name;
   final String? description;
+  final bool canViewUnitCorrespondence;
   final bool isActive;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -41,15 +45,18 @@ class CreatePositionRequest {
     required this.code,
     required this.name,
     this.description,
+    this.canViewUnitCorrespondence = false,
   });
 
   final String code;
   final String name;
   final String? description;
+  final bool canViewUnitCorrespondence;
 
   Map<String, dynamic> toJson() => {
         'code': code,
         'name': name,
+        'can_view_unit_correspondence': canViewUnitCorrespondence,
         if (description != null) 'description': description,
       };
 }
@@ -59,15 +66,18 @@ class UpdatePositionRequest {
     required this.code,
     required this.name,
     this.description,
+    this.canViewUnitCorrespondence = false,
   });
 
   final String code;
   final String name;
   final String? description;
+  final bool canViewUnitCorrespondence;
 
   Map<String, dynamic> toJson() => {
         'code': code,
         'name': name,
+        'can_view_unit_correspondence': canViewUnitCorrespondence,
         if (description != null) 'description': description,
       };
 }

@@ -1,3 +1,4 @@
+import pytest
 import time
 import uuid
 
@@ -152,7 +153,7 @@ def test_sent_includes_derived_by_me(
         client,
         auth_headers,
         created["id"],
-        to_unit_id=second_org_unit.id,
+        to_unit_id=org_unit.id,
     )
 
     assert created["id"] in _sent_ids(client, auth_headers)
@@ -179,7 +180,7 @@ def test_sent_created_and_derived_by_me_appears_once(
         client,
         auth_headers,
         created["id"],
-        to_unit_id=second_org_unit.id,
+        to_unit_id=org_unit.id,
     )
 
     response = client.get("/correspondences/sent", headers=auth_headers)
@@ -311,7 +312,7 @@ def test_sent_excludes_when_neither_created_nor_derived_by_me(
     assert created["id"] not in _sent_ids(client, bystander_headers)
 
 
-def test_sent_includes_after_current_unit_changed(
+def test_sent_preserves_tracking_after_current_unit_changed(
     client: TestClient,
     auth_headers: dict[str, str],
     document_type: DocumentType,
@@ -333,11 +334,9 @@ def test_sent_includes_after_current_unit_changed(
         created["id"],
         to_unit_id=second_org_unit.id,
     )
-    detail = client.get(
-        f"/correspondences/{created['id']}",
-        headers=auth_headers,
-    ).json()
-    assert detail["current_unit_id"] == str(second_org_unit.id)
+    detail = client.get(f"/correspondences/{created['id']}", headers=auth_headers)
+    assert detail.status_code == 200
+    assert detail.json()["current_unit_id"] == str(second_org_unit.id)
     assert created["id"] in _sent_ids(client, auth_headers)
 
 
@@ -490,7 +489,7 @@ def test_sent_order_by_last_sent_activity(
         client,
         auth_headers,
         older["id"],
-        to_unit_id=second_org_unit.id,
+        to_unit_id=org_unit.id,
     )
 
     response = client.get("/correspondences/sent", headers=auth_headers)
@@ -639,3 +638,9 @@ def test_sent_ignores_client_user_id_param(
     assert response.status_code == 200
     ids = [item["id"] for item in response.json()["items"]]
     assert other_created["id"] not in ids
+
+
+@pytest.fixture(autouse=True)
+def unit_scope_for_existing_unit_reader_tests(db, position):
+    position.can_view_unit_correspondence = True
+    db.commit()

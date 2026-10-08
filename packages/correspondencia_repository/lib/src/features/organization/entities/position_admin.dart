@@ -9,19 +9,29 @@ class PositionAdmin extends Equatable {
     required this.updatedAt,
     this.code,
     this.description,
+    this.canViewUnitCorrespondence = false,
   });
 
   final String id;
   final String? code;
   final String name;
   final String? description;
+  final bool canViewUnitCorrespondence;
   final bool isActive;
   final DateTime createdAt;
   final DateTime updatedAt;
 
   @override
-  List<Object?> get props =>
-      [id, code, name, description, isActive, createdAt, updatedAt];
+  List<Object?> get props => [
+        id,
+        code,
+        name,
+        description,
+        canViewUnitCorrespondence,
+        isActive,
+        createdAt,
+        updatedAt
+      ];
 }
 
 class PositionInput extends Equatable {
@@ -29,12 +39,15 @@ class PositionInput extends Equatable {
     required this.code,
     required this.name,
     this.description,
+    this.canViewUnitCorrespondence = false,
   });
 
   final String code;
   final String name;
   final String? description;
+  final bool canViewUnitCorrespondence;
 
   @override
-  List<Object?> get props => [code, name, description];
+  List<Object?> get props =>
+      [code, name, description, canViewUnitCorrespondence];
 }

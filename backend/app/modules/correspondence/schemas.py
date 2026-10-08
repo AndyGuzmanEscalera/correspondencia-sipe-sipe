@@ -112,6 +112,7 @@ class CorrespondenceListResponse(BaseModel):
 
 
 class CorrespondenceInboxCountsResponse(BaseModel):
+    can_view_unit_correspondence: bool = False
     mine: int
     unit: int
 

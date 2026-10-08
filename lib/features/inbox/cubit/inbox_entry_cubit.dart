@@ -18,39 +18,39 @@ class InboxEntryCubit extends Cubit<InboxEntryState> {
 
   final repo.CorrespondenceRepository _repository;
   Timer? _searchDebounce;
+  int _requestVersion = 0;
 
   Future<void> init({repo.InboxScope? scope}) async {
     if (scope != null && scope != state.scope) {
-      emit(state.copyWith(scope: scope, page: 1));
+      emit(state.copyWith(
+          scope: scope, page: 1, items: const [], total: 0, totalPages: 0));
     }
 
-    await Future.wait([
-      _loadCounts(),
-      _loadInbox(
-        scope: state.scope,
-        search: state.query,
-        page: state.page,
-        pageSize: state.pageSize,
-      ),
-    ]);
+    await _loadCounts();
+    await _loadInbox(
+      scope: state.scope,
+      search: state.query,
+      page: state.page,
+      pageSize: state.pageSize,
+    );
   }
 
   Future<void> refresh() async {
-    await Future.wait([
-      _loadCounts(),
-      _loadInbox(
-        scope: state.scope,
-        search: state.query,
-        page: state.page,
-        pageSize: state.pageSize,
-        preserveItemsOnError: true,
-      ),
-    ]);
+    await _loadCounts();
+    await _loadInbox(
+      scope: state.scope,
+      search: state.query,
+      page: state.page,
+      pageSize: state.pageSize,
+    );
   }
 
   Future<void> changeScope(repo.InboxScope scope) async {
-    if (scope == state.scope) return;
-    emit(state.copyWith(scope: scope, page: 1));
+    if (scope == state.scope ||
+        (scope == repo.InboxScope.unit &&
+            !state.counts.canViewUnitCorrespondence)) return;
+    emit(state.copyWith(
+        scope: scope, page: 1, items: const [], total: 0, totalPages: 0));
     await _loadInbox(
       scope: scope,
       search: state.query,
@@ -95,8 +95,8 @@ class InboxEntryCubit extends Cubit<InboxEntryState> {
     required String search,
     required int page,
     required int pageSize,
-    bool preserveItemsOnError = false,
   }) async {
+    final version = ++_requestVersion;
     final isInitialLoad = state.items.isEmpty;
     emit(
       state.copyWith(
@@ -115,6 +115,7 @@ class InboxEntryCubit extends Cubit<InboxEntryState> {
       search: search.isEmpty ? null : search,
     );
 
+    if (isClosed || version != _requestVersion || scope != state.scope) return;
     result.when(
       ok: (pageResult) {
         emit(
@@ -135,7 +136,9 @@ class InboxEntryCubit extends Cubit<InboxEntryState> {
       err: (failure) {
         emit(
           state.copyWith(
-            items: preserveItemsOnError ? state.items : const [],
+            items: const [],
+            total: 0,
+            totalPages: 0,
             generalStatus: GeneralStatus.error,
             dialogMessage: DialogMessage(
               message: FailureGeneric.message(
@@ -153,10 +156,26 @@ class InboxEntryCubit extends Cubit<InboxEntryState> {
     final result = await _repository.getInboxCounts();
     result.when(
       ok: (counts) {
-        emit(state.copyWith(counts: counts));
+        final revoked = !counts.canViewUnitCorrespondence &&
+            state.scope == repo.InboxScope.unit;
+        if (revoked) _requestVersion++;
+        emit(state.copyWith(
+          counts: counts,
+          scope: revoked ? repo.InboxScope.mine : state.scope,
+          items: revoked ? const [] : state.items,
+          page: revoked ? 1 : state.page,
+          total: revoked ? 0 : state.total,
+          totalPages: revoked ? 0 : state.totalPages,
+        ));
       },
       err: (_) {
-        // Mantener items visibles si falla el contador.
+        _requestVersion++;
+        emit(state.copyWith(
+            counts: const repo.InboxCounts(mine: 0, unit: 0),
+            scope: repo.InboxScope.mine,
+            items: const [],
+            total: 0,
+            totalPages: 0));
       },
     );
   }

@@ -25,6 +25,7 @@ from app.modules.correspondence.schemas import (
 )
 from app.modules.correspondence.service import CorrespondenceService
 from app.modules.identity.user import User
+from app.modules.correspondence.visibility import require_visible_correspondence
 
 router = APIRouter(prefix="/correspondences", tags=["correspondences"])
 catalog_router = APIRouter(tags=["correspondences"])
@@ -38,6 +39,15 @@ def _attachment_service(
     db: Annotated[Session, Depends(get_db)],
 ) -> CorrespondenceAttachmentService:
     return CorrespondenceAttachmentService(db)
+
+
+def _visible_user(
+    correspondence_id: uuid.UUID,
+    user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> User:
+    require_visible_correspondence(db, user, correspondence_id)
+    return user
 
 
 @catalog_router.get("/document-types", response_model=list[DocumentTypeResponse])
@@ -90,8 +100,8 @@ def list_correspondences(
     correspondence_type: str | None = Query(default=None),
     search: str | None = Query(default=None),
 ) -> CorrespondenceListResponse:
-    del user
     return service.list_correspondences(
+        user=user,
         page=page,
         page_size=page_size,
         status_filter=status,
@@ -156,7 +166,7 @@ def get_sent_count(
 @router.get("/{correspondence_id}", response_model=CorrespondenceDetail)
 def get_correspondence(
     correspondence_id: uuid.UUID,
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(_visible_user)],
     service: Annotated[CorrespondenceService, Depends(_service)],
 ) -> CorrespondenceDetail:
     del user
@@ -196,7 +206,7 @@ def reopen_correspondence(
 @router.get("/{correspondence_id}/encadenamiento.pdf")
 def download_encadenamiento_pdf(
     correspondence_id: uuid.UUID,
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(_visible_user)],
     service: Annotated[CorrespondenceService, Depends(_service)],
 ) -> StreamingResponse:
     del user
@@ -219,7 +229,7 @@ def download_encadenamiento_pdf(
 )
 def list_movements(
     correspondence_id: uuid.UUID,
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(_visible_user)],
     service: Annotated[CorrespondenceService, Depends(_service)],
 ) -> list[CorrespondenceMovementResponse]:
     del user
@@ -232,7 +242,7 @@ def list_movements(
 )
 def list_attachments(
     correspondence_id: uuid.UUID,
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(_visible_user)],
     service: Annotated[CorrespondenceAttachmentService, Depends(_attachment_service)],
 ) -> list[CorrespondenceAttachmentResponse]:
     del user
@@ -262,7 +272,7 @@ async def upload_attachment(
 def download_attachment(
     correspondence_id: uuid.UUID,
     attachment_id: uuid.UUID,
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(_visible_user)],
     service: Annotated[CorrespondenceAttachmentService, Depends(_attachment_service)],
 ) -> Response:
     del user

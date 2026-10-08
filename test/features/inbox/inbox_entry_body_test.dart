@@ -18,7 +18,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../correspondence/detail/detail_test_fixtures.dart';
 
-class _FakeAuthRepository extends Fake implements repo.AuthenticationRepository {}
+class _FakeAuthRepository extends Fake
+    implements repo.AuthenticationRepository {}
 
 class _StubInboxEntryCubit extends Cubit<InboxEntryState>
     implements InboxEntryCubit {
@@ -132,7 +133,8 @@ Widget _buildSubject({
 InboxEntryState _loadedState({
   repo.InboxScope scope = repo.InboxScope.mine,
   List<CorrespondenceEntity> items = const [],
-  repo.InboxCounts counts = const repo.InboxCounts(mine: 4, unit: 12),
+  repo.InboxCounts counts = const repo.InboxCounts(
+      mine: 4, unit: 12, canViewUnitCorrespondence: true),
   String query = '',
   int page = 1,
   int pageSize = 20,
@@ -154,6 +156,21 @@ InboxEntryState _loadedState({
 
 void main() {
   group('InboxEntryBody', () {
+    testWidgets(
+        'cargo sin alcance tiene unidad deshabilitada y Mis documentos disponible',
+        (tester) async {
+      final cubit = _StubInboxEntryCubit(
+          _loadedState(counts: const repo.InboxCounts(mine: 1, unit: 0)));
+      await tester.pumpWidget(_buildSubject(cubit: cubit));
+      final tabs = tester.widget<SegmentedButton<repo.InboxScope>>(
+          find.byType(SegmentedButton<repo.InboxScope>));
+      expect(tabs.segments.first.enabled, isTrue);
+      expect(tabs.segments.last.enabled, isFalse);
+      await tester.tap(find.text('De mi unidad (0)'));
+      await tester.pumpAndSettle();
+      expect(cubit.state.scope, repo.InboxScope.mine);
+    });
+
     testWidgets('render mine con counts visibles', (tester) async {
       final cubit = _StubInboxEntryCubit(
         _loadedState(items: [externalCorrespondence], total: 1, totalPages: 1),

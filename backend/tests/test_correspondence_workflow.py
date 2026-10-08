@@ -1,3 +1,5 @@
+from tests.visibility_helpers import unit_reader_headers
+from app.core.security import create_access_token
 import io
 import uuid
 
@@ -144,6 +146,7 @@ def test_technical_report_rejects_external_origin(
 
 def test_upload_list_download_and_deactivate_attachment(
     client: TestClient,
+    db,
     auth_headers: dict[str, str],
     encadenamiento_document_type: DocumentType,
     second_org_unit: OrganizationalUnit,
@@ -162,9 +165,10 @@ def test_upload_list_download_and_deactivate_attachment(
     )
     correspondence_id = create.json()["id"]
 
+    operator_headers = {"Authorization": "Bearer " + create_access_token(second_user.id)[0]}
     upload = client.post(
         f"/correspondences/{correspondence_id}/attachments",
-        headers=auth_headers,
+        headers=operator_headers,
         files={"file": ("informe.pdf", io.BytesIO(b"%PDF-1.4 test"), "application/pdf")},
     )
     assert upload.status_code == 201, upload.text
@@ -174,28 +178,28 @@ def test_upload_list_download_and_deactivate_attachment(
 
     listed = client.get(
         f"/correspondences/{correspondence_id}/attachments",
-        headers=auth_headers,
+        headers=unit_reader_headers(db, second_org_unit.id),
     )
     assert listed.status_code == 200
     assert len(listed.json()) == 1
 
     download = client.get(
         f"/correspondences/{correspondence_id}/attachments/{attachment_id}/download",
-        headers=auth_headers,
+        headers=unit_reader_headers(db, second_org_unit.id),
     )
     assert download.status_code == 200
     assert download.content.startswith(b"%PDF")
 
     deleted = client.delete(
         f"/correspondences/{correspondence_id}/attachments/{attachment_id}",
-        headers=auth_headers,
+        headers=operator_headers,
     )
     assert deleted.status_code == 200
     assert deleted.json()["is_active"] is False
 
     listed_after = client.get(
         f"/correspondences/{correspondence_id}/attachments",
-        headers=auth_headers,
+        headers=unit_reader_headers(db, second_org_unit.id),
     )
     assert listed_after.json() == []
 
@@ -223,7 +227,7 @@ def test_correspondence_persists_when_upload_fails(
 
     upload = client.post(
         f"/correspondences/{correspondence_id}/attachments",
-        headers=auth_headers,
+        headers={"Authorization": "Bearer " + create_access_token(second_user.id)[0]},
         files={"file": ("empty.txt", io.BytesIO(b""), "text/plain")},
     )
     assert upload.status_code == 422

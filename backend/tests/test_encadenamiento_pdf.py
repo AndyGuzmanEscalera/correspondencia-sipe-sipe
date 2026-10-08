@@ -1,3 +1,4 @@
+from tests.visibility_helpers import unit_reader_headers
 import uuid
 from datetime import datetime, timezone
 from unittest.mock import patch
@@ -143,6 +144,7 @@ def test_create_correspondence_does_not_persist_encadenamiento_attachment(
 
 def test_download_encadenamiento_pdf_on_demand(
     client: TestClient,
+    db,
     auth_headers: dict[str, str],
     encadenamiento_document_type: DocumentType,
     second_org_unit: OrganizationalUnit,
@@ -164,7 +166,7 @@ def test_download_encadenamiento_pdf_on_demand(
 
     pdf_response = client.get(
         f"/correspondences/{correspondence_id}/encadenamiento.pdf",
-        headers=auth_headers,
+        headers=unit_reader_headers(db, second_org_unit.id),
     )
     assert pdf_response.status_code == 200
     assert pdf_response.headers["content-type"].startswith("application/pdf")
@@ -281,6 +283,7 @@ def test_generate_encadenamiento_pdf_without_logo() -> None:
 
 def test_download_encadenamiento_pdf_rejects_non_chaining_type(
     client: TestClient,
+    db,
     auth_headers: dict[str, str],
     document_type: DocumentType,
     second_org_unit: OrganizationalUnit,
@@ -298,13 +301,14 @@ def test_download_encadenamiento_pdf_rejects_non_chaining_type(
     correspondence_id = create.json()["id"]
     response = client.get(
         f"/correspondences/{correspondence_id}/encadenamiento.pdf",
-        headers=auth_headers,
+        headers=unit_reader_headers(db, second_org_unit.id),
     )
     assert response.status_code == 422
 
 
 def test_download_encadenamiento_pdf_generation_failure_returns_500(
     client: TestClient,
+    db,
     auth_headers: dict[str, str],
     encadenamiento_document_type: DocumentType,
     second_org_unit: OrganizationalUnit,
@@ -329,7 +333,7 @@ def test_download_encadenamiento_pdf_generation_failure_returns_500(
     ):
         response = client.get(
             f"/correspondences/{correspondence_id}/encadenamiento.pdf",
-            headers=auth_headers,
+            headers=unit_reader_headers(db, second_org_unit.id),
         )
 
     assert response.status_code == 500

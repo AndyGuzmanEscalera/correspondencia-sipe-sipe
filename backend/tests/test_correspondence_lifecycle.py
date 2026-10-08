@@ -1,3 +1,4 @@
+import pytest
 import uuid
 
 from fastapi.testclient import TestClient
@@ -383,3 +384,9 @@ def test_conclude_inactive_correspondence(
         json={},
     )
     assert response.status_code == 404
+
+
+@pytest.fixture(autouse=True)
+def unit_scope_for_existing_unit_reader_tests(db, position):
+    position.can_view_unit_correspondence = True
+    db.commit()

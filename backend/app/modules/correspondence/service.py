@@ -4,11 +4,14 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
-from sqlalchemy import case, exists, func, or_, select
+from sqlalchemy import case, func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
+from app.modules.correspondence.visibility import (
+    operational_visibility_filter, resolve_visibility_context, tracking_visibility_filter,
+)
 from app.modules.correspondence.constants import (
     CORRESPONDENCE_TYPE_EXTERNAL,
     CORRESPONDENCE_TYPE_INTERNAL,
@@ -125,6 +128,7 @@ class CorrespondenceService:
     def list_correspondences(
         self,
         *,
+        user: User,
         page: int,
         page_size: int,
         status_filter: str | None,
@@ -134,7 +138,7 @@ class CorrespondenceService:
     ) -> CorrespondenceListResponse:
         """Operational listing. Routers MUST pass active_only=True; audit/admin
         access to inactive records will use a dedicated endpoint later."""
-        query = self._base_correspondence_query(active_only=active_only)
+        query = self._base_correspondence_query(active_only=active_only).where(operational_visibility_filter(self._db, user))
         query = self._apply_list_filters(
             query,
             status_filter=status_filter,
@@ -159,28 +163,32 @@ class CorrespondenceService:
                 detail="scope debe ser 'mine' o 'unit'",
             )
 
-        context = self._resolve_inbox_context(user)
+        context = resolve_visibility_context(self._db, user)
         if context is None:
             return self._empty_correspondence_page(page=page, page_size=page_size)
 
         query = self._base_correspondence_query(active_only=True).where(
-            Correspondence.status == STATUS_ACTIVE
+            Correspondence.status == STATUS_ACTIVE,
+            operational_visibility_filter(self._db, user),
         )
         if scope == "mine":
             query = query.where(Correspondence.current_user_id == context.user_id)
         else:
+            if not context.can_view_unit_correspondence:
+                raise HTTPException(status_code=403, detail="Su cargo no permite ver toda la correspondencia de la unidad")
             query = query.where(Correspondence.current_unit_id == context.unit_id)
 
         query = self._apply_search_filter(query, search)
         return self._paginate_correspondences(query, page=page, page_size=page_size)
 
     def get_inbox_counts(self, user: User) -> CorrespondenceInboxCountsResponse:
-        context = self._resolve_inbox_context(user)
+        context = resolve_visibility_context(self._db, user)
         if context is None:
             return CorrespondenceInboxCountsResponse(mine=0, unit=0)
 
         base = self._base_correspondence_query(active_only=True).where(
-            Correspondence.status == STATUS_ACTIVE
+            Correspondence.status == STATUS_ACTIVE,
+            operational_visibility_filter(self._db, user),
         )
         mine = self._db.scalar(
             select(func.count())
@@ -190,7 +198,8 @@ class CorrespondenceService:
             select(func.count())
             .select_from(base.where(Correspondence.current_unit_id == context.unit_id).subquery())
         ) or 0
-        return CorrespondenceInboxCountsResponse(mine=mine, unit=unit)
+        return CorrespondenceInboxCountsResponse(mine=mine, unit=unit if context.can_view_unit_correspondence else 0,
+            can_view_unit_correspondence=context.can_view_unit_correspondence)
 
     def list_sent(
         self,
@@ -365,7 +374,7 @@ class CorrespondenceService:
                 detail="Solo se pueden derivar trámites activos",
             )
 
-        self._assert_current_unit_operator(user, correspondence)
+        self.assert_current_unit_operator(user, correspondence)
         self._validate_destination(body.to_unit_id, body.to_user_id)
         doc_type = self._document_type(correspondence.document_type_id)
         if resolve_document_form_profile(doc_type.code) == DocumentFormProfile.CHAINING:
@@ -421,7 +430,7 @@ class CorrespondenceService:
                 detail="Solo se pueden concluir trámites activos",
             )
 
-        self._assert_current_unit_operator(user, correspondence)
+        self.assert_current_unit_operator(user, correspondence)
 
         next_sequence = self._next_movement_sequence(correspondence.id)
         self._add_movement(
@@ -466,7 +475,7 @@ class CorrespondenceService:
                 detail="Solo se pueden reabrir trámites concluidos",
             )
 
-        self._assert_current_unit_operator(user, correspondence)
+        self.assert_current_unit_operator(user, correspondence)
 
         next_sequence = self._next_movement_sequence(correspondence.id)
         self._add_movement(
@@ -601,7 +610,7 @@ class CorrespondenceService:
             )
         return correspondence
 
-    def _assert_current_unit_operator(
+    def assert_current_unit_operator(
         self,
         user: User,
         correspondence: Correspondence,
@@ -654,17 +663,7 @@ class CorrespondenceService:
 
     @staticmethod
     def _sent_ownership_clause(user_id: uuid.UUID):
-        derived_by_me = exists(
-            select(1).where(
-                CorrespondenceMovement.correspondence_id == Correspondence.id,
-                CorrespondenceMovement.movement_type == MOVEMENT_DERIVED,
-                CorrespondenceMovement.created_by_user_id == user_id,
-            )
-        )
-        return or_(
-            Correspondence.created_by_user_id == user_id,
-            derived_by_me,
-        )
+        return tracking_visibility_filter(user_id)
 
     @staticmethod
     def _sent_last_sent_at_expr(user_id: uuid.UUID):

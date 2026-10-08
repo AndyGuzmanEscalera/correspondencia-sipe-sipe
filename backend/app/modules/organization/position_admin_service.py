@@ -61,6 +61,7 @@ class PositionAdminService:
             code=code,
             name=body.name.strip(),
             description=body.description.strip() if body.description else None,
+            can_view_unit_correspondence=body.can_view_unit_correspondence,
             is_active=True,
         )
         apply_audit(row, actor.id, is_create=True)
@@ -81,6 +82,8 @@ class PositionAdminService:
         row.code = code
         row.name = body.name.strip()
         row.description = body.description.strip() if body.description else None
+        if "can_view_unit_correspondence" in body.model_fields_set:
+            row.can_view_unit_correspondence = body.can_view_unit_correspondence
         apply_audit(row, actor.id)
         commit_or_conflict(self._db, values={"code": code})
         self._db.refresh(row)
@@ -136,6 +139,7 @@ class PositionAdminService:
             code=row.code,
             name=row.name,
             description=row.description,
+            can_view_unit_correspondence=row.can_view_unit_correspondence,
             is_active=row.is_active,
             created_at=row.created_at,
             updated_at=row.updated_at,

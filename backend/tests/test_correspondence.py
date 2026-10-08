@@ -1,3 +1,4 @@
+from tests.visibility_helpers import unit_reader_headers
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -216,7 +217,7 @@ def test_correspondence_with_inactive_current_user_still_listed(
     second_user.is_active = False
     db.commit()
 
-    response = client.get("/correspondences", headers=auth_headers)
+    response = client.get("/correspondences", headers=unit_reader_headers(db, second_org_unit.id))
     assert response.status_code == 200
     listed = next(item for item in response.json()["items"] if item["id"] == created["id"])
     assert listed["current_unit_id"] == str(second_org_unit.id)
@@ -246,7 +247,7 @@ def test_movements_preserve_inactive_user_names(
 
     movements_before = client.get(
         f"/correspondences/{created['id']}/movements",
-        headers=auth_headers,
+        headers=unit_reader_headers(db, second_org_unit.id),
     ).json()
     assert movements_before[-1]["to_user_name"] is not None
 
@@ -255,7 +256,7 @@ def test_movements_preserve_inactive_user_names(
 
     movements_after = client.get(
         f"/correspondences/{created['id']}/movements",
-        headers=auth_headers,
+        headers=unit_reader_headers(db, second_org_unit.id),
     ).json()
     assert movements_after[-1]["to_user_name"] == movements_before[-1]["to_user_name"]
 
@@ -290,6 +291,7 @@ def test_create_inactive_unit_fails(
 
 def test_create_generates_created_and_derived_movements(
     client: TestClient,
+    db,
     auth_headers: dict[str, str],
     document_type: DocumentType,
     second_org_unit: OrganizationalUnit,
@@ -309,7 +311,7 @@ def test_create_generates_created_and_derived_movements(
 
     movements = client.get(
         f"/correspondences/{created['id']}/movements",
-        headers=auth_headers,
+        headers=unit_reader_headers(db, second_org_unit.id),
     ).json()
     assert len(movements) == 2
     assert movements[0]["movement_type"] == "CREATED"
@@ -321,6 +323,7 @@ def test_create_generates_created_and_derived_movements(
 
 def test_create_current_responsible_is_destination(
     client: TestClient,
+    db,
     auth_headers: dict[str, str],
     document_type: DocumentType,
     second_org_unit: OrganizationalUnit,
@@ -339,7 +342,7 @@ def test_create_current_responsible_is_destination(
 
     detail = client.get(
         f"/correspondences/{created['id']}",
-        headers=auth_headers,
+        headers=unit_reader_headers(db, second_org_unit.id),
     ).json()
     assert detail["current_unit_id"] == str(second_org_unit.id)
     assert detail["current_user_id"] == str(second_user.id)
@@ -348,6 +351,7 @@ def test_create_current_responsible_is_destination(
 
 def test_list_correspondences(
     client: TestClient,
+    db,
     auth_headers: dict[str, str],
     document_type: DocumentType,
     second_org_unit: OrganizationalUnit,
@@ -364,7 +368,7 @@ def test_list_correspondences(
             reference="REF-LIST-001",
         ),
     ).json()
-    response = client.get("/correspondences", headers=auth_headers)
+    response = client.get("/correspondences", headers=unit_reader_headers(db, second_org_unit.id))
     assert response.status_code == 200
     body = response.json()
     assert body["total"] >= 1
@@ -413,6 +417,7 @@ def test_inactive_correspondence_excluded_from_operational_list(
 
 def test_get_detail(
     client: TestClient,
+    db,
     auth_headers: dict[str, str],
     document_type: DocumentType,
     second_org_unit: OrganizationalUnit,
@@ -429,7 +434,7 @@ def test_get_detail(
     ).json()
     response = client.get(
         f"/correspondences/{created['id']}",
-        headers=auth_headers,
+        headers=unit_reader_headers(db, second_org_unit.id),
     )
     assert response.status_code == 200
     assert response.json()["subject"] == "Detalle"
@@ -437,6 +442,7 @@ def test_get_detail(
 
 def test_derive_updates_current_and_movements(
     client: TestClient,
+    db,
     auth_headers: dict[str, str],
     document_type: DocumentType,
     org_unit: OrganizationalUnit,
@@ -471,7 +477,7 @@ def test_derive_updates_current_and_movements(
 
     movements = client.get(
         f"/correspondences/{created['id']}/movements",
-        headers=auth_headers,
+        headers=unit_reader_headers(db, second_org_unit.id),
     ).json()
     types = [item["movement_type"] for item in movements]
     assert types.count("CREATED") == 1

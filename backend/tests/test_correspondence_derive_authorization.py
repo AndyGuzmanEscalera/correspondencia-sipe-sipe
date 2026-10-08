@@ -1,3 +1,4 @@
+from tests.visibility_helpers import unit_reader_headers
 import uuid
 
 from fastapi.testclient import TestClient
@@ -456,6 +457,7 @@ def test_derive_rejects_exact_same_assignment(
 
 def test_derive_movement_and_assignment(
     client: TestClient,
+    db,
     auth_headers: dict[str, str],
     document_type: DocumentType,
     org_unit: OrganizationalUnit,
@@ -478,7 +480,7 @@ def test_derive_movement_and_assignment(
 
     movements = client.get(
         f"/correspondences/{created['id']}/movements",
-        headers=auth_headers,
+        headers=unit_reader_headers(db, second_org_unit.id),
     ).json()
     derived = [m for m in movements if m["movement_type"] == "DERIVED"]
     assert len(derived) == 2
@@ -496,12 +498,16 @@ def test_derive_movement_and_assignment(
 
 def test_derive_inbox_origin_dest_and_sent(
     client: TestClient,
+    db: Session,
     document_type: DocumentType,
     org_unit: OrganizationalUnit,
     second_org_unit: OrganizationalUnit,
     user: User,
     second_user: User,
 ) -> None:
+    from app.modules.organization.position import Position
+    db.get(Position, db.get(Employee, user.employee_id).position_id).can_view_unit_correspondence = True
+    db.commit()
     actor_headers = _auth_headers(user.id)
     created = _create_in_unit(
         client, actor_headers, document_type, org_unit.id

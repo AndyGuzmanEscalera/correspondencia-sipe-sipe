@@ -28,6 +28,9 @@ class Position(Base):
         Text,
         nullable=True,
     )
+    can_view_unit_correspondence: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false",
+    )
     is_active: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,

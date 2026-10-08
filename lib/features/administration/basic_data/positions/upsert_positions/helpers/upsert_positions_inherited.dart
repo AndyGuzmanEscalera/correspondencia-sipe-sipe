@@ -16,6 +16,7 @@ class UpsertPositionsInherited extends InheritedWidget {
   final code = ControllerFieldPro();
   final name = ControllerFieldPro();
   final description = ControllerFieldPro();
+  final canViewUnitCorrespondence = ValueNotifier<bool>(false);
 
   static UpsertPositionsInherited of(BuildContext context) {
     final result =
@@ -25,6 +26,7 @@ class UpsertPositionsInherited extends InheritedWidget {
   }
 
   void setData(PositionAdmin entity) {
+    canViewUnitCorrespondence.value = entity.canViewUnitCorrespondence;
     code.setValue(entity.code ?? '');
     name.setValue(entity.name);
     description.setValue(entity.description ?? '');
@@ -39,12 +41,14 @@ class UpsertPositionsInherited extends InheritedWidget {
   }
 
   void clear() {
+    canViewUnitCorrespondence.value = false;
     code.textEditingController.clear();
     name.textEditingController.clear();
     description.textEditingController.clear();
   }
 
   void dispose() {
+    canViewUnitCorrespondence.dispose();
     code.dispose();
     name.dispose();
     description.dispose();
