@@ -19,6 +19,18 @@ class _Adapter implements HttpClientAdapter {
 }
 
 void main() {
+  test('500 HTTP con CORS se interpreta como ServerFailure', () async {
+    final dio = Dio(BaseOptions(baseUrl: 'http://localhost'))
+      ..httpClientAdapter = _Adapter(500, {'detail': 'PRIVATE_TRACE'});
+    final result =
+        await handleExceptions(() => ApiMethod(dio: dio).patch('/test-error'));
+    expect(result.failureOrNull(), isA<ServerFailure>());
+    expect(result.failureOrNull(), isNot(isA<NetworkFailure>()));
+    expect(result.failureOrNull()!.message,
+        'Error del servidor. Intente nuevamente.');
+    dio.close();
+  });
+
   for (final acceptStatus in [true, false]) {
     test(
         '422 atraviesa API, Result y FailureGeneric (validateStatus=$acceptStatus)',

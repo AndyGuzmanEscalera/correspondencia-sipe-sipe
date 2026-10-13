@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.core.database import get_db
+from app.core.error_middleware import SafeErrorMiddleware
 from app.modules.auth.router import router as auth_router
 from app.modules.correspondence.router import catalog_router as correspondence_catalog_router
 from app.modules.correspondence.router import router as correspondence_router
@@ -31,6 +32,8 @@ app = FastAPI(
     redoc_url="/redoc",
     openapi_url="/openapi.json",
 )
+
+app.add_middleware(SafeErrorMiddleware)
 
 origins = settings.cors_origins_list
 origin_regex = settings.effective_cors_origin_regex
