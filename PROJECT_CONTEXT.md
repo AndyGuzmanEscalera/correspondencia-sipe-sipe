@@ -6,39 +6,15 @@ Handoff del Sistema de Gestión de Correspondencia y Documentos / Hoja de Ruta d
 
 ## 1. Estado de cierre y límites
 
-Actualizado el 7 de octubre de 2026. Se trabaja directamente en `develop`.
-Base anterior al bloque de autoridad institucional: `35a711f78deb6e0ae7184ef3be3fc0cac67665b3`. Su commit posterior se consulta con Git.
+Actualizado el **13 de octubre de 2026**. Rama `develop`. **QA READY: núcleo de Correspondencia**.
 
-- C3 y C4 están cerrados y committeados; no son WIP.
-- Los diez commits del lote final están cerrados. Después se implementó el requisito adicional de selección explícita de máxima autoridad institucional; ya no se infiere el destinatario EDIE por cargo.
-- Configuración Apache demo committeada; instalación y verificación en servidor pendientes.
-- No se hizo push ni deploy en este cierre. No asumir que una referencia remota prueba el estado desplegado.
-- `git fetch origin` confirmó `origin/develop = 9828a7559fcd00bb7295aa96dd57045999c044df` (C2: roles institucionales base).
-- El historial desde origin/develop incluye **tres commits del sitio público website**, además del sistema. Un push de develop publicaría también esos tres; excluir su WIP del índice no los excluye del historial. Consultar el rango actualizado con Git.
-- No crear rama/worktree ni reescribir historial sin instrucción. No ejecutar limpieza/reset de datos. No stagear en bloque: auditar rutas y hunks.
-
-### Bloques previos cerrados
-
-| Commit | Bloque |
-| --- | --- |
-| `ee61a02` | Build Flutter demo /api y configuración Apache |
-| `fc303ba` | ADMIN-C3: UI, menú y acciones por permissions |
-| `559950f` | ADMIN-C4: asignación de roles independiente de gestión de usuarios |
-
-### Lote final cerrado
-
-| Commit | Resultado |
-| --- | --- |
-| `336f449` | Configuración del sistema persistida y permisos propios |
-| `fd21562` | Selectores buscables y validación unificados |
-| `7c8f976` | Configuración institucional y encadenamiento EDIE |
-| `a68b350` | Validación de destino en derivación |
-| `03efaeb` | Normalización de errores HTTP 400/422 |
-| `d3433ad` | Desactivación lógica y recuperación de datos básicos |
-| `1dda656` | Indisponibilidad explícita de reportes/consulta pública sin mocks |
-| `33412fd` | Corrección de advertencias del lote |
-| `20cae0a` | Retiro de mocks del arranque y bandejas heredadas |
-| `d87d106` | Destinatario histórico del PDF de encadenamiento |
+- Cierre backend: `585b3da`; cierre cliente: `3ead534`. Se corrigieron todos los bloqueos A/B encontrados. Checklist: [docs/QA_CHECKLIST.md](docs/QA_CHECKLIST.md).
+- Crear genera exactamente CREATED + un DERIVED inicial. Los destinos posteriores requieren derivaciones reales. Esta regla sustituye el antiguo encadenamiento automático de dos destinos.
+- Ventanilla se identifica por configuración institucional; no por nombres de rol/cargo/unidad. Autoridad documental y receptor operativo son conceptos separados.
+- NO PUSH. NO DEPLOY. No iniciar Turnos, Asistencia, RR.HH., Website ni funcionalidades nuevas.
+- El árbol de trabajo conserva WIP ajeno. La entrega QA validada es el árbol **committeado**, exportado sin ese WIP; no construir el handoff desde el directorio sucio.
+- No crear rama/worktree, reescribir historial, resetear bases ni borrar volúmenes sin instrucción. No usar `git add .`; seleccionar archivos/hunks.
+- El historial previo incluye commits Website; excluir su WIP no los elimina del historial. Revisar el rango antes de cualquier publicación futura.
 
 ## 2. Arquitectura y fuentes principales
 
@@ -107,78 +83,58 @@ Para users, employees, positions, units y document_types:
 
 ### Configuración del sistema
 
-- `system.settings.read`: lectura de configuración.
-- `system.settings.manage`: edición.
-- Backend: `backend/app/modules/system/`; GET/PUT `/admin/system-settings/institutional`.
-- Tabla system_settings: `institutional.mayor_employee_id` guarda UUID del funcionario existente, validado al actualizar y al crear EDIE. Null limpia la selección; omitir conserva la selección.
-- GET devuelve referencia, datos institucionales y error cuando la referencia ya no es operativa.
-- Catálogo `/admin/system-settings/authority-employees` requiere system.settings.manage; no exige permisos master_data adicionales.
-- UI usa selector buscable por nombre, CI, cargo y unidad; solo lectura sin manage, sin texto libre.
-- Funcionario, cargo, unidad y User vinculados deben estar activos. User es necesario porque movimientos EDIE usan to_user_id; users.employee_id es único.
-- `institutional.mayor_display_name` se conserva solo por compatibilidad legacy del API; ya no altera EDIE, PDF ni enrutamiento.
-- ADMIN recibe ambos permisos de configuración por migración; no asumir que users.manage o roles.assign los otorgan.
+- `system.settings.read` permite leer y `system.settings.manage` editar GET/PUT `/admin/system-settings/institutional`; no se infieren de permisos de usuarios.
+- `institutional.intake_unit_id`: unidad activa de Ventanilla. Se compara con la unidad real actual del operador.
+- `institutional.initial_recipient_employee_ids`: receptores iniciales explícitos; funcionario, cargo, unidad y cuenta vinculada deben estar activos. No se identifican por SMA/SMT ni nombres.
+- `institutional.mayor_display_name`: texto documental de máxima autoridad, obligatorio para nuevos EDIE, normalizado con trim y límite de 200 caracteres.
+- `institutional.mayor_employee_id`: referencia compatible/opcional; no sustituye el texto ni implica ownership inicial.
+- `/edie-first-recipients` y `/correspondence-creation-policy` proporcionan el catálogo operativo y la política de origen autenticada sin exigir administración.
+- La pantalla permite editar texto, Ventanilla y receptores con manage, leer sin manage, refrescar y recuperar configuración heredada inválida. La creación rechaza configuración inválida hasta corregirla.
+- La configuración no provisiona automáticamente funcionarios/cuentas ni modifica documentos anteriores.
+
+### Creación dinámica
+
+`correspondence.create` autoriza crear. La migración otorga grants iniciales a roles base; el runtime verifica permissions de roles activos, nunca nombres ADMIN/DIRECTOR/SECRETARIA/VENTANILLA. Requiere contexto institucional activo. El cargo determina lectura; ownership determina operaciones.
 
 ## 5. Alembic
 
-Cadena final committeada del tramo reciente:
+El núcleo committeado tiene **una sola head: `f2a3b4c5d6e7`**, que agrega `correspondence.create` de forma aditiva. Incluye el snapshot JSONB histórico `d0e1f2a3b4c5` sin reescribir esa migración.
 
-```text
-a7c8d9e0f1a2
-  → c9d0e1f2a3b4  roles.assign
-  → b8c9d0e1f2a3  system_settings y permisos de configuración
-  → d0e1f2a3b4c5  snapshot histórico de autoridad EDIE
-```
-
-Una sola head: `d0e1f2a3b4c5`. La nueva migración agrega JSONB nullable en correspondences, congela datos disponibles de destinatarios originales de EDIE previos, es idempotente y conserva snapshots en downgrade. No selecciona automáticamente una autoridad para la institución.
-b8 ya está committeada en 336f449; no sigue siendo migración solo-WIP.
-C4 depende directamente de a7, no de b8. Después, b8 se conectó a c9.
-Ambas migraciones son aditivas, preservan custom roles y no borran sus datos/grants en downgrade.
-No modificar migraciones históricas para introducir funcionalidades posteriores ni usar reset de BD como sustituto de Alembic.
+Se probó `upgrade head` desde PostgreSQL nuevo aislado y `alembic heads/history`. El WIP local de Turnos añade `a3b4c5d6e7f8`: no pertenece al artefacto QA. Los cambios WIP de migraciones previas también permanecen fuera de los commits.
+No resetear BD ni modificar docker-compose. Ejecutar migraciones en el entorno QA elegido después de revisar backup/configuración; los tests no deben usar bases del usuario/servidor.
 
 ## 6. Correspondencia y reglas críticas
 
-### Numeración, origen y destino
+### Visibilidad y responsabilidad
 
-- Hoja de ruta correlativa por año; correlativo documental por tipo/año. Mantener transacciones y bloqueo de secuencias.
-- Distinguir persona de origen, destinatario y actor que registra/deriva.
-- current_unit_id representa la unidad propietaria; current_user_id puede ser opcional según perfil.
-- Scope mine usa usuario; scope unit usa unidad del operador.
-- Enviados incluye correspondencia creada por el usuario o con DERIVED creado por él; no inferir autoría desde from_user_id.
-- Operadores de la unidad propietaria pueden gestionar el trámite; no convertir la asignación individual en bypass/restricción diferente.
-- Derivar requiere correspondencia ACTIVE y contexto institucional activo coincidente con la unidad propietaria; no hay bypass por nombre ADMIN.
-- Destino debe ser activo y coherente usuario–unidad. Rechazar reasignación idéntica.
-- Conclusión/reapertura conservan ownership y registran movimientos.
+- Funcionario normal: documentos asignados directamente. `Position.can_view_unit_correspondence=true`: correspondencia actual de su unidad.
+- Otra unidad: sin lectura operativa. Enviados permite seguimiento personal por creación o DERIVED realizado; no inferir autoría desde from_user_id.
+- Detalle, movimientos, PDF y descargas: lectura operativa actual o seguimiento legítimo. IDs fuera de alcance responden 404.
+- Seguimiento histórico y lectura de unidad **no autorizan** mutar una asignación de otro responsable activo. Mutaciones requieren responsabilidad actual y contexto institucional activo.
+- `can_operate` del detalle backend es la autoridad para las acciones Flutter. Ausencia del campo falla de forma cerrada. ADMIN no es bypass.
+- Un cargo con alcance de unidad puede operar el pool sin usuario asignado o recuperar un responsable inactivo, conforme a la política vigente.
 
-### EDIE/S y titular institucional
+### Creación, origen y primer destino
 
-El titular se resuelve exclusivamente desde institutional.mayor_employee_id y su estructura User + Employee + Position + Unit activa. No hay fallback por nombre/código de cargo.
-Sin selección, EDIE se bloquea con: "Debe configurar al Alcalde/Máxima Autoridad Ejecutiva antes de registrar documentos EDIE."
-Una selección inválida también bloquea antes de numeración, inserciones y movimientos, con validación clara.
-El primer destinatario es automático; el usuario solo selecciona el segundo.
-Endpoint autenticado de consulta: /institutional-mayor.
+- Correlativos por año/tipo, transacción y bloqueo de secuencias conservados.
+- Ventanilla: selecciona exactamente un receptor configurado. Fuera de Ventanilla: receptor configurado o unidad/usuario ordinario si el perfil lo permite.
+- No se elude un receptor configurado usando su unidad como destino genérico. Destinos explícitos contradictorios se rechazan antes de insertar/numerar.
+- Cada create registra exactamente **CREATED + DERIVED**. Ownership inicial termina en ese único destino.
+- INFORME/NOTA mantienen su origen institucional. EDIE exige texto documental de autoridad y destinatario válido; autoridad documental no requiere cuenta ni ser receptor operativo.
 
-Al registrar encadenamiento:
+### Derivación, ciclo de vida y adjuntos
 
-```text
-1. CREATED: registro institucional
-2. DERIVED: al titular institucional
-3. DERIVED: del titular al segundo destinatario
-```
+- Derivar exige ACTIVE, destino activo/coherente y unidad obligatoria. Si se especifica usuario, también funcionario/cargo activos pertenecientes a esa unidad. EDIE exige usuario; otros perfiles permiten unidad sola.
+- Unidad sola: current_unit_id=destino, current_user_id=null. Cada operación agrega exactamente un DERIVED. Rechazar reasignación idéntica.
+- Concluir/reabrir preservan ownership y registran CONCLUDED/REOPENED con autorización actual. Autorizar antes de exponer estado; bloquear operaciones incompatibles con conclusión.
+- Adjuntos: listar/descargar comparten alcance de lectura. Subir/baja lógica requieren responsable actual y ACTIVE. Nunca habilitar mutación por Enviados. Se limita la lectura del upload al máximo permitido.
+- Registro y gestión de adjuntos son pasos separados; el formulario indica que el responsable los administra desde el detalle después de transferir ownership.
 
-- Segundo destino requiere unidad y usuario activo de esa unidad, distinto del titular.
-- Actor created_by de los tres movimientos es quien realiza el registro.
-- Ownership final queda en el segundo destino.
-- No confundir titular intermedio con propietario final.
-- Otros perfiles conservan el flujo estándar y su usuario opcional cuando corresponda.
-- INFORME/NOTA conservan requisitos de origen institucional.
-- Crear trámite y adjuntar archivos son operaciones separadas: fallos de upload posteriores no borran el registro; informar resultado parcial.
+### PDF y snapshot histórico
 
-### PDF histórico
-
-PDF de encadenamiento bajo /correspondences/{id}/encadenamiento.pdf.
-Los EDIE nuevos guardan institutional_authority_snapshot en la misma transacción: IDs, nombre, cargo, unidad y etiqueta PARA del primer destinatario. PDF e historial usan ese snapshot para su paso de entrada y salida, sin consultar la autoridad actual ni el override legacy.
-Cambiar autoridad A → B afecta EDIE nuevos; los anteriores preservan A, incluso si luego cambian su nombre/cargo/unidad o estado activo.
-Migración de documentos previos: congela los datos disponibles de su destinatario original, nunca el setting vigente, conservando el formato anterior de PARA (unidad — nombre). No puede recuperar textos anteriores a la migración si ya se habían editado los maestros o se usaban overrides de nombre, porque antes no existía snapshot. Registros incompletos conservan fallback por referencias históricas.
+`/correspondences/{id}/encadenamiento.pdf` utiliza la autoridad documental, destinatario inicial y movimientos históricos. El snapshot nuevo congela texto/PARA, identidad opcional de autoridad, receptor inicial (también destino ordinario) y `routing_mode=single_initial_recipient` en la misma transacción.
+Cambiar settings o maestros no recalcula estos históricos. Se conserva compatibilidad de snapshots anteriores/documentos incompletos. La migración histórica sólo puede congelar los datos disponibles; no reconstruye textos ya perdidos antes del snapshot.
+Se probaron PDF, campos heredados y caracteres especiales, sin sustituir el receptor operativo por el nombre del alcalde.
 
 ## 7. Administración, errores y datos reales
 
@@ -220,84 +176,46 @@ Apache:
 - /api sin barra no tiene proxy propio.
 - Cookie Secure requiere HTTPS; VirtualHost actual es demo HTTP. No cambiar auth ni COOKIE_PATH como compensación.
 
-Las pruebas Chrome /api verifican resolución de rutas/clientes, no una cookie real atravesando Apache.
+Se validó HTTP /api con proxy local y cookie real HttpOnly; Apache/servidor remoto todavía requiere su propia validación. Las pruebas no equivalen a un deploy.
 Servidor demo sigue pendiente de actualización, configtest y validación de health, SPA/assets, login, F5 refresh/me y logout.
 No se ejecutó deploy ni se tocó Debian durante este cierre.
 
 ## 9. Validación del cierre
 
-Resultados revalidados para el bloque de autoridad institucional:
-| Suite | Resultado validado |
+Suite completa sobre exportación del núcleo committeado, excluyendo WIP:
+
+| Verificación | Resultado |
 | --- | --- |
-| Backend | 179/179 |
-| Flutter raíz | 389/389 |
-| Package API | 13/13 |
-| Package repository | 21/21 |
-| Package failures | 4/4 (validación previa; sin cambios en este bloque) |
-| Chrome API_BASE_URL=/api | 2/2 (validación previa; resolución base sin cambios) |
-| Flutter analyze | 0 errors, 0 warnings; 88 infos |
-| Alembic | Una sola head d0e1f2a3b4c5 |
+| Backend `pytest tests/` | 219 pasaron |
+| Flutter `flutter test` | 401 pasaron |
+| Package API / repository / failures | 18 / 24 / 4 pasaron |
+| Flutter analyze | 0 errors, 0 warnings; 92 infos |
+| Alembic | Una head f2a3b4c5d6e7; migración desde BD nueva correcta |
+| Build web API_BASE_URL=/api | Correcto |
+| HTTP web /api | Assets/health/BD/login/me/refresh 200; logout 204 y cookie eliminada |
+| Smoke funcional | Escenarios del checklist cubiertos por tests de integración y widgets |
+| git diff --check | Correcto |
 
-Los cuatro fallos globales de derivación y el bloqueo backend por entorno citados en auditorías antiguas ya no describen el estado validado del lote.
-Infos del analyzer no se cuentan como warnings; pueden producir exit code 1 aunque haya cero errors/warnings.
+También se comprobó el árbol local incluyendo WIP: 243 backend, 424 Flutter, packages 21/27/4; sin fallos. Estos números **no** describen el artefacto Correspondencia entregable.
+Infos del analyzer son mejoras de const/estilo y uso de biblioteca web en implementación web; no son warnings. Backend emite dos deprecations de dependencias Starlette/AnyIO y ReportLab, sin fallos funcionales.
 
-Comandos de cierre:
-```text
-flutter test
-flutter analyze
-# En backend, con entorno de tests aislado:
-python -m pytest tests/ -q --tb=short
-python -m alembic heads
-# En raíz:
-git diff --check
-```
-
-Backend requiere JWT_ACCESS_SECRET y DATABASE_URL. No apuntar tests a BD del servidor/demo.
-La validación utilizó PostgreSQL temporal aislado: contenedor correspondencia_closure_tests_20261007, puerto local 55439, BD closure_tests; STORAGE_ROOT temporal separado.
-No se ejecutaron scripts de reset/clean contra datos de desarrollo o producción.
-La suite backend emite avisos de dependencias; distinguirlos de fallos funcionales.
-No ejecutar limpieza de contenedores/volúmenes como paso implícito del handoff.
+Pruebas sobre PostgreSQL y almacenamiento temporales separados, sin reset/clean de datos del usuario. El smoke HTTP usa proxy local que elimina /api y COOKIE_PATH=/api/auth; Apache preparado adapta ese Path mediante ProxyPassReverseCookiePath. Verificar una de estas adaptaciones en el entorno QA real. No se instaló ni desplegó nada en servidor.
 
 ## 10. WIP excluido y riesgos pendientes
 
-### Dos archivos de app/test preservados
+- Preservados por hash 55 archivos protegidos de Turnos/RR.HH., Website, scripts y puntos de integración compartidos. Los hunks compartidos de Endpoints y formulario de funcionario se stagearon selectivamente sin Turnos.
+- Permanecen cambios previos de formato y pruebas en Correspondencia/AppSession/grid, y WIP de migraciones, organización y permisos compartidos; no se añadieron automáticamente al cierre.
+- Website es otro producto; sus componentes/layout/CSS y commits previos no se confundieron con Flutter.
+- `TURNOS_HANDOFF.txt`, work_shifts y sus tests/migración permanecen pausados.
+- Scripts clean/reset no se ejecutaron ni stagearon. Sus barreras heurísticas, credenciales fijas y borrado físico no los convierten en herramientas aprobadas.
+- Reportes y consulta pública siguen **No disponible**, sin datos ficticios; implementación productiva queda post-QA. Código mock heredado sin ruta activa puede retirarse después.
+- Ningún bloqueo A/B conocido queda abierto en el núcleo validado. Las pruebas automatizadas no sustituyen la aceptación manual por QA con sus datos reales.
 
-- lib/features/app/cubit/app_session_cubit.dart: solo reflujo de una expresión de copyWith; comportamiento idéntico. Historial de autenticación previo al lote.
-- test/correspondence_movements_grid_test.dart: formato y sustitución de un nombre largo por otro más corto en fixture móvil de 390px. Aserciones y comportamiento no cambian; acorta una entrada de estrés de layout. Historial del grid responsive previo al lote.
-- Ninguno fue modificado por los diez commits finales ni exige un commit funcional para cerrarlos.
-- No hay evidencia de necesidad del cambio de fixture. Ambos permanecen WIP intactos: no se descartaron ni se incluyeron automáticamente.
+### Pasos antes de entregar a QA
 
-### Sitio público website
+1. Elegir el árbol committeado de este cierre sin incorporar WIP local.
+2. Preparar PostgreSQL/almacenamiento QA aislados, variables y proxy/cookie /api; aplicar Alembic sin reset.
+3. Provisionar datos reales activos y cuentas/permissions; configurar Ventanilla, receptores y texto de autoridad.
+4. Entregar docs/QA_CHECKLIST.md y ejecutar aceptación manual con esas cuentas/datos.
 
-Hay WIP visual en 13 archivos de componentes/layout/CSS de Astro. Pertenece al sitio público separado; no se modificó ni stageó en este cierre.
-Tres commits YA presentes en el rango a push:
-`54a087e` (primera versión), `fbc7bec` (preparación sitio/repositorio), `d21457f` (workflow Pages).
-La decisión de publicación/separación de ese historial sigue pendiente. No resolver mediante reescritura no autorizada.
-
-### Scripts no versionados
-
-- backend/scripts/clean_dev_data.py
-- backend/scripts/reset_admin_dev.py
-- scripts/clean_dev_data.ps1
-- scripts/reset_admin.ps1
-
-Son borradores con propósito legítimo de desarrollo, no herramientas de producción aprobadas.
-No se ejecutaron, stagearon ni committearon.
-
-Riesgos auditados:
-- Limpieza realiza borrado físico de correspondencia, movimientos, adjuntos y parte de maestros/cuentas. Sus comprobaciones de entorno/URL son heurísticas, no garantía de conexión exclusivamente local.
-- Borrado de archivos de adjuntos no se revierte con rollback de la transacción SQL.
-- Reset admin cambia credenciales y privilegios, usa contraseña fija y carece de una barrera equivalente de entorno/confirmación.
-- Reset contempla permisos históricos de maestros; no asumir que provisiona todos los permisos C4/settings de una instalación nueva.
-- Wrappers PowerShell pueden arrancar Docker Compose, incluso antes de una comprobación/dry-run.
-- Requieren decisión y validación explícitas antes de versionar o usar. No reproducir credenciales en documentación.
-
-### Antes de push/deploy
-
-1. Decidir qué hacer con los commits existentes de website en develop.
-2. Resolver o preservar conscientemente los dos residuos y WIP del sitio; no incluirlos por accidente en builds.
-3. Asegurar entorno de servidor, migraciones pendientes, backup y almacenamiento según plan autorizado; no ejecutar ahora.
-4. Validar Apache y cookie real en navegador, incluida renovación y eliminación, cuando se autorice deploy.
-5. Revisar TLS y variables del servidor: los tests locales no certifican infraestructura productiva.
-
-El bloque de autoridad institucional se cierra con commit selectivo, índice vacío y resto del WIP intacto. Antes de habilitar EDIE en un entorno actualizado, seleccionar explícitamente un funcionario válido en Configuración. Consultar git status y el historial antes de la siguiente acción.
+Push y deploy requieren una instrucción posterior; no forman parte de este cierre.
