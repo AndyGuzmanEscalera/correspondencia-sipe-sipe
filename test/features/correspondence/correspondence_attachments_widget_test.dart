@@ -75,6 +75,24 @@ CorrespondenceAttachmentsCubit _buildCubit({
 }
 
 void main() {
+  for (final width in [390.0, 1200.0]) {
+    testWidgets('lectura sin ownership oculta mutaciones y conserva descarga ($width)', (tester) async {
+      tester.view.physicalSize=Size(width,1000);tester.view.devicePixelRatio=1;
+      addTearDown(tester.view.resetPhysicalSize);addTearDown(tester.view.resetDevicePixelRatio);
+      final repository=_FakeCorrespondenceRepository(attachments:[repo.CorrespondenceAttachment(
+        id:'readonly',correspondenceId:'corr-1',originalFilename:'lectura.pdf',
+        isActive:true,createdByUserId:'owner',createdAt:DateTime.utc(2026))]);
+      final cubit=_buildCubit(repository:repository);addTearDown(cubit.close);
+      await tester.pumpWidget(MaterialApp(home:Scaffold(body:BlocProvider.value(value:cubit,
+        child:const CorrespondenceAttachmentsView(canManage:false)))));
+      await tester.pumpAndSettle();
+      expect(find.text('Agregar archivos'),findsNothing);
+      expect(find.byTooltip('Quitar adjunto'),findsNothing);
+      expect(find.text('Quitar'),findsNothing);
+      expect(find.text('No hay adjuntos registrados.'),findsNothing);
+      expect(width<767 ? find.text('Descargar') : find.byTooltip('Descargar'),findsOneWidget);
+    });
+  }
   group('CorrespondenceAttachments widgets', () {
     testWidgets('lista vacía no renderiza filas', (tester) async {
       await tester.pumpWidget(
@@ -103,7 +121,7 @@ void main() {
           home: Scaffold(
             body: BlocProvider.value(
               value: cubit,
-              child: const CorrespondenceAttachmentsView(),
+              child: const CorrespondenceAttachmentsView(canManage: true),
             ),
           ),
         ),
@@ -139,7 +157,7 @@ void main() {
           home: Scaffold(
             body: BlocProvider.value(
               value: cubit,
-              child: const CorrespondenceAttachmentsView(),
+              child: const CorrespondenceAttachmentsView(canManage: true),
             ),
           ),
         ),
@@ -173,7 +191,7 @@ void main() {
           home: Scaffold(
             body: BlocProvider.value(
               value: cubit,
-              child: const CorrespondenceAttachmentsView(),
+              child: const CorrespondenceAttachmentsView(canManage: true),
             ),
           ),
         ),
@@ -217,7 +235,7 @@ void main() {
           home: Scaffold(
             body: BlocProvider.value(
               value: cubit,
-              child: const CorrespondenceAttachmentsView(),
+              child: const CorrespondenceAttachmentsView(canManage: true),
             ),
           ),
         ),

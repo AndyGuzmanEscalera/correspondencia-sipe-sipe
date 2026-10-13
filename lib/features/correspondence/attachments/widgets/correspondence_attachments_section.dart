@@ -5,10 +5,12 @@ import 'package:flutter/material.dart';
 class CorrespondenceAttachmentsSection extends StatelessWidget {
   const CorrespondenceAttachmentsSection({
     required this.correspondenceId,
+    this.canManage = false,
     super.key,
   });
 
   final String correspondenceId;
+  final bool canManage;
 
   @override
   Widget build(BuildContext context) {
@@ -26,6 +28,7 @@ class CorrespondenceAttachmentsSection extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: CorrespondenceAttachmentsPage(
             correspondenceId: correspondenceId,
+            canManage: canManage,
           ),
         ),
       ],

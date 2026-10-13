@@ -131,6 +131,7 @@ class _CompactDetailLayout extends StatelessWidget {
         SizedBox(height: sectionGap),
         CorrespondenceAttachmentsSection(
           correspondenceId: correspondenceId,
+          canManage: canOperateCurrentUnit && item.isActiveStatus,
         ),
         if (item.isActiveStatus && canOperateCurrentUnit) ...[
           SizedBox(height: sectionGap),
@@ -237,6 +238,7 @@ class _WideFooterActions extends StatelessWidget {
       children: [
         CorrespondenceAttachmentsSection(
           correspondenceId: correspondenceId,
+          canManage: canOperateCurrentUnit && item.isActiveStatus,
         ),
         SizedBox(height: sectionGap),
         CorrespondenceLifecycleSection(

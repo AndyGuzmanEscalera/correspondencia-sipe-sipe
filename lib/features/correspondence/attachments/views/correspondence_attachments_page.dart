@@ -10,10 +10,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 class CorrespondenceAttachmentsPage extends StatelessWidget {
   const CorrespondenceAttachmentsPage({
     required this.correspondenceId,
+    this.canManage = false,
     super.key,
   });
 
   final String correspondenceId;
+  final bool canManage;
 
   @override
   Widget build(BuildContext context) {
@@ -21,13 +23,14 @@ class CorrespondenceAttachmentsPage extends StatelessWidget {
       create: (_) => getIt<CorrespondenceAttachmentsCubit>(
         param1: correspondenceId,
       ),
-      child: const CorrespondenceAttachmentsView(),
+      child: CorrespondenceAttachmentsView(canManage: canManage),
     );
   }
 }
 
 class CorrespondenceAttachmentsView extends StatelessWidget {
-  const CorrespondenceAttachmentsView({super.key});
+  const CorrespondenceAttachmentsView({this.canManage = false, super.key});
+  final bool canManage;
 
   @override
   Widget build(BuildContext context) {
@@ -41,18 +44,19 @@ class CorrespondenceAttachmentsView extends StatelessWidget {
       ],
       child: FullWidgetGeneric(
         onInit: cubit.init,
-        child: const CorrespondenceAttachmentsBody(),
+        child: CorrespondenceAttachmentsBody(canManage: canManage),
       ),
     );
   }
 }
 
 class CorrespondenceAttachmentsBody extends StatelessWidget {
-  const CorrespondenceAttachmentsBody({super.key});
+  const CorrespondenceAttachmentsBody({this.canManage = false, super.key});
+  final bool canManage;
 
   Future<void> _pickAndUpload(BuildContext context) async {
     final cubit = context.read<CorrespondenceAttachmentsCubit>();
-    if (cubit.state.uploading) {
+    if (!canManage || cubit.state.uploading) {
       return;
     }
 
@@ -129,12 +133,12 @@ class CorrespondenceAttachmentsBody extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (hasAttachments)
+            if (hasAttachments && canManage)
               Align(
                 alignment: Alignment.centerRight,
                 child: _buildAddButton(context, state),
-              )
-            else
+              ),
+            if (!hasAttachments)
               Column(
                 children: [
                   Text(
@@ -143,13 +147,15 @@ class CorrespondenceAttachmentsBody extends StatelessWidget {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 12),
-                  _buildAddButton(context, state, expanded: true),
+                  if (canManage)
+                    _buildAddButton(context, state, expanded: true),
                 ],
               ),
             if (hasAttachments) ...[
               const SizedBox(height: 12),
               CorrespondenceAttachmentsList(
                 attachments: state.attachments,
+                canManage: canManage,
                 downloadingAttachmentId: state.downloadingAttachmentId,
                 deactivatingAttachmentId: state.deactivatingAttachmentId,
               ),

@@ -8,12 +8,14 @@ import 'package:intl/intl.dart';
 class CorrespondenceAttachmentsList extends StatelessWidget {
   const CorrespondenceAttachmentsList({
     required this.attachments,
+    this.canManage = false,
     required this.downloadingAttachmentId,
     required this.deactivatingAttachmentId,
     super.key,
   });
 
   final List<CorrespondenceAttachment> attachments;
+  final bool canManage;
   final String? downloadingAttachmentId;
   final String? deactivatingAttachmentId;
 
@@ -51,7 +53,9 @@ class CorrespondenceAttachmentsList extends StatelessWidget {
                 isDownloading: isDownloading,
                 isDeactivating: isDeactivating,
                 onDownload: () => _download(context, attachment),
-                onDeactivate: () => _confirmDeactivate(context, attachment),
+                onDeactivate: canManage
+                    ? () => _confirmDeactivate(context, attachment)
+                    : null,
               );
             }
 
@@ -75,18 +79,20 @@ class CorrespondenceAttachmentsList extends StatelessWidget {
                       icon: const Icon(Icons.download_outlined),
                       onPressed: () => _download(context, attachment),
                     ),
-                  if (isDeactivating)
-                    const SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  else
-                    IconButton(
-                      tooltip: 'Quitar adjunto',
-                      icon: const Icon(Icons.delete_outline),
-                      onPressed: () => _confirmDeactivate(context, attachment),
-                    ),
+                  if (canManage)
+                    if (isDeactivating)
+                      const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    else
+                      IconButton(
+                        tooltip: 'Quitar adjunto',
+                        icon: const Icon(Icons.delete_outline),
+                        onPressed: () =>
+                            _confirmDeactivate(context, attachment),
+                      ),
                 ],
               ),
             );
@@ -157,7 +163,7 @@ class _AttachmentCard extends StatelessWidget {
   final bool isDownloading;
   final bool isDeactivating;
   final VoidCallback onDownload;
-  final VoidCallback onDeactivate;
+  final VoidCallback? onDeactivate;
 
   @override
   Widget build(BuildContext context) {
@@ -206,17 +212,18 @@ class _AttachmentCard extends StatelessWidget {
                       : const Icon(Icons.download_outlined, size: 18),
                   label: const Text('Descargar'),
                 ),
-                OutlinedButton.icon(
-                  onPressed: isDeactivating ? null : onDeactivate,
-                  icon: isDeactivating
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.delete_outline, size: 18),
-                  label: const Text('Quitar adjunto'),
-                ),
+                if (onDeactivate != null)
+                  OutlinedButton.icon(
+                    onPressed: isDeactivating ? null : onDeactivate,
+                    icon: isDeactivating
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.delete_outline, size: 18),
+                    label: const Text('Quitar adjunto'),
+                  ),
               ],
             ),
           ],
