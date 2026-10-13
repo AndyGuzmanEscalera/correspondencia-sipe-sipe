@@ -153,7 +153,7 @@ class CorrespondenceAttachmentService:
         reason: str | None = None,
         active_only: bool = True,
     ) -> CorrespondenceAttachmentResponse:
-        correspondence = self._get_correspondence_or_404(correspondence_id, active_only=active_only)
+        correspondence = self._get_correspondence_or_404(correspondence_id, active_only=active_only, lock=True)
         CorrespondenceService(self._db).assert_current_unit_operator(user, correspondence)
         if correspondence.status != "ACTIVE":
             raise HTTPException(status_code=422,detail="No se pueden modificar adjuntos de una correspondencia concluida")
@@ -188,7 +188,7 @@ class CorrespondenceAttachmentService:
         if active_only:
             query = query.where(Correspondence.is_active == True)  # noqa: E712
         if lock:
-            query=query.with_for_update()
+            query=query.with_for_update().execution_options(populate_existing=True)
         correspondence = self._db.scalar(query)
         if correspondence is None:
             raise HTTPException(
