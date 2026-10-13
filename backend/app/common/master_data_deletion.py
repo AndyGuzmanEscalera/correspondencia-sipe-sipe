@@ -41,8 +41,12 @@ def validate_deletion(db: Session, entity: str, row):
     if entity=='employees' and row.id in receivers or entity=='users' and row.employee_id in receivers:
         _blocked('No se puede eliminar un receptor inicial configurado. Cambie primero la configuración institucional.')
     if entity in {'units','positions'}:
-        receiver_rows=db.scalars(select(Employee).where(Employee.id.in_(receivers))).all()
-        if any((e.unit_id if entity=='units' else e.position_id)==row.id for e in receiver_rows):
+        # Leer sólo la dependencia necesaria, sin cargar campos ajenos del funcionario.
+        reference = Employee.unit_id if entity == 'units' else Employee.position_id
+        configured_dependency = db.scalar(select(Employee.id).where(
+            Employee.id.in_(receivers), reference == row.id,
+        ).limit(1))
+        if configured_dependency is not None:
             _blocked('No se puede eliminar este registro porque lo utiliza un receptor inicial configurado. Cambie primero la configuración institucional.')
     if entity == 'units':
         if _has_active_correspondence(db, Correspondence.current_unit_id == row.id):
@@ -72,10 +76,14 @@ def validate_deletion(db: Session, entity: str, row):
     # incluso eliminada. La baja solo impide registrar documentos nuevos.
 
     # Proteger también la configuración persistida aunque el funcionario esté eliminado.
-    configured = db.get(Employee, _configured_employee(db)) if _configured_employee(db) else None
-    if configured and ((entity == 'positions' and configured.position_id == row.id)
-                       or (entity == 'units' and configured.unit_id == row.id)):
-        _blocked('No se puede eliminar este registro porque lo utiliza la autoridad institucional configurada. Cambie primero la configuración.')
+    if entity in {'units', 'positions'}:
+        authority_id = _configured_employee(db)
+        reference = Employee.unit_id if entity == 'units' else Employee.position_id
+        if authority_id is not None and db.scalar(select(Employee.id).where(
+            Employee.id == authority_id, reference == row.id,
+        ).limit(1)) is not None:
+            _blocked('No se puede eliminar este registro porque lo utiliza la autoridad institucional configurada. Cambie primero la configuración.')
+
 
 
 def validate_employee_restoration(db: Session, employee: Employee):
