@@ -165,6 +165,24 @@ void main() {
       }
     }
 
+    for (final size in [const Size(390, 844), const Size(1366, 900)]) {
+      for (final authorized in [true, false]) {
+        testWidgets('CONCLUDED $size authorized=$authorized permits only reopening', (tester) async {
+          cubit.emit(cubit.state.copyWith(
+            correspondence: externalCorrespondence.copyWith(
+              status: 'CONCLUDED', canOperate: authorized,
+            ),
+          ));
+          await pumpBody(tester, size: size);
+          expect(find.text('Reabrir'), authorized ? findsOneWidget : findsNothing);
+          expect(find.text('Concluir'), findsNothing);
+          expect(find.text('Agregar archivos'), findsNothing);
+          expect(find.byType(DeriveCorrespondencePage), findsNothing);
+          expect(tester.takeException(), isNull);
+        });
+      }
+    }
+
     testWidgets('ACTIVE autorizado muestra Concluir y no Reabrir', (
       tester,
     ) async {

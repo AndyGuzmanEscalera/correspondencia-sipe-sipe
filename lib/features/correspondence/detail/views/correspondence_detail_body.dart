@@ -121,7 +121,7 @@ class _CompactDetailLayout extends StatelessWidget {
                 SizedBox(height: sectionGap),
                 CorrespondenceLifecycleSection(
                   item: item,
-                  canManage: canOperateCurrentUnit && item.isActiveStatus,
+                  canManage: canOperateCurrentUnit,
                   actionInProgress: lifecycleActionInProgress,
                 ),
               ],
@@ -243,7 +243,7 @@ class _WideFooterActions extends StatelessWidget {
         SizedBox(height: sectionGap),
         CorrespondenceLifecycleSection(
           item: item,
-          canManage: canOperateCurrentUnit && item.isActiveStatus,
+          canManage: canOperateCurrentUnit,
           actionInProgress: lifecycleActionInProgress,
         ),
         if (item.isActiveStatus && canOperateCurrentUnit) ...[
