@@ -62,7 +62,8 @@ class CreateCorrespondenceRequest(BaseModel):
     sender_document: str | None = Field(default=None, max_length=30)
     sender_contact: str | None = Field(default=None, max_length=50)
     origin_description: str | None = Field(default=None, max_length=300)
-    initial_to_unit_id: uuid.UUID
+    first_recipient_employee_id: uuid.UUID | None = None
+    initial_to_unit_id: uuid.UUID | None = None
     initial_to_user_id: uuid.UUID | None = None
     initial_instruction: str | None = Field(default=None, max_length=500)
 
@@ -122,6 +123,7 @@ class CorrespondenceSentCountResponse(BaseModel):
 
 
 class CorrespondenceDetail(CorrespondenceListItem):
+    can_operate: bool = False
     description: str | None
     sender_name: str | None
     sender_document: str | None

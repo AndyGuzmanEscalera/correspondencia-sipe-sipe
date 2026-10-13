@@ -54,11 +54,13 @@ class CorrespondenceAttachmentService:
     ) -> CorrespondenceAttachmentResponse:
         correspondence = self._get_correspondence_or_404(
             correspondence_id,
-            active_only=active_only,
+            active_only=active_only, lock=True,
         )
         CorrespondenceService(self._db).assert_current_unit_operator(user, correspondence)
+        if correspondence.status != "ACTIVE":
+            raise HTTPException(status_code=422,detail="No se pueden modificar adjuntos de una correspondencia concluida")
         settings = get_settings()
-        payload = await upload.read()
+        payload = await upload.read(settings.max_attachment_size_bytes + 1)
         if not payload:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -153,6 +155,8 @@ class CorrespondenceAttachmentService:
     ) -> CorrespondenceAttachmentResponse:
         correspondence = self._get_correspondence_or_404(correspondence_id, active_only=active_only)
         CorrespondenceService(self._db).assert_current_unit_operator(user, correspondence)
+        if correspondence.status != "ACTIVE":
+            raise HTTPException(status_code=422,detail="No se pueden modificar adjuntos de una correspondencia concluida")
         row = self._db.scalar(
             select(CorrespondenceAttachment).where(
                 CorrespondenceAttachment.id == attachment_id,
@@ -178,10 +182,13 @@ class CorrespondenceAttachmentService:
         correspondence_id: uuid.UUID,
         *,
         active_only: bool,
+        lock: bool = False,
     ) -> Correspondence:
         query = select(Correspondence).where(Correspondence.id == correspondence_id)
         if active_only:
             query = query.where(Correspondence.is_active == True)  # noqa: E712
+        if lock:
+            query=query.with_for_update()
         correspondence = self._db.scalar(query)
         if correspondence is None:
             raise HTTPException(

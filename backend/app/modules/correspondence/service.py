@@ -40,7 +40,11 @@ from app.modules.correspondence.document_type_profiles import (
 from app.modules.correspondence.institutional_mayor import (
     InstitutionalMayor,
     resolve_institutional_mayor,
+    list_edie_first_recipients,
+    resolve_edie_first_recipient,
+    require_document_authority_name,
 )
+from app.modules.correspondence.creation_policy import require_create_permission, require_intake_unit
 from app.modules.correspondence.schemas import (
     CorrespondenceDetail,
     CorrespondenceInboxCountsResponse,
@@ -235,19 +239,22 @@ class CorrespondenceService:
         correspondence_id: uuid.UUID,
         *,
         active_only: bool = True,
+        user: User | None = None,
     ) -> CorrespondenceDetail:
         correspondence = self._get_correspondence_or_404(
             correspondence_id,
             active_only=active_only,
         )
-        return self._to_detail(correspondence)
+        return self._to_detail(correspondence,user=user)
 
     def create_correspondence(
         self,
         user: User,
         body: CreateCorrespondenceRequest,
     ) -> CorrespondenceDetail:
+        require_create_permission(self._db, user)
         responsible = self._resolve_institutional_responsible(user)
+        intake = require_intake_unit(self._db)
         doc_type = self._validate_document_type(body.document_type_id)
         profile = resolve_document_form_profile(doc_type.code)
 
@@ -255,18 +262,41 @@ class CorrespondenceService:
         subject = self._resolve_subject(body, profile)
         description = self._normalize_optional_text(body.description)
 
-        is_chaining = profile == DocumentFormProfile.CHAINING
-        if is_chaining:
-            mayor = self._require_institutional_mayor()
-            self._validate_chaining_second_destination(
-                body.initial_to_unit_id,
-                body.initial_to_user_id,
-            )
-            if body.initial_to_user_id == mayor.user_id:
-                raise HTTPException(status_code=422, detail="El segundo destinatario debe ser distinto del titular ejecutivo.")
+        recipient = None
+        recipients = list_edie_first_recipients(self._db)
+        if body.first_recipient_employee_id is not None:
+            recipient = resolve_edie_first_recipient(self._db, body.first_recipient_employee_id)
+            if (body.initial_to_unit_id is not None and body.initial_to_unit_id != recipient.unit_id) or (
+                body.initial_to_user_id is not None and body.initial_to_user_id != recipient.user_id):
+                raise HTTPException(status_code=422, detail="El destino no coincide con el receptor inicial seleccionado")
+            destination_unit, destination_user = recipient.unit_id, recipient.user_id
         else:
+            if responsible.unit_id == intake.id:
+                raise HTTPException(status_code=422, detail="Ventanilla debe seleccionar un receptor inicial configurado de Alcaldía")
+            if body.initial_to_unit_id is None:
+                raise HTTPException(status_code=422, detail="Seleccione una unidad destino")
+            if body.initial_to_unit_id in {item.unit_id for item in recipients}:
+                raise HTTPException(status_code=422, detail="Para Alcaldía seleccione un receptor inicial configurado")
             self._validate_destination(body.initial_to_unit_id, body.initial_to_user_id)
-            mayor = None
+            destination_unit, destination_user = body.initial_to_unit_id, body.initial_to_user_id
+        mayor = resolve_institutional_mayor(self._db) if profile == DocumentFormProfile.CHAINING else None
+
+        authority_snapshot = None
+        if profile == DocumentFormProfile.CHAINING:
+            authority_snapshot = dict(
+                document_display_name=require_document_authority_name(self._db),
+                para_label=require_document_authority_name(self._db),
+                routing_mode="single_initial_recipient",
+                initial_recipient=(dict(employee_id=str(recipient.employee_id),
+                    user_id=str(recipient.user_id), unit_id=str(recipient.unit_id),
+                    employee_name=recipient.employee_name, unit_name=recipient.unit_name,
+                    position_name=recipient.position_name) if recipient else dict(
+                    unit_id=str(destination_unit),user_id=str(destination_user) if destination_user else None,
+                    unit_name=self._unit_name(destination_unit),employee_name=self._user_display_name(destination_user) or "")))
+            if mayor:
+                authority_snapshot.update(employee_id=str(mayor.employee_id), user_id=str(mayor.user_id),
+                    unit_id=str(mayor.unit_id), employee_name=mayor.employee_name,
+                    position_name=mayor.position_name, unit_name=mayor.unit_name)
 
         route_year, route_sequence, route_number = self._allocate_route_number()
         doc_year, doc_sequence, doc_number = self._allocate_document_number(
@@ -283,12 +313,7 @@ class CorrespondenceService:
             correspondence_type=origin.correspondence_type,
             document_type_id=body.document_type_id,
             subject=subject,
-            institutional_authority_snapshot=(
-                dict(employee_id=str(mayor.employee_id), user_id=str(mayor.user_id),
-                     unit_id=str(mayor.unit_id), employee_name=mayor.employee_name,
-                     position_name=mayor.position_name, unit_name=mayor.unit_name,
-                     para_label=mayor.para_label) if mayor else None
-            ),
+            institutional_authority_snapshot=authority_snapshot,
             reference=self._normalize_optional_text(body.reference),
             description=description,
             priority=body.priority,
@@ -300,8 +325,8 @@ class CorrespondenceService:
             origin_unit_id=origin.origin_unit_id,
             origin_user_id=None,
             origin_employee_id=origin.origin_employee_id,
-            current_unit_id=body.initial_to_unit_id,
-            current_user_id=body.initial_to_user_id,
+            current_unit_id=destination_unit,
+            current_user_id=destination_user,
             created_by_user_id=user.id,
             is_active=True,
         )
@@ -322,30 +347,15 @@ class CorrespondenceService:
             created_by_user_id=user.id,
         )
 
-        if mayor is not None:
-            sequence_number += 1
-            self._add_movement(
-                correspondence=correspondence,
-                sequence_number=sequence_number,
-                movement_type=MOVEMENT_DERIVED,
-                from_unit_id=responsible.unit_id,
-                from_user_id=responsible.user_id,
-                to_unit_id=mayor.unit_id,
-                to_user_id=mayor.user_id,
-                instruction=None,
-                observation=None,
-                created_by_user_id=user.id,
-            )
-
         sequence_number += 1
         self._add_movement(
             correspondence=correspondence,
             sequence_number=sequence_number,
             movement_type=MOVEMENT_DERIVED,
-            from_unit_id=mayor.unit_id if mayor is not None else responsible.unit_id,
-            from_user_id=mayor.user_id if mayor is not None else responsible.user_id,
-            to_unit_id=body.initial_to_unit_id,
-            to_user_id=body.initial_to_user_id,
+            from_unit_id=responsible.unit_id,
+            from_user_id=responsible.user_id,
+            to_unit_id=destination_unit,
+            to_user_id=destination_user,
             instruction=body.initial_instruction,
             observation=None,
             created_by_user_id=user.id,
@@ -353,7 +363,7 @@ class CorrespondenceService:
 
         self._db.commit()
         self._db.refresh(correspondence)
-        return self._to_detail(correspondence)
+        return self._to_detail(correspondence,user=user)
 
     def derive_correspondence(
         self,
@@ -371,13 +381,13 @@ class CorrespondenceService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Correspondencia no encontrada",
             )
+        self.assert_current_unit_operator(user, correspondence)
         if correspondence.status != STATUS_ACTIVE:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Solo se pueden derivar trámites activos",
             )
 
-        self.assert_current_unit_operator(user, correspondence)
         self._validate_destination(body.to_unit_id, body.to_user_id)
         doc_type = self._document_type(correspondence.document_type_id)
         if resolve_document_form_profile(doc_type.code) == DocumentFormProfile.CHAINING:
@@ -409,7 +419,7 @@ class CorrespondenceService:
 
         self._db.commit()
         self._db.refresh(correspondence)
-        return self._to_detail(correspondence)
+        return self._to_detail(correspondence,user=user)
 
     def conclude_correspondence(
         self,
@@ -427,13 +437,13 @@ class CorrespondenceService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Correspondencia no encontrada",
             )
+        self.assert_current_unit_operator(user, correspondence)
         if correspondence.status != STATUS_ACTIVE:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Solo se pueden concluir trámites activos",
             )
 
-        self.assert_current_unit_operator(user, correspondence)
 
         next_sequence = self._next_movement_sequence(correspondence.id)
         self._add_movement(
@@ -454,7 +464,7 @@ class CorrespondenceService:
 
         self._db.commit()
         self._db.refresh(correspondence)
-        return self._to_detail(correspondence)
+        return self._to_detail(correspondence,user=user)
 
     def reopen_correspondence(
         self,
@@ -472,13 +482,13 @@ class CorrespondenceService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Correspondencia no encontrada",
             )
+        self.assert_current_unit_operator(user, correspondence)
         if correspondence.status != STATUS_CONCLUDED:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Solo se pueden reabrir trámites concluidos",
             )
 
-        self.assert_current_unit_operator(user, correspondence)
 
         next_sequence = self._next_movement_sequence(correspondence.id)
         self._add_movement(
@@ -499,7 +509,7 @@ class CorrespondenceService:
 
         self._db.commit()
         self._db.refresh(correspondence)
-        return self._to_detail(correspondence)
+        return self._to_detail(correspondence,user=user)
 
     def generate_encadenamiento_pdf_bytes(
         self,
@@ -566,8 +576,8 @@ class CorrespondenceService:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail=(
-                    "Generación de PDF no disponible: falta instalar reportlab "
-                    "en el backend (pip install -r requirements.txt o rebuild Docker)."
+                    "La generación de PDF no está disponible temporalmente. "
+                    "Intente nuevamente o contacte a soporte."
                 ),
             ) from exc
         except Exception as exc:
@@ -635,6 +645,14 @@ class CorrespondenceService:
                     "esta correspondencia"
                 ),
             )
+        actor_context=resolve_visibility_context(self._db,user)
+        if actor_context is None:
+            raise HTTPException(status_code=403,detail="Su funcionario, cargo o unidad no están activos")
+        if correspondence.current_user_id!=user.id and not actor_context.can_view_unit_correspondence:
+            raise HTTPException(status_code=403,detail="Su cargo no permite operar correspondencia no asignada directamente")
+        assigned=self._db.get(User,correspondence.current_user_id) if correspondence.current_user_id else None
+        if assigned and assigned.is_active and assigned.id!=user.id:
+            raise HTTPException(status_code=403,detail="Solo el funcionario responsable actual puede operar esta correspondencia")
         return context
 
     def _assert_derivation_changes_assignment(
@@ -823,6 +841,13 @@ class CorrespondenceService:
             total_pages=0,
         )
 
+    def list_edie_first_recipients(self) -> list[InstitutionalMayorResponse]:
+        return [InstitutionalMayorResponse(
+            user_id=item.user_id, employee_id=item.employee_id, unit_id=item.unit_id,
+            employee_name=item.employee_name, position_name=item.position_name,
+            unit_name=item.unit_name, para_label=item.para_label,
+        ) for item in list_edie_first_recipients(self._db)]
+
     def get_institutional_mayor(self) -> InstitutionalMayorResponse:
         mayor = self._require_institutional_mayor()
         return InstitutionalMayorResponse(
@@ -845,21 +870,6 @@ class CorrespondenceService:
                 ),
             )
         return mayor
-
-    def _validate_chaining_second_destination(
-        self,
-        to_unit_id: uuid.UUID,
-        to_user_id: uuid.UUID | None,
-    ) -> None:
-        self._validate_destination(to_unit_id, to_user_id)
-        if to_user_id is None:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=(
-                    "El segundo destinatario requiere un funcionario destino "
-                    "específico."
-                ),
-            )
 
     def _resolve_institutional_responsible(self, user: User) -> InstitutionalResponsible:
         if user.employee_id is None:
@@ -891,6 +901,9 @@ class CorrespondenceService:
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="La unidad organizacional del funcionario no está activa",
             )
+        position=self._db.get(Position,employee.position_id) if employee.position_id else None
+        if position is None or not position.is_active:
+            raise HTTPException(status_code=422,detail="El cargo del funcionario asociado no está activo")
         return InstitutionalResponsible(user_id=user.id, unit_id=employee.unit_id)
 
     def _validate_document_type(self, document_type_id: uuid.UUID) -> DocumentType:
@@ -1214,9 +1227,15 @@ class CorrespondenceService:
         correspondence = self._db.get(Correspondence, correspondence_id)
         snapshot = correspondence.institutional_authority_snapshot if correspondence else None
         def historical_party(row, side):
+            if snapshot and snapshot.get("routing_mode") == "single_initial_recipient":
+                initial = snapshot.get("initial_recipient")
+                if initial and ((row.sequence_number == 2 and side == "to") or
+                                (row.sequence_number == 3 and side == "from")):
+                    return initial["unit_name"], initial["employee_name"]
+                return self._unit_name(getattr(row, f"{side}_unit_id")), self._user_display_name(getattr(row, f"{side}_user_id"))
             if snapshot and ((row.sequence_number == 2 and side == "to") or
                              (row.sequence_number == 3 and side == "from")):
-                return snapshot["unit_name"], snapshot["employee_name"]
+                return snapshot["unit_name"], snapshot.get("document_display_name") or snapshot["employee_name"]
             return self._unit_name(getattr(row, f"{side}_unit_id")), self._user_display_name(getattr(row, f"{side}_user_id"))
         return [
             EncadenamientoMovementRow(
@@ -1358,10 +1377,17 @@ class CorrespondenceService:
             last_sent_at=last_sent_at,
         )
 
-    def _to_detail(self, correspondence: Correspondence) -> CorrespondenceDetail:
+    def _to_detail(self, correspondence: Correspondence, *, user: User | None = None) -> CorrespondenceDetail:
         base = self._to_list_item(correspondence)
         creator = self._db.get(User, correspondence.created_by_user_id)
-        return CorrespondenceDetail(
+        can_operate=False
+        if user is not None:
+            try:
+                self.assert_current_unit_operator(user,correspondence)
+                can_operate=True
+            except HTTPException:
+                pass
+        return CorrespondenceDetail(can_operate=can_operate,
             **base.model_dump(),
             description=correspondence.description,
             sender_name=correspondence.sender_name,
@@ -1388,6 +1414,8 @@ class CorrespondenceService:
         creator = self._db.get(User, movement.created_by_user_id)
         correspondence = self._db.get(Correspondence, movement.correspondence_id)
         snapshot = correspondence.institutional_authority_snapshot if correspondence else None
+        if snapshot and snapshot.get("routing_mode") == "single_initial_recipient":
+            snapshot = snapshot.get("initial_recipient")
         from_unit = self._unit_name(movement.from_unit_id)
         from_user = self._user_display_name(movement.from_user_id)
         to_unit = self._unit_name(movement.to_unit_id)

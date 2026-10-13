@@ -7,7 +7,7 @@ from fastapi.responses import Response, StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.modules.auth.dependencies import get_current_user
+from app.modules.auth.dependencies import get_current_user, require_permission
 from app.modules.correspondence.attachment_service import CorrespondenceAttachmentService
 from app.modules.correspondence.schemas import (
     CorrespondenceAttachmentResponse,
@@ -77,6 +77,25 @@ def get_institutional_mayor(
     return service.get_institutional_mayor()
 
 
+@catalog_router.get("/edie-first-recipients", response_model=list[InstitutionalMayorResponse])
+def list_edie_first_recipients(
+    service: Annotated[CorrespondenceService, Depends(_service)],
+    _user: Annotated[User, Depends(get_current_user)],
+) -> list[InstitutionalMayorResponse]:
+    return service.list_edie_first_recipients()
+
+
+@catalog_router.get("/correspondence-creation-policy")
+def get_creation_policy(
+    user: Annotated[User, Depends(require_permission("correspondence.create"))],
+    service: Annotated[CorrespondenceService, Depends(_service)],
+) -> dict:
+    from app.modules.correspondence.creation_policy import require_intake_unit
+    responsible = service._resolve_institutional_responsible(user)
+    intake = require_intake_unit(service._db)
+    return {"is_intake": responsible.unit_id == intake.id}
+
+
 @router.post(
     "",
     response_model=CorrespondenceDetail,
@@ -84,7 +103,7 @@ def get_institutional_mayor(
 )
 def create_correspondence(
     body: CreateCorrespondenceRequest,
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(require_permission("correspondence.create"))],
     service: Annotated[CorrespondenceService, Depends(_service)],
 ) -> CorrespondenceDetail:
     return service.create_correspondence(user, body)
@@ -169,8 +188,7 @@ def get_correspondence(
     user: Annotated[User, Depends(_visible_user)],
     service: Annotated[CorrespondenceService, Depends(_service)],
 ) -> CorrespondenceDetail:
-    del user
-    return service.get_correspondence(correspondence_id, active_only=True)
+    return service.get_correspondence(correspondence_id, active_only=True,user=user)
 
 
 @router.post("/{correspondence_id}/derive", response_model=CorrespondenceDetail)

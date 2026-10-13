@@ -24,6 +24,7 @@ def test_display_override_never_changes_routing(db, mayor_user):
     try:
         overridden = resolve_institutional_mayor(db)
         assert overridden.employee_name == original.employee_name
+        assert overridden.document_display_name == setting.value
         assert (overridden.user_id, overridden.unit_id) == (original.user_id, original.unit_id)
     finally:
         setting.value = old_value
@@ -64,27 +65,30 @@ def test_edie_has_contiguous_routing_and_final_owner(client, db, user, auth_head
         user_id=second_user.id, sender_name="Origen externo"))
     assert response.status_code == 201, response.text
     body = response.json()
-    assert body["current_unit_id"] == str(second_org_unit.id)
-    assert body["current_user_id"] == str(second_user.id)
-    rows = db.scalars(select(CorrespondenceMovement).where(
-        CorrespondenceMovement.correspondence_id == uuid.UUID(body["id"])).order_by(CorrespondenceMovement.sequence_number)).all()
-    assert [row.sequence_number for row in rows] == [1, 2, 3]
-    assert [row.movement_type for row in rows] == ["CREATED", "DERIVED", "DERIVED"]
-    assert rows[1].to_user_id == mayor_user.id
-    assert rows[2].from_user_id == mayor_user.id
-    assert rows[2].from_unit_id == rows[1].to_unit_id
-    assert rows[2].to_user_id == second_user.id
-    assert all(row.created_by_user_id == user.id for row in rows)
+    assert body["current_user_id"] == str(mayor_user.id)
+    rows = db.scalars(select(CorrespondenceMovement).where(CorrespondenceMovement.correspondence_id==uuid.UUID(body["id"])).order_by(CorrespondenceMovement.sequence_number)).all()
+    assert [row.sequence_number for row in rows]==[1,2]
+    assert [row.movement_type for row in rows]==["CREATED","DERIVED"]
+    assert rows[1].to_user_id==mayor_user.id
+    assert all(row.created_by_user_id==user.id for row in rows)
 
 
-@pytest.mark.parametrize("destination", ["missing", "same_mayor"])
-def test_edie_requires_distinct_second_recipient(client, auth_headers,
-        encadenamiento_document_type, second_org_unit, mayor_user, db, destination):
-    mayor = resolve_institutional_mayor(db)
-    payload = _create_payload(encadenamiento_document_type, "Inválido", sender_name="Origen",
-        unit_id=second_org_unit.id if destination == "missing" else mayor.unit_id,
-        user_id=None if destination == "missing" else mayor.user_id)
-    assert client.post("/correspondences", headers=auth_headers, json=payload).status_code == 422
+
+@pytest.mark.parametrize("destination", ["missing", "unconfigured"])
+def test_edie_intake_requires_configured_initial_recipient(client,auth_headers,encadenamiento_document_type,second_org_unit,mayor_user,db,user,destination):
+    from app.modules.correspondence.creation_policy import INTAKE_UNIT_KEY
+    from sqlalchemy import func
+    from app.modules.correspondence.correspondence import Correspondence
+    employee=db.get(Employee,user.employee_id)
+    setting=db.get(SystemSetting,INTAKE_UNIT_KEY);old=setting.value;setting.value=str(employee.unit_id);db.commit()
+    before=db.scalar(select(func.count()).select_from(Correspondence))
+    try:
+        payload=_create_payload(encadenamiento_document_type,"Inválido",unit_id=second_org_unit.id)
+        if destination=="missing":payload.pop("first_recipient_employee_id")
+        else:payload["first_recipient_employee_id"]=str(user.employee_id)
+        assert client.post("/correspondences",headers=auth_headers,json=payload).status_code==422
+        assert db.scalar(select(func.count()).select_from(Correspondence))==before
+    finally:setting.value=old;db.commit()
 
 
 def test_pdf_uses_historical_recipient_after_change_of_titular(client, db, auth_headers, encadenamiento_document_type, second_org_unit, second_user, mayor_user, monkeypatch):
@@ -109,7 +113,7 @@ def test_pdf_uses_historical_recipient_after_change_of_titular(client, db, auth_
     try:
         assert resolve_institutional_mayor(db).user_id == replacement.id
         CorrespondenceService(db).generate_encadenamiento_pdf_bytes(uuid.UUID(created.json()['id']))
-        assert contexts[0].para == original.para_label
+        assert contexts[0].para == "Autoridad documental"
         assert 'Nueva Autoridad' not in contexts[0].para
     finally:
         replacement.is_active = False

@@ -72,9 +72,9 @@ def test_all_lists_sent_counts_and_unit_inbox_respect_scope(
 
 
 def test_attachment_download_and_revoke_flag_on_next_request(
-        client, db, auth_headers, visibility_documents):
+        client, db, auth_headers, visibility_documents, second_user):
     position, docs = visibility_documents
-    result = client.post('/correspondences/' + docs['peer'] + '/attachments', headers=auth_headers,
+    result = client.post('/correspondences/' + docs['peer'] + '/attachments', headers={'Authorization':'Bearer '+create_access_token(second_user.id)[0]},
         files={'file': ('scope.pdf', b'%PDF-1.4 scope test', 'application/pdf')})
     assert result.status_code == 201, result.text
     path = '/correspondences/' + docs['peer'] + '/attachments/' + result.json()['id'] + '/download'
@@ -118,3 +118,12 @@ def test_position_crud_flag_defaults_false_and_update_omission_preserves_value(c
     assert client.put(path, headers=admin_headers, json=body).json()['can_view_unit_correspondence'] is True
     assert client.get(path, headers=admin_headers).json()['can_view_unit_correspondence'] is True
     assert client.put(path, headers=admin_headers, json={**body,'can_view_unit_correspondence':False}).json()['can_view_unit_correspondence'] is False
+
+
+@pytest.mark.parametrize('flag',[False,True])
+def test_reader_scope_does_not_authorize_mutating_another_active_owner(client,db,auth_headers,visibility_documents,flag,org_unit):
+    position,docs=visibility_documents;position.can_view_unit_correspondence=flag;db.commit()
+    path='/correspondences/'+docs['peer']
+    assert client.post(path+'/derive',headers=auth_headers,json={'to_unit_id':str(org_unit.id)}).status_code==403
+    assert client.post(path+'/conclude',headers=auth_headers,json={}).status_code==403
+    assert client.post(path+'/attachments',headers=auth_headers,files={'file':('blocked.pdf',b'%PDF','application/pdf')}).status_code==403

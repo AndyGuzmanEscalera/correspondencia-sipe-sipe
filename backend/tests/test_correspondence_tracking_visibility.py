@@ -11,7 +11,7 @@ from app.modules.correspondence.correspondence_movement import CorrespondenceMov
 from app.modules.identity.user import User
 from app.modules.organization.employee import Employee
 from tests.test_correspondence import _create_payload
-from tests.visibility_helpers import unit_reader_headers
+from tests.visibility_helpers import unit_reader_headers, route_to
 
 
 @pytest.mark.parametrize('flag', [False, True])
@@ -27,6 +27,7 @@ def test_tracking_survives_transfer_without_granting_mutations(
         json=_create_payload(encadenamiento_document_type, 'Seguimiento A a B',
                              unit_id=org_unit.id, user_id=user.id))
     assert created.status_code == 201, created.text
+    route_to(client,created.json(),org_unit.id,user.id)
     path = '/correspondences/' + created.json()['id']
     uploaded = client.post(path + '/attachments', headers=auth_headers,
         files={'file': ('tracking.pdf', b'%PDF-1.4 tracking', 'application/pdf')})
@@ -111,11 +112,14 @@ def test_former_recipient_or_unit_does_not_grant_personal_tracking(
         json=_create_payload(document_type, 'Recibido sin autoría',
                              unit_id=org_unit.id, user_id=user.id))
     assert created.status_code == 201, created.text
+    route_to(client,created.json(),org_unit.id,user.id)
     path = '/correspondences/' + created.json()['id']
     assert client.get(path, headers=auth_headers).status_code == 200
-    transfer = client.post(path + '/derive', headers=sender_headers,
-        json={'to_unit_id': str(second_org_unit.id), 'to_user_id': str(second_user.id)})
-    assert transfer.status_code == 200, transfer.text
+    # Legacy data may have been transferred by another unit operator. Reading
+    # follows the stored authorship; merely having received it gives no tracking.
+    row=db.get(Correspondence,uuid.UUID(created.json()['id']))
+    row.current_unit_id=second_org_unit.id;row.current_user_id=second_user.id
+    db.commit()
     for suffix in ['', '/movements', '/attachments']:
         assert client.get(path + suffix, headers=auth_headers).status_code == 404
     assert client.get('/correspondences/sent', headers=auth_headers).json()['total'] == 0

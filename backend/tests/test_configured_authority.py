@@ -9,12 +9,61 @@ from app.modules.correspondence.service import CorrespondenceService
 from app.modules.organization.employee import Employee
 from app.modules.organization.position import Position
 from app.modules.organization.organizational_unit import OrganizationalUnit
-from app.modules.system.constants import INSTITUTIONAL_MAYOR_EMPLOYEE_ID
+from app.modules.system.constants import INSTITUTIONAL_MAYOR_EMPLOYEE_ID, INSTITUTIONAL_MAYOR_DISPLAY_NAME
 from app.modules.system.system_setting import SystemSetting
 from tests.test_system_settings import _grant_system_settings
 from tests.test_correspondence import _create_payload
 
 ENDPOINT = "/admin/system-settings/institutional"
+
+
+def test_document_text_is_independent_of_routing_and_frozen_per_edie(
+        client, db, user, auth_headers, encadenamiento_document_type,
+        second_org_unit, second_user, mayor_user, monkeypatch):
+    _grant_system_settings(db, user)
+    previous = db.get(SystemSetting, INSTITUTIONAL_MAYOR_DISPLAY_NAME)
+    old_text = previous.value if previous else None
+    contexts = []
+    monkeypatch.setattr("app.modules.correspondence.service.generate_encadenamiento_pdf",
+                        lambda context: contexts.append(context) or b"%PDF-test")
+    def create():
+        response = client.post("/correspondences", headers=auth_headers, json=_create_payload(
+            encadenamiento_document_type, "Texto institucional", sender_name="Origen",
+            unit_id=second_org_unit.id, user_id=second_user.id))
+        assert response.status_code == 201, response.text
+        return uuid.UUID(response.json()["id"])
+    try:
+        response = client.put(ENDPOINT, headers=auth_headers,
+                              json={"mayor_display_name": "  Autoridad documental A  "})
+        assert response.status_code == 200, response.text
+        assert response.json()["mayor_display_name"] == "Autoridad documental A"
+        assert response.json()["mayor_employee_id"] == str(mayor_user.employee_id)
+        first_id = create()
+        assert client.put(ENDPOINT, headers=auth_headers,
+                          json={"mayor_display_name": "Autoridad documental B"}).status_code == 200
+        second_id = create()
+        for correspondence_id, expected in [(first_id, "Autoridad documental A"),
+                                             (second_id, "Autoridad documental B")]:
+            service = CorrespondenceService(db)
+            service.generate_encadenamiento_pdf_bytes(correspondence_id)
+            assert expected in contexts[-1].para
+            assert contexts[-1].movements[1].to_user != expected
+            assert contexts[-1].movements[1].to_user == db.get(Employee, mayor_user.employee_id).first_name + " " + db.get(Employee, mayor_user.employee_id).last_name
+            assert len(contexts[-1].movements)==2
+            movement = db.scalar(select(CorrespondenceMovement).where(
+                CorrespondenceMovement.correspondence_id == correspondence_id,
+                CorrespondenceMovement.sequence_number == 2))
+            assert movement.to_user_id == mayor_user.id
+            assert service._to_movement(movement).to_user_name != expected
+        assert client.put(ENDPOINT, headers=auth_headers,
+                          json={"mayor_display_name": "   "}).json()["mayor_display_name"] is None
+        rejected = client.post("/correspondences", headers=auth_headers, json=_create_payload(
+            encadenamiento_document_type, "Sin texto", sender_name="Origen",
+            unit_id=second_org_unit.id, user_id=second_user.id))
+        assert rejected.status_code == 422
+        assert "nombre de la Máxima Autoridad" in rejected.json()["detail"]
+    finally:
+        client.put(ENDPOINT, headers=auth_headers, json={"mayor_display_name": old_text})
 
 
 def test_custom_manage_role_can_select_employee_without_master_data_permissions(
@@ -126,7 +175,7 @@ def test_snapshot_migration_freezes_original_recipient_and_preserves_existing_sn
 
 
 @pytest.mark.parametrize("invalid", ["missing", "inactive"])
-def test_edie_rejects_invalid_configuration_without_partial_rows(client, db, auth_headers,
+def test_edie_rejects_invalid_first_recipient_without_partial_rows(client, db, auth_headers,
         encadenamiento_document_type, second_org_unit, second_user, mayor_user, invalid):
     setting = db.get(SystemSetting, INSTITUTIONAL_MAYOR_EMPLOYEE_ID)
     original = setting.value
@@ -138,12 +187,13 @@ def test_edie_rejects_invalid_configuration_without_partial_rows(client, db, aut
     before = db.scalar(select(func.count()).select_from(Correspondence))
     movements_before = db.scalar(select(func.count()).select_from(CorrespondenceMovement))
     try:
-        response = client.post("/correspondences", headers=auth_headers, json=_create_payload(
-            encadenamiento_document_type, "Sin autoridad válida", sender_name="Origen",
-            unit_id=second_org_unit.id, user_id=second_user.id))
-        assert response.status_code == 422
+        payload = _create_payload(encadenamiento_document_type, "Sin secretario válido",
+            sender_name="Origen", unit_id=second_org_unit.id, user_id=second_user.id)
         if invalid == "missing":
-            assert response.json()["detail"] == "Debe configurar al Alcalde/Máxima Autoridad Ejecutiva antes de registrar documentos EDIE."
+            payload["first_recipient_employee_id"]=str(uuid.uuid4())
+        response = client.post("/correspondences", headers=auth_headers, json=payload)
+        assert response.status_code == 422
+        assert "receptor inicial" in response.json()["detail"]
         db.expire_all()
         assert db.scalar(select(func.count()).select_from(Correspondence)) == before
         assert db.scalar(select(func.count()).select_from(CorrespondenceMovement)) == movements_before
@@ -153,51 +203,23 @@ def test_edie_rejects_invalid_configuration_without_partial_rows(client, db, aut
         db.commit()
 
 
-def test_change_authority_routes_new_edie_and_freezes_old_pdf_and_history(
-        client, db, user, auth_headers, encadenamiento_document_type,
-        second_org_unit, second_user, mayor_user, monkeypatch):
-    _grant_system_settings(db, user)
-    employee = db.get(Employee, mayor_user.employee_id)
-    position = db.get(Position, employee.position_id)
-    unit = db.get(OrganizationalUnit, employee.unit_id)
-    old = (employee.first_name, position.name, unit.name)
-    contexts = []
-    monkeypatch.setattr("app.modules.correspondence.service.generate_encadenamiento_pdf",
-                        lambda context: contexts.append(context) or b"%PDF-test")
-    def create(final_user, final_unit):
-        response = client.post("/correspondences", headers=auth_headers,
-            json=_create_payload(encadenamiento_document_type, "Cambio autoridad",
-                sender_name="Origen", unit_id=final_unit, user_id=final_user))
-        assert response.status_code == 201, response.text
-        return uuid.UUID(response.json()["id"])
-    first_id = create(second_user.id, second_org_unit.id)
-    snapshot = db.get(Correspondence, first_id).institutional_authority_snapshot.copy()
+def test_configured_receiver_is_independent_and_frozen(client,db,user,auth_headers,encadenamiento_document_type,second_user,mayor_user,monkeypatch):
+    _grant_system_settings(db,user)
+    employee=db.get(Employee,mayor_user.employee_id)
+    old_name=employee.first_name
+    contexts=[]
+    monkeypatch.setattr("app.modules.correspondence.service.generate_encadenamiento_pdf",lambda context:contexts.append(context) or b"%PDF-test")
+    assert client.put(ENDPOINT,headers=auth_headers,json={"initial_recipient_employee_ids":[str(mayor_user.employee_id),str(second_user.employee_id)]}).status_code==200
+    result=client.post("/correspondences",headers=auth_headers,json={"document_type_id":str(encadenamiento_document_type.id),"correspondence_type":"EXTERNAL","subject":"Snapshot","priority":"LOW","sender_name":"Origen","first_recipient_employee_id":str(mayor_user.employee_id)})
+    assert result.status_code==201,result.text
+    id=uuid.UUID(result.json()["id"]);snapshot=db.get(Correspondence,id).institutional_authority_snapshot.copy()
     try:
-        assert client.put(ENDPOINT, headers=auth_headers,
-            json={"mayor_employee_id": str(second_user.employee_id)}).status_code == 200
-        second_id = create(mayor_user.id, employee.unit_id)
-        second_moves = db.scalars(select(CorrespondenceMovement).where(
-            CorrespondenceMovement.correspondence_id == second_id).order_by(
-                CorrespondenceMovement.sequence_number)).all()
-        assert [m.movement_type for m in second_moves] == ["CREATED", "DERIVED", "DERIVED"]
-        assert second_moves[1].to_user_id == second_user.id
-        assert second_moves[2].to_user_id == mayor_user.id
-        employee.first_name = "Nombre cambiado"
-        position.name = "Cargo cambiado"
-        unit.name = "Unidad cambiada"
-        db.commit()
-        service = CorrespondenceService(db)
-        service.generate_encadenamiento_pdf_bytes(first_id)
-        assert contexts[0].para == snapshot["para_label"]
-        assert contexts[0].movements[1].to_user == snapshot["employee_name"]
-        assert contexts[0].movements[1].to_unit == snapshot["unit_name"]
-        assert contexts[0].movements[2].from_user == snapshot["employee_name"]
-        historical = service._to_movement(
-            db.scalar(select(CorrespondenceMovement).where(
-                CorrespondenceMovement.correspondence_id == first_id,
-                CorrespondenceMovement.sequence_number == 2)))
-        assert historical.to_user_name == snapshot["employee_name"]
-    finally:
-        employee.first_name, position.name, unit.name = old
-        db.get(SystemSetting, INSTITUTIONAL_MAYOR_EMPLOYEE_ID).value = str(mayor_user.employee_id)
-        db.commit()
+        assert client.put(ENDPOINT,headers=auth_headers,json={"mayor_employee_id":str(second_user.employee_id),"mayor_display_name":"Nueva autoridad"}).status_code==200
+        employee.first_name="Modificado";db.commit()
+        service=CorrespondenceService(db);service.generate_encadenamiento_pdf_bytes(id)
+        assert contexts[-1].para==snapshot["para_label"]
+        assert len(contexts[-1].movements)==2
+        assert contexts[-1].movements[1].to_user==snapshot["initial_recipient"]["employee_name"]
+        movement=db.scalar(select(CorrespondenceMovement).where(CorrespondenceMovement.correspondence_id==id,CorrespondenceMovement.sequence_number==2))
+        assert service._to_movement(movement).to_user_name==snapshot["initial_recipient"]["employee_name"]
+    finally:employee.first_name=old_name;db.commit()

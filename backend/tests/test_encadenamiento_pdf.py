@@ -1,4 +1,4 @@
-from tests.visibility_helpers import unit_reader_headers
+from tests.visibility_helpers import unit_reader_headers, route_to
 import uuid
 from datetime import datetime, timezone
 from unittest.mock import patch
@@ -162,6 +162,8 @@ def test_download_encadenamiento_pdf_on_demand(
         ),
     )
     assert create.status_code == 201, create.text
+    if create.json().get("current_user_id"):
+        route_to(client,create.json(),second_org_unit.id,second_user.id)
     correspondence_id = create.json()["id"]
 
     pdf_response = client.get(
@@ -192,6 +194,8 @@ def test_download_encadenamiento_pdf_requires_auth(
             sender_name="Remitente externo",
         ),
     )
+    if create.json().get("current_user_id"):
+        route_to(client,create.json(),second_org_unit.id,second_user.id)
     correspondence_id = create.json()["id"]
 
     response = client.get(f"/correspondences/{correspondence_id}/encadenamiento.pdf")
@@ -229,6 +233,8 @@ def test_download_encadenamiento_pdf_reflects_new_derivation(
         ),
     )
     assert create.status_code == 201, create.text
+    if create.json().get("current_user_id"):
+        route_to(client,create.json(),second_org_unit.id,second_user.id)
     correspondence_id = create.json()["id"]
 
     from app.core.security import create_access_token
@@ -298,6 +304,8 @@ def test_download_encadenamiento_pdf_rejects_non_chaining_type(
             sender_name="Remitente externo",
         ),
     )
+    if create.json().get("current_user_id"):
+        route_to(client,create.json(),second_org_unit.id,second_user.id)
     correspondence_id = create.json()["id"]
     response = client.get(
         f"/correspondences/{correspondence_id}/encadenamiento.pdf",
@@ -325,6 +333,8 @@ def test_download_encadenamiento_pdf_generation_failure_returns_500(
             sender_name="Remitente externo",
         ),
     )
+    if create.json().get("current_user_id"):
+        route_to(client,create.json(),second_org_unit.id,second_user.id)
     correspondence_id = create.json()["id"]
 
     with patch(

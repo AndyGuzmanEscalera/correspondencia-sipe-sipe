@@ -33,6 +33,10 @@ def _create_payload(
         payload["sender_name"] = "Remitente"
     if user_id is not None:
         payload["initial_to_user_id"] = str(user_id)
+    if document_type.code in {"EDIE", "S"} and hasattr(document_type, "edie_first_employee_id"):
+        payload["first_recipient_employee_id"] = str(document_type.edie_first_employee_id)
+        payload.pop("initial_to_unit_id",None)
+        payload.pop("initial_to_user_id",None)
     payload.update(extra)
     return payload
 
@@ -133,6 +137,8 @@ def test_create_internal_without_employee_fails(
     )
     db.add(user)
     db.commit()
+    from tests.visibility_helpers import grant_creation_permission
+    grant_creation_permission(db,user)
     token, _ = create_access_token(user.id)
     headers = {"Authorization": f"Bearer {token}"}
 
@@ -441,6 +447,7 @@ def test_get_detail(
 
 
 def test_derive_updates_current_and_movements(
+    user: User,
     client: TestClient,
     db,
     auth_headers: dict[str, str],
@@ -456,6 +463,7 @@ def test_derive_updates_current_and_movements(
             document_type,
             "A derivar",
             unit_id=org_unit.id,
+            user_id=user.id,
             correspondence_type="INTERNAL",
             priority="MEDIUM",
         ),
@@ -539,6 +547,7 @@ def test_route_number_unique_concurrent(
 
 
 def test_derive_concurrent_movement_sequences(
+    user: User,
     client: TestClient,
     db: Session,
     auth_headers: dict[str, str],
@@ -562,6 +571,7 @@ def test_derive_concurrent_movement_sequences(
             document_type,
             "Concurrencia derive",
             unit_id=org_unit.id,
+            user_id=user.id,
             correspondence_type="INTERNAL",
             priority="MEDIUM",
         ),

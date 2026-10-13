@@ -138,6 +138,8 @@ def test_sent_includes_derived_by_me(
     db.add(colleague_user)
     db.commit()
 
+    from tests.visibility_helpers import grant_creation_permission
+    grant_creation_permission(db,colleague_user)
     colleague_headers = {
         "Authorization": f"Bearer {create_access_token(colleague_user.id)[0]}"
     }
@@ -149,6 +151,7 @@ def test_sent_includes_derived_by_me(
         unit_id=org_unit.id,
         user_id=colleague_user.id,
     )
+    _derive(client,colleague_headers,created["id"],to_unit_id=org_unit.id,to_user_id=user.id)
     _derive(
         client,
         auth_headers,
@@ -219,6 +222,8 @@ def test_sent_excludes_created_by_other_without_my_derivation(
     db.flush()
     db.add(other_user)
     db.commit()
+    from tests.visibility_helpers import grant_creation_permission
+    grant_creation_permission(db,other_user)
     other_headers = {
         "Authorization": f"Bearer {create_access_token(other_user.id)[0]}"
     }
@@ -285,6 +290,8 @@ def test_sent_excludes_when_neither_created_nor_derived_by_me(
     db.add(other_user)
     db.add(bystander_user)
     db.commit()
+    from tests.visibility_helpers import grant_creation_permission
+    grant_creation_permission(db,other_user)
     other_headers = {
         "Authorization": f"Bearer {create_access_token(other_user.id)[0]}"
     }
@@ -298,7 +305,7 @@ def test_sent_excludes_when_neither_created_nor_derived_by_me(
         document_type,
         "Yo creo, otro deriva",
         unit_id=org_unit.id,
-        user_id=user.id,
+        user_id=other_user.id,
     )
     _derive(
         client,
@@ -614,6 +621,8 @@ def test_sent_ignores_client_user_id_param(
     db.flush()
     db.add(other_user)
     db.commit()
+    from tests.visibility_helpers import grant_creation_permission
+    grant_creation_permission(db,other_user)
     other_headers = {
         "Authorization": f"Bearer {create_access_token(other_user.id)[0]}"
     }

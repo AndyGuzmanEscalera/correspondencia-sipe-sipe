@@ -46,6 +46,9 @@ def _create_in_unit(
     *,
     user_id: uuid.UUID | None = None,
 ) -> dict:
+    if user_id is None:
+        from app.core.security import decode_access_token
+        user_id=uuid.UUID(decode_access_token(headers['Authorization'].split(' ',1)[1])['sub'])
     response = client.post(
         "/correspondences",
         headers=headers,
@@ -212,6 +215,8 @@ def test_derive_allowed_when_current_user_inactive(
     user: User,
     position: Position,
 ) -> None:
+    position.can_view_unit_correspondence=True
+    db.commit()
     inactive_employee = Employee(
         id=uuid.uuid4(),
         first_name="Inactivo",

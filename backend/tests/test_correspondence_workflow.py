@@ -165,7 +165,7 @@ def test_upload_list_download_and_deactivate_attachment(
     )
     correspondence_id = create.json()["id"]
 
-    operator_headers = {"Authorization": "Bearer " + create_access_token(second_user.id)[0]}
+    operator_headers = {"Authorization": "Bearer " + create_access_token(uuid.UUID(create.json()["current_user_id"]))[0]}
     upload = client.post(
         f"/correspondences/{correspondence_id}/attachments",
         headers=operator_headers,
@@ -178,14 +178,14 @@ def test_upload_list_download_and_deactivate_attachment(
 
     listed = client.get(
         f"/correspondences/{correspondence_id}/attachments",
-        headers=unit_reader_headers(db, second_org_unit.id),
+        headers=operator_headers,
     )
     assert listed.status_code == 200
     assert len(listed.json()) == 1
 
     download = client.get(
         f"/correspondences/{correspondence_id}/attachments/{attachment_id}/download",
-        headers=unit_reader_headers(db, second_org_unit.id),
+        headers=operator_headers,
     )
     assert download.status_code == 200
     assert download.content.startswith(b"%PDF")
@@ -199,7 +199,7 @@ def test_upload_list_download_and_deactivate_attachment(
 
     listed_after = client.get(
         f"/correspondences/{correspondence_id}/attachments",
-        headers=unit_reader_headers(db, second_org_unit.id),
+        headers=operator_headers,
     )
     assert listed_after.json() == []
 
@@ -227,7 +227,7 @@ def test_correspondence_persists_when_upload_fails(
 
     upload = client.post(
         f"/correspondences/{correspondence_id}/attachments",
-        headers={"Authorization": "Bearer " + create_access_token(second_user.id)[0]},
+        headers={"Authorization": "Bearer " + create_access_token(uuid.UUID(create.json()["current_user_id"]))[0]},
         files={"file": ("empty.txt", io.BytesIO(b""), "text/plain")},
     )
     assert upload.status_code == 422

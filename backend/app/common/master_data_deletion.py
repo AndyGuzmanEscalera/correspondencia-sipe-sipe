@@ -34,6 +34,16 @@ def _configured_employee(db):
 
 def validate_deletion(db: Session, entity: str, row):
     """No cambia datos: el servicio aplica la baja después de validar."""
+    from app.modules.correspondence.creation_policy import configured_creation_ids
+    intake,receivers=configured_creation_ids(db)
+    if entity=='units' and row.id==intake:
+        _blocked('No se puede eliminar la Unidad de Ventanilla configurada. Cambie primero la configuración institucional.')
+    if entity=='employees' and row.id in receivers or entity=='users' and row.employee_id in receivers:
+        _blocked('No se puede eliminar un receptor inicial configurado. Cambie primero la configuración institucional.')
+    if entity in {'units','positions'}:
+        receiver_rows=db.scalars(select(Employee).where(Employee.id.in_(receivers))).all()
+        if any((e.unit_id if entity=='units' else e.position_id)==row.id for e in receiver_rows):
+            _blocked('No se puede eliminar este registro porque lo utiliza un receptor inicial configurado. Cambie primero la configuración institucional.')
     if entity == 'units':
         if _has_active_correspondence(db, Correspondence.current_unit_id == row.id):
             _blocked('No se puede eliminar esta unidad porque tiene correspondencia activa bajo su responsabilidad.')
