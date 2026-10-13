@@ -205,6 +205,10 @@ Infos del analyzer son mejoras de const/estilo y uso de biblioteca web en implem
 
 Pruebas sobre PostgreSQL y almacenamiento temporales separados, sin reset/clean de datos del usuario. El smoke HTTP usa proxy local que elimina /api y COOKIE_PATH=/api/auth; Apache preparado adapta ese Path mediante ProxyPassReverseCookiePath. Verificar una de estas adaptaciones en el entorno QA real. No se instaló ni desplegó nada en servidor.
 
+### Reparación verificada del entorno local activo
+
+El GET de Funcionarios seguía fallando en el contenedor real por work_shift_id ausente. Tras respaldo completo, se sincronizó esa base con las migraciones del código WIP que ya ejecutaba: ahora está en a3b4c5d6e7f8 (local, no artefacto QA core). Los cinco CRUD pasaron 21 lecturas por red y 75 comprobaciones transaccionales contra esa base; rollback y huellas confirmaron datos existentes intactos. Detalles y límites de verificación: [docs/BASIC_DATA_VALIDATION.md](docs/BASIC_DATA_VALIDATION.md). El código WIP permanece preservado y fuera de los commits.
+
 ## 10. WIP excluido y riesgos pendientes
 
 - Preservados por hash 55 archivos protegidos de Turnos/RR.HH., Website, scripts y puntos de integración compartidos. Los hunks compartidos de Endpoints y formulario de funcionario se stagearon selectivamente sin Turnos.
