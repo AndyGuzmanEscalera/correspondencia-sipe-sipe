@@ -8,7 +8,7 @@ Handoff del Sistema de Gestión de Correspondencia y Documentos / Hoja de Ruta d
 
 Actualizado el **13 de octubre de 2026**. Rama `develop`. **QA READY: núcleo de Correspondencia**.
 
-- Cierre backend: `585b3da`; cierre cliente: `3ead534`. Se corrigieron todos los bloqueos A/B encontrados. Checklist: [docs/QA_CHECKLIST.md](docs/QA_CHECKLIST.md).
+- Cierre P0/P1: `f8b0488`, `8703f2e`, `fbc00ad`, `0ec7367`; correcciones del smoke Chrome: `28b41ef`, `a92cbb4`, `7914ace`. Todos los bloqueos P0/P1 solicitados quedaron resueltos. Checklist: [docs/QA_CHECKLIST.md](docs/QA_CHECKLIST.md).
 - Crear genera exactamente CREATED + un DERIVED inicial. Los destinos posteriores requieren derivaciones reales. Esta regla sustituye el antiguo encadenamiento automático de dos destinos.
 - Ventanilla se identifica por configuración institucional; no por nombres de rol/cargo/unidad. Autoridad documental y receptor operativo son conceptos separados.
 - NO PUSH. NO DEPLOY. No iniciar Turnos, Asistencia, RR.HH., Website ni funcionalidades nuevas.
@@ -186,15 +186,21 @@ Suite completa sobre exportación del núcleo committeado, excluyendo WIP:
 
 | Verificación | Resultado |
 | --- | --- |
-| Backend `pytest tests/` | 219 pasaron |
-| Flutter `flutter test` | 426 pasaron |
-| Package API / repository / failures | 18 / 24 / 4 pasaron |
+| Backend `pytest tests/` | 272 pasaron |
+| Flutter `flutter test` | 454 pasaron |
+| Package API / repository / failures | 19 / 24 / 4 pasaron |
 | Flutter analyze | 0 errors, 0 warnings; 93 infos |
 | Alembic | Una head f2a3b4c5d6e7; migración desde BD nueva correcta |
 | Build web API_BASE_URL=/api | Correcto |
 | HTTP web /api | Assets/health/BD/login/me/refresh 200; logout 204 y cookie eliminada |
-| Smoke funcional | Escenarios del checklist cubiertos por tests de integración y widgets |
+| Smoke funcional | 17 pasos reales en Chrome headless/Playwright, usuarios ficticios; todos PASS |
 | git diff --check | Correcto |
+
+Cierre adicional P0/P1: receptor inicial compartido para EDIE, INFORME, NOTA y genérico, matriz perfil × Ventanilla × receptor; validación de receptores activos y error explícito sin configuración. ListenerPro conserva formularios y solo elimina su loading. Boundary ASGI conserva CORS en 500 con respuesta segura; pipeline cliente emite ServerFailure. Baja de adjuntos bloquea y refresca Correspondence antes de evaluar permisos. Smoke real descubrió y resolvió permisos visuales de adjuntos, Reabrir oculto y navegación de logout desde contexto global. Checklist contiene evidencia detallada.
+
+La prueba desde HEAD en PostgreSQL nuevo migró a f2a3b4c5d6e7, inició backend y operó Funcionarios por HTTP 200 sin work_shifts ni employees.work_shift_id. La dependencia observada localmente correspondía al modelo Employee del WIP que sí mapeaba esa columna. El release no contiene ese WIP; base habitual y cambios protegidos permanecen preservados.
+
+Limitaciones históricas aceptadas: participantes de movimientos usan maestros actuales; documentos antiguos sin snapshot pueden conservar referencias históricas parciales; textos anteriores perdidos no pueden reconstruirse. No se amplió el alcance ni se bloqueó QA por ello.
 
 Corrección CRUD `473db9a`. Validación adicional de los cinco CRUD (Unidades, Cargos, Funcionarios, Usuarios y Tipos documentales): tras baja lógica/restauración exitosa se consulta siempre el backend, conservando búsqueda/filtro y ajustando la página. GeneralStatus.success y su feedback se emiten con el listado ya sincronizado; error de recarga conserva el registro desactivado localmente e informa el fallo. Se añadieron 25 regresiones de recarga, paginación, restauración y dependencias. Create/update ya recargan mediante onSuccess.
 
