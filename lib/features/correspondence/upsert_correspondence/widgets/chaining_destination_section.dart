@@ -51,7 +51,7 @@ class ChainingDestinationSection extends StatelessWidget {
                     ],
                     validators: [
                       RequiredValid(
-                          error: 'Seleccione el primer destinatario EDIE')
+                          error: 'Seleccione un receptor inicial')
                     ],
                   ),
           ),

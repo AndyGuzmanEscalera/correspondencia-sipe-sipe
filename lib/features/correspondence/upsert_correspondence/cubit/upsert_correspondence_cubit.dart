@@ -268,60 +268,35 @@ class UpsertCorrespondenceCubit extends Cubit<UpsertCorrespondenceState> {
     String? senderContact,
     String? originDescription,
   }) {
-    final priority = priorityCodeFromLabel(priorityLabel);
-
-    switch (profile) {
-      case DocumentFormProfile.technicalReport:
-      case DocumentFormProfile.internalNote:
-        return repo.CreateCorrespondenceInput(
-          correspondenceType: 'INTERNAL',
-          documentTypeId: documentTypeId,
-          subject: _optional(subject),
-          priority: priority,
-          reference: _optional(reference),
-          description: _required(description),
-          originEmployeeId: _required(originEmployeeId),
-          initialToUnitId: initialToUnitId,
-          initialToUserId: _optional(initialToUserId),
-          initialInstruction: _optional(initialInstruction),
-        );
-      case DocumentFormProfile.chaining:
-        final isExternal = type == CorrespondenceTypeCode.ce;
-        return repo.CreateCorrespondenceInput(
-          correspondenceType: correspondenceTypeCodeFromUi(
-              isExternal ? type : CorrespondenceTypeCode.ci),
-          documentTypeId: documentTypeId,
-          subject: _optional(subject),
-          priority: priority,
-          reference: _optional(reference),
-          originEmployeeId: isExternal ? null : _required(originEmployeeId),
-          senderName: isExternal ? _required(senderName) : null,
-          senderDocument: isExternal ? _optional(senderDocument) : null,
-          senderContact: isExternal ? _optional(senderContact) : null,
-          originDescription: isExternal ? _optional(originDescription) : null,
-          firstRecipientEmployeeId: _optional(firstRecipientEmployeeId),
-          initialToUnitId: initialToUnitId,
-          initialToUserId: _optional(initialToUserId),
-          initialInstruction: _optional(initialInstruction),
-        );
-      case DocumentFormProfile.generic:
-        final isExternal = type == CorrespondenceTypeCode.ce;
-        return repo.CreateCorrespondenceInput(
-          correspondenceType: correspondenceTypeCodeFromUi(type),
-          documentTypeId: documentTypeId,
-          subject: _required(subject),
-          priority: priority,
-          reference: _optional(reference),
-          originEmployeeId: isExternal ? null : _optional(originEmployeeId),
-          senderName: isExternal ? _required(senderName) : null,
-          senderDocument: isExternal ? _optional(senderDocument) : null,
-          senderContact: isExternal ? _optional(senderContact) : null,
-          originDescription: isExternal ? _optional(originDescription) : null,
-          initialToUnitId: initialToUnitId,
-          initialToUserId: _optional(initialToUserId),
-          initialInstruction: _optional(initialInstruction),
-        );
-    }
+    final isContent = profile == DocumentFormProfile.technicalReport ||
+        profile == DocumentFormProfile.internalNote;
+    final isExternal = !isContent && type == CorrespondenceTypeCode.ce;
+    final requiresOrigin =
+        isContent || (profile == DocumentFormProfile.chaining && !isExternal);
+    return repo.CreateCorrespondenceInput(
+      correspondenceType:
+          isContent ? 'INTERNAL' : correspondenceTypeCodeFromUi(type),
+      documentTypeId: documentTypeId,
+      subject: profile == DocumentFormProfile.generic
+          ? _required(subject)
+          : _optional(subject),
+      priority: priorityCodeFromLabel(priorityLabel),
+      reference: _optional(reference),
+      description: isContent ? _required(description) : null,
+      originEmployeeId: isExternal
+          ? null
+          : requiresOrigin
+              ? _required(originEmployeeId)
+              : _optional(originEmployeeId),
+      senderName: isExternal ? _required(senderName) : null,
+      senderDocument: isExternal ? _optional(senderDocument) : null,
+      senderContact: isExternal ? _optional(senderContact) : null,
+      originDescription: isExternal ? _optional(originDescription) : null,
+      firstRecipientEmployeeId: _optional(firstRecipientEmployeeId),
+      initialToUnitId: initialToUnitId,
+      initialToUserId: _optional(initialToUserId),
+      initialInstruction: _optional(initialInstruction),
+    );
   }
 
   Future<List<String>> _uploadPendingAttachments({

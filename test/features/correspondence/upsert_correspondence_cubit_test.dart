@@ -8,7 +8,7 @@ import 'package:failures/failures.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
-  @override Future<Result<bool, Failure>> getCreationPolicy() async => const Ok(false);
+  @override Future<Result<bool, Failure>> getCreationPolicy() async => Ok(isIntake);
   _FakeCorrespondenceRepository({
     this.createResult,
     this.listDocumentTypesResult,
@@ -20,6 +20,7 @@ class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
   Result<repo.CorrespondenceAttachment, Failure>? uploadResult;
   repo.CreateCorrespondenceInput? lastCreateInput;
   int uploadCalls = 0;
+  bool isIntake = false;
 
   @override
   Future<Result<repo.Correspondence, Failure>> createCorrespondence(
@@ -132,6 +133,28 @@ class _FakeOrganizationRepository implements repo.OrganizationRepository {
 }
 
 void main() {
+  for (final profile in DocumentFormProfile.values) {
+    for (final isIntake in [false, true]) {
+      for (final selected in [false, true]) {
+        if (isIntake && !selected) continue;
+        test('$profile intake=$isIntake receptor=$selected conserva payload', () async {
+          final repository = _FakeCorrespondenceRepository()..isIntake = isIntake;
+          final cubit = UpsertCorrespondenceCubit(correspondenceRepository: repository, organizationRepository: _FakeOrganizationRepository());
+          await cubit.init();
+          expect(cubit.state.isIntake, isIntake);
+          await cubit.create(profile: profile, type: CorrespondenceTypeCode.ci,
+              documentTypeId: 'document', priorityLabel: 'Media', subject: 'Solicitud',
+              description: 'Contenido', originEmployeeId: 'emp-1',
+              firstRecipientEmployeeId: selected ? ' receptor-1 ' : null,
+              initialToUnitId: 'unit-2', initialToUserId: 'user-dest');
+          expect(repository.lastCreateInput!.firstRecipientEmployeeId,
+              selected ? 'receptor-1' : null);
+          expect(cubit.state.generalStatus, GeneralStatus.success);
+          await cubit.close();
+        });
+      }
+    }
+  }
   group('UpsertCorrespondenceCubit', () {
     UpsertCorrespondenceCubit buildCubit({
       _FakeCorrespondenceRepository? correspondenceRepository,

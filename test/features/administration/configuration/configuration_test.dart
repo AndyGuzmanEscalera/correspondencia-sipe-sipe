@@ -25,8 +25,10 @@ class _Settings extends Fake implements SystemSettingsAdminRepository {
       InstitutionalSettings(mayorEmployeeId: 'employee-a', mayor: _authority));
   String? saved;
   String? savedText;
+  List<String>? savedRecipients;
   int calls = 0;
   int candidateCalls = 0;
+  List<AuthorityEmployee> candidates = const [_authority];
   @override
   Future<Result<InstitutionalSettings, Failure>>
       getInstitutionalSettings() async => result;
@@ -34,7 +36,7 @@ class _Settings extends Fake implements SystemSettingsAdminRepository {
   Future<Result<List<AuthorityEmployee>, Failure>>
       getAuthorityEmployees() async {
     candidateCalls++;
-    return const Ok([_authority]);
+    return Ok(candidates);
   }
 
   @override
@@ -49,6 +51,7 @@ class _Settings extends Fake implements SystemSettingsAdminRepository {
     calls++;
     saved = mayorEmployeeId;
     savedText = mayorDisplayName;
+    savedRecipients = initialRecipientEmployeeIds;
     if (result is Err) return result;
     return Ok(InstitutionalSettings(
         mayorEmployeeId: mayorEmployeeId,
@@ -83,6 +86,23 @@ Future<void> _pump(WidgetTester tester, _Settings repository,
 }
 
 void main() {
+  testWidgets('selecciona dos receptores desde el buscador y los guarda', (tester) async {
+    const second = AuthorityEmployee(employeeId: 'employee-b', employeeName: 'Receptor Prueba B',
+      positionName: 'Secretaría', unitName: 'Despacho');
+    final repository = _Settings()..candidates = const [_authority, second];
+    await _pump(tester, repository);
+    for (final employee in repository.candidates) {
+      final dropdown = find.byWidgetPredicate((widget) => widget is AppDropdown<AuthorityEmployee> && widget.label == 'Receptores iniciales de Alcaldía');
+      final search = find.descendant(of: dropdown, matching: find.byIcon(Icons.search_rounded));
+      await tester.ensureVisible(search); await tester.tap(search); await tester.pumpAndSettle();
+      await tester.tap(find.text(employee.employeeName).last); await tester.pumpAndSettle();
+    }
+    expect(find.byType(InputChip), findsNWidgets(2));
+    await tester.ensureVisible(find.text('Guardar')); await tester.tap(find.text('Guardar'));
+    await tester.pumpAndSettle();
+    expect(repository.savedRecipients, ['employee-a','employee-b']);
+  });
+
   testWidgets('texto y funcionario se muestran y guardan por separado',
       (tester) async {
     final repository = _Settings();

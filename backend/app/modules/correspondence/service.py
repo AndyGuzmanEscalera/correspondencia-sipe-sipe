@@ -264,6 +264,8 @@ class CorrespondenceService:
 
         recipient = None
         recipients = list_edie_first_recipients(self._db)
+        if responsible.unit_id == intake.id and not recipients:
+            raise HTTPException(status_code=422, detail="No hay receptores iniciales activos configurados. Configure al menos uno en Configuración → Institucional antes de registrar desde Ventanilla.")
         if body.first_recipient_employee_id is not None:
             recipient = resolve_edie_first_recipient(self._db, body.first_recipient_employee_id)
             if (body.initial_to_unit_id is not None and body.initial_to_unit_id != recipient.unit_id) or (
