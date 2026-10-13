@@ -34,13 +34,15 @@ Sin push ni deploy. No usar el árbol local con WIP de Turnos/RR.HH./Website com
 | 17 | Restaurar maestro | Manage requerido; vuelve al catálogo activo. |
 | 18 | Cambiar configuración | Afecta nuevos registros; documentos/PDF anteriores conservan snapshot. |
 
+En los cinco CRUD, eliminar/restaurar debe recargar desde backend sin esperar a cerrar el mensaje de éxito, conservar búsqueda/filtro y rellenar o ajustar la página. Si una dependencia bloquea la baja, conservar fila y mostrar el motivo.
+
 Además comprobar Mis documentos/De mi unidad/Enviados, filtros/búsqueda/paginación, refresh, vacío/loading/error, apertura/cierre de formularios y escritorio/pantalla estrecha. Validar Ventanilla y creador externo, rol personalizado con create y rol llamado ADMIN sin create; no autorizar por nombres. Configuración read-only debe impedir guardar. Selecciones inactivas no pueden usarse para nuevos registros.
 
 Errores 400/422 muestran validación; 403 falta de autorización; 404 recurso inexistente/no visible; 409 dependencia/conflicto; 500 mensaje seguro. Sin excepción cruda, diálogo duplicado ni cierre del formulario en error.
 
 ## Evidencia del cierre
 
-- Backend completo: **219**; Flutter completo: **401**; API: **18**; repository: **24**; failures: **4**. Cero fallos.
+- Backend completo: **219**; Flutter completo: **426**; API: **18**; repository: **24**; failures: **4**. Cero fallos.
 - Analyzer: **0 errores, 0 warnings, 92 infos** no bloqueantes. `git diff --check` correcto.
 - Una head Alembic `f2a3b4c5d6e7`; migración probada desde PostgreSQL nuevo aislado.
 - Build web /api correcto. Smoke HTTP local: web/assets/health/BD/login/me/refresh 200, logout 204; cookie real HttpOnly /api/auth eliminada al salir.

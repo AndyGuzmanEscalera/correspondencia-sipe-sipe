@@ -198,6 +198,18 @@ class _FakeUsersAdminRepository implements UsersAdminRepository {
     required bool isActive,
   }) async {
     lastSetActive = isActive;
+    final result = setActiveResult;
+    if (result case Ok(value: final updated)) {
+      if (listResult case Ok(value: final current)) {
+        final rows = current.items
+            .map((row) => row.id == id ? updated : row)
+            .where((row) => lastIsActive == null || row.isActive == lastIsActive)
+            .toList();
+        listResult = Ok(AdminPage(items: rows, page: current.page,
+            pageSize: current.pageSize, total: rows.length,
+            totalPages: rows.isEmpty ? 0 : 1));
+      }
+    }
     return setActiveResult ??
         const Err(ServerFailure('setActive not configured'));
   }

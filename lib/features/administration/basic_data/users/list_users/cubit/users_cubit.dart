@@ -88,7 +88,6 @@ class UsersCubit extends Cubit<UsersState> {
         final total =
             removesRow && state.total > 0 ? state.total - 1 : state.total;
         final pages = (total / state.pageSize).ceil();
-        final previousPage = state.page;
         final page = pages == 0 ? 1 : state.page.clamp(1, pages);
         emit(
           state.copyWith(
@@ -100,15 +99,18 @@ class UsersCubit extends Cubit<UsersState> {
             total: total,
             totalPages: pages,
             page: page,
-            generalStatus: GeneralStatus.success,
-            dialogMessage: DialogMessage(
-              message: isActive
-                  ? 'Usuario restaurado correctamente.'
-                  : 'Usuario eliminado correctamente.',
-            ),
           ),
         );
-        if (previousPage != page && total > 0) await get();
+        await _loadList(
+          search: state.query,
+          page: page,
+          pageSize: state.pageSize,
+          successMessage: DialogMessage(
+            message: isActive
+                ? 'Usuario restaurado correctamente.'
+                : 'Usuario eliminado correctamente.',
+          ),
+        );
       },
       err: (failure) async {
         emit(
@@ -131,6 +133,7 @@ class UsersCubit extends Cubit<UsersState> {
     required String search,
     required int page,
     required int pageSize,
+    DialogMessage? successMessage,
   }) async {
     final isInitialLoad = state.list.isEmpty;
     emit(
@@ -160,10 +163,11 @@ class UsersCubit extends Cubit<UsersState> {
             total: pageResult.total,
             totalPages: pageResult.totalPages,
             generalStatus: GeneralStatus.success,
-            dialogMessage: const DialogMessage(
-              message: 'Usuarios cargados',
-              showSuccess: false,
-            ),
+            dialogMessage: successMessage ??
+                const DialogMessage(
+                  message: 'Usuarios cargados',
+                  showSuccess: false,
+                ),
           ),
         );
       },
