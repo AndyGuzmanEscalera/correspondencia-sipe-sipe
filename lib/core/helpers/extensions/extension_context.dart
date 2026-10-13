@@ -3,8 +3,8 @@ import 'package:correspondencia_sipe_sipe/core/theme/ui_colors.dart';
 import 'package:flutter/material.dart';
 
 extension DialogContext on BuildContext {
-  void showAppLoading({String message = 'Cargando...'}) {
-    showDialog<void>(
+  DialogRoute<void> showAppLoading({String message = 'Cargando...'}) {
+    final route = DialogRoute<void>(
       context: this,
       barrierDismissible: false,
       builder: (_) => AlertDialog(
@@ -39,6 +39,8 @@ extension DialogContext on BuildContext {
         ),
       ),
     );
+    Navigator.of(this, rootNavigator: true).push(route);
+    return route;
   }
 
   void showAppMessage({
