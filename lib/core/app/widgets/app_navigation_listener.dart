@@ -9,10 +9,12 @@ import 'package:go_router/go_router.dart';
 class AppNavigationListener extends StatelessWidget {
   const AppNavigationListener({
     required this.child,
+    required this.router,
     super.key,
   });
 
   final Widget child;
+  final GoRouter router;
 
   @override
   Widget build(BuildContext context) {
@@ -20,9 +22,9 @@ class AppNavigationListener extends StatelessWidget {
       listenWhen: (previous, current) =>
           previous.isAuthenticated && !current.isAuthenticated,
       listener: (context, state) {
-        final path = GoRouterState.of(context).uri.path;
+        final path = router.routerDelegate.currentConfiguration.uri.path;
         if (path == Routes.home || path.startsWith('${Routes.home}/')) {
-          context.go(Routes.signIn);
+          router.go(Routes.signIn);
         }
       },
       child: child,

@@ -25,7 +25,7 @@ class AppBody extends StatelessWidget {
             Breakpoint(start: 1441, end: 1920, name: 'DESKTOP'),
             Breakpoint(start: 1921, end: double.infinity, name: '4K'),
           ],
-          child: AppNavigationListener(child: child!),
+          child: AppNavigationListener(router: router, child: child!),
         );
       },
     );
