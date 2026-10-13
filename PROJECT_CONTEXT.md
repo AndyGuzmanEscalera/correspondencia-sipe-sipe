@@ -189,14 +189,14 @@ Suite completa sobre exportación del núcleo committeado, excluyendo WIP:
 | Backend `pytest tests/` | 219 pasaron |
 | Flutter `flutter test` | 426 pasaron |
 | Package API / repository / failures | 18 / 24 / 4 pasaron |
-| Flutter analyze | 0 errors, 0 warnings; 92 infos |
+| Flutter analyze | 0 errors, 0 warnings; 93 infos |
 | Alembic | Una head f2a3b4c5d6e7; migración desde BD nueva correcta |
 | Build web API_BASE_URL=/api | Correcto |
 | HTTP web /api | Assets/health/BD/login/me/refresh 200; logout 204 y cookie eliminada |
 | Smoke funcional | Escenarios del checklist cubiertos por tests de integración y widgets |
 | git diff --check | Correcto |
 
-Validación adicional de los cinco CRUD (Unidades, Cargos, Funcionarios, Usuarios y Tipos documentales): tras baja lógica/restauración exitosa se consulta siempre el backend, conservando búsqueda/filtro y ajustando la página. GeneralStatus.success y su feedback se emiten con el listado ya sincronizado; error de recarga conserva el registro desactivado localmente e informa el fallo. Se añadieron 25 regresiones de recarga, paginación, restauración y dependencias. Create/update ya recargan mediante onSuccess.
+Corrección CRUD `473db9a`. Validación adicional de los cinco CRUD (Unidades, Cargos, Funcionarios, Usuarios y Tipos documentales): tras baja lógica/restauración exitosa se consulta siempre el backend, conservando búsqueda/filtro y ajustando la página. GeneralStatus.success y su feedback se emiten con el listado ya sincronizado; error de recarga conserva el registro desactivado localmente e informa el fallo. Se añadieron 25 regresiones de recarga, paginación, restauración y dependencias. Create/update ya recargan mediante onSuccess.
 
 Antes del ajuste CRUD se comprobó también el árbol local incluyendo WIP: 243 backend, 424 Flutter, packages 21/27/4; sin fallos. Estos números **no** describen el artefacto Correspondencia entregable.
 Infos del analyzer son mejoras de const/estilo y uso de biblioteca web en implementación web; no son warnings. Backend emite dos deprecations de dependencias Starlette/AnyIO y ReportLab, sin fallos funcionales.

@@ -43,7 +43,7 @@ Errores 400/422 muestran validación; 403 falta de autorización; 404 recurso in
 ## Evidencia del cierre
 
 - Backend completo: **219**; Flutter completo: **426**; API: **18**; repository: **24**; failures: **4**. Cero fallos.
-- Analyzer: **0 errores, 0 warnings, 92 infos** no bloqueantes. `git diff --check` correcto.
+- Analyzer: **0 errores, 0 warnings, 93 infos** no bloqueantes. `git diff --check` correcto.
 - Una head Alembic `f2a3b4c5d6e7`; migración probada desde PostgreSQL nuevo aislado.
 - Build web /api correcto. Smoke HTTP local: web/assets/health/BD/login/me/refresh 200, logout 204; cookie real HttpOnly /api/auth eliminada al salir.
 - Smoke de negocio mediante suites de integración y widgets, incluido ciclo completo en `backend/tests/test_qa_smoke.py`; aceptación visual/manual del entorno real corresponde a QA.
