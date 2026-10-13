@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 class _Api extends Fake implements SystemSettingsAdminApi {
   String? saved;
+  String? savedText;
   bool fail = false;
   final response = const InstitutionalSettingsResponse(
       mayorEmployeeId: 'employee-a',
@@ -22,8 +23,12 @@ class _Api extends Fake implements SystemSettingsAdminApi {
       [response.mayor!];
   @override
   Future<InstitutionalSettingsResponse> updateInstitutionalSettings(
-      {required String? mayorEmployeeId}) async {
+      {required String? mayorEmployeeId,
+      String? mayorDisplayName,
+      String? intakeUnitId,
+      List<String>? initialRecipientEmployeeIds}) async {
     saved = mayorEmployeeId;
+    savedText = mayorDisplayName;
     if (fail) throw ValidationException('Funcionario inactivo');
     return response;
   }
@@ -39,8 +44,10 @@ void main() {
     expect(settings.mayor!.documentNumber, '123');
     expect((await repository.getAuthorityEmployees()).valueOrNull()!.single,
         settings.mayor);
-    await repository.updateInstitutionalSettings(mayorEmployeeId: 'employee-a');
+    await repository.updateInstitutionalSettings(
+        mayorEmployeeId: 'employee-a', mayorDisplayName: 'Texto institucional');
     expect(api.saved, 'employee-a');
+    expect(api.savedText, 'Texto institucional');
   });
   test('repository traduce rechazo de configuración a ValidationFailure',
       () async {

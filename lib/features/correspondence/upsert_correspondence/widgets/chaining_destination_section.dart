@@ -1,13 +1,15 @@
 import 'package:correspondencia_repository/correspondencia_repository.dart';
-import 'package:correspondencia_sipe_sipe/core/theme/ui_colors.dart';
-import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/widgets/destination_section.dart';
+import 'package:correspondencia_sipe_sipe/core/util/form/models/form_option.dart';
+import 'package:correspondencia_sipe_sipe/core/util/form/validator_field/valid.dart';
+import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/helpers/upsert_correspondence_inherited.dart';
+import 'package:correspondencia_sipe_sipe/shared/widgets/form/app_text_field.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/widgets/upsert_form_section.dart';
+import 'package:correspondencia_sipe_sipe/shared/widgets/form/app_dropdown.dart';
 import 'package:flutter/material.dart';
 
-/// Destinos de encadenamiento: primer destinatario fijo (alcalde) + segundo seleccionable.
 class ChainingDestinationSection extends StatelessWidget {
   const ChainingDestinationSection({
-    required this.institutionalMayor,
+    required this.firstRecipients,
     required this.organizationalUnits,
     required this.unitUsers,
     required this.unitUsersLoading,
@@ -15,73 +17,48 @@ class ChainingDestinationSection extends StatelessWidget {
     super.key,
   });
 
-  final InstitutionalMayor? institutionalMayor;
+  final List<InstitutionalMayor> firstRecipients;
   final String? errorMessage;
   final List<OrganizationalUnit> organizationalUnits;
   final List<UnitUser> unitUsers;
   final bool unitUsersLoading;
 
   @override
-  Widget build(BuildContext context) {
-    final mayor = institutionalMayor;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        UpsertFormSection(
-          title: 'Primer destinatario',
-          child: mayor == null
-              ? Text(
-                  errorMessage ??
-                      'Debe configurar al Alcalde/Máxima Autoridad Ejecutiva antes de registrar documentos EDIE.',
-                )
-              : Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: UiColors.background,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: UiColors.border),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        mayor.employeeName,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 15,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${mayor.positionName} · ${mayor.unitName}',
-                        style: const TextStyle(
-                          color: UiColors.textSecondary,
-                          fontSize: 13,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'PARA: ${mayor.paraLabel}',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: UiColors.primary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+  Widget build(BuildContext context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          UpsertFormSection(
+            title: 'Primer destinatario',
+            child: firstRecipients.isEmpty
+                ? Text(errorMessage?.isNotEmpty == true
+                    ? errorMessage!
+                    : 'No hay receptores iniciales configurados y activos. Revise Configuración institucional.')
+                : AppDropdown<String>(
+                    controller: UpsertCorrespondenceInherited.of(context)
+                        .firstRecipient,
+                    label: 'Receptor inicial',
+                    searchHint: 'Buscar receptor inicial',
+                    items: [
+                      for (final item in firstRecipients)
+                        FormOption<String>(
+                          id: item.employeeId.hashCode,
+                          value: item.employeeId,
+                          text: item.employeeName,
+                          description:
+                              '${item.positionName} · ${item.unitName}',
+                          keywords: [item.positionName, item.unitName],
+                        )
+                    ],
+                    validators: [
+                      RequiredValid(
+                          error: 'Seleccione el primer destinatario EDIE')
                     ],
                   ),
-                ),
-        ),
-        DestinationSection(
-          sectionTitle: 'Segundo destinatario',
-          organizationalUnits: organizationalUnits,
-          unitUsers: unitUsers,
-          unitUsersLoading: unitUsersLoading,
-          requireSpecificUser: true,
-        ),
-      ],
-    );
-  }
+          ),
+          AppTextField(
+              controller:
+                  UpsertCorrespondenceInherited.of(context).initialInstruction,
+              label: 'Instrucción inicial / proveído (opcional)'),
+        ],
+      );
 }

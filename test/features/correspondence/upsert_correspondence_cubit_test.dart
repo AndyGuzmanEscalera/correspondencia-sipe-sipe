@@ -8,6 +8,7 @@ import 'package:failures/failures.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
+  @override Future<Result<bool, Failure>> getCreationPolicy() async => const Ok(false);
   _FakeCorrespondenceRepository({
     this.createResult,
     this.listDocumentTypesResult,
@@ -47,14 +48,16 @@ class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
   Future<Result<List<repo.DocumentType>, Failure>> listDocumentTypes() async {
     return listDocumentTypesResult ??
         Ok([
-          repo.DocumentType(id: 'dt-edie', code: 'EDIE', name: 'Encadenamiento'),
+          repo.DocumentType(
+              id: 'dt-edie', code: 'EDIE', name: 'Encadenamiento'),
           repo.DocumentType(id: 'dt-nota', code: 'NOTA', name: 'Nota Interna'),
         ]);
   }
 
   @override
-  Future<Result<repo.InstitutionalMayor, Failure>> getInstitutionalMayor() async {
-    return Ok(
+  Future<Result<List<repo.InstitutionalMayor>, Failure>>
+      listEdieFirstRecipients() async {
+    return Ok([
       const repo.InstitutionalMayor(
         userId: 'mayor-user',
         employeeId: 'mayor-emp',
@@ -64,7 +67,7 @@ class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
         unitName: 'Alcaldía',
         paraLabel: 'Alcaldía — Jaime Montero López',
       ),
-    );
+    ]);
   }
 
   @override
@@ -210,7 +213,8 @@ void main() {
       await cubit.close();
     });
 
-    test('create INTERNAL NOTE envía description y origin_employee_id', () async {
+    test('create INTERNAL NOTE envía description y origin_employee_id',
+        () async {
       final correspondenceRepository = _FakeCorrespondenceRepository();
       final cubit = buildCubit(
         correspondenceRepository: correspondenceRepository,

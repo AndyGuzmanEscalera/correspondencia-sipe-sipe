@@ -12,6 +12,8 @@ class Endpoints {
   static const String documentTypes = '/document-types';
   static const String employees = '/employees';
   static const String institutionalMayor = '/institutional-mayor';
+  static const String edieFirstRecipients = '/edie-first-recipients';
+  static const String correspondenceCreationPolicy = '/correspondence-creation-policy';
   static const String correspondences = '/correspondences';
   static const String correspondencesInbox = '/correspondences/inbox';
   static const String correspondencesInboxCounts =

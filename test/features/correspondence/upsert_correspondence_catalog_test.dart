@@ -6,6 +6,8 @@ import 'package:failures/failures.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
+  @override
+  Future<Result<bool, Failure>> getCreationPolicy() async => const Ok(false);
   _FakeCorrespondenceRepository({this.employees = const []});
 
   final List<repo.EmployeeOption> employees;
@@ -26,9 +28,9 @@ class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
   }
 
   @override
-  Future<Result<repo.InstitutionalMayor, Failure>>
-      getInstitutionalMayor() async {
-    return Ok(
+  Future<Result<List<repo.InstitutionalMayor>, Failure>>
+      listEdieFirstRecipients() async {
+    return Ok([
       const repo.InstitutionalMayor(
         userId: 'mayor-user',
         employeeId: 'mayor-emp',
@@ -38,7 +40,7 @@ class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
         unitName: 'Alcaldía',
         paraLabel: 'Alcaldía — Jaime Montero López',
       ),
-    );
+    ]);
   }
 
   @override
@@ -72,7 +74,7 @@ UpsertCorrespondenceState _loadedState(
     {List<repo.EmployeeOption> employees = const []}) {
   return UpsertCorrespondenceState(
     catalogLoaded: true,
-    institutionalMayor: _testMayor,
+    firstRecipients: const [_testMayor],
     documentTypes: const [
       repo.DocumentType(id: 'dt-edie', code: 'EDIE', name: 'Encadenamiento'),
       repo.DocumentType(
@@ -88,16 +90,16 @@ UpsertCorrespondenceState _loadedState(
 
 void main() {
   group('UpsertCorrespondenceState.isCatalogReadyFor', () {
-    test('sin titular bloquea EDIE y mantiene disponibles otros perfiles', () {
+    test('sin receptores externos puede registrar hacia otra unidad', () {
       final state = _loadedState().copyWith(
-          clearInstitutionalMayor: true,
+          firstRecipients: const [],
           employees: const [
             repo.EmployeeOption(id: 'e1', fullName: 'Funcionario')
           ]);
       expect(
           state.isCatalogReadyFor(
               profile: DocumentFormProfile.chaining, isExternal: true),
-          isFalse);
+          isTrue);
       expect(
           state.isCatalogReadyFor(
               profile: DocumentFormProfile.internalNote, isExternal: false),

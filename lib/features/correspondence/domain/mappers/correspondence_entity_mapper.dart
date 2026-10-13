@@ -7,6 +7,7 @@ import 'package:correspondencia_sipe_sipe/features/correspondence/domain/entitie
 extension CorrespondenceToEntity on repo.Correspondence {
   CorrespondenceEntity toUiEntity() => CorrespondenceEntity(
         id: id,
+        canOperate: canOperate,
         uniqueNumber: routeSequence,
         year: routeYear,
         cite: displayCite,

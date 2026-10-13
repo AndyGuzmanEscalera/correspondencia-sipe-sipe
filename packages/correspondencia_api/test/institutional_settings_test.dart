@@ -42,6 +42,19 @@ void main() {
         'Unidad');
     await api.updateInstitutionalSettings(mayorEmployeeId: null);
     expect(adapter.request!.data, {'mayor_employee_id': null});
+    await api.updateInstitutionalSettings(
+        mayorEmployeeId: 'employee-a', mayorDisplayName: 'Texto institucional');
+    expect(adapter.request!.data, {
+      'mayor_employee_id': 'employee-a',
+      'mayor_display_name': 'Texto institucional'
+    });
+    await api.updateInstitutionalSettings(
+        mayorEmployeeId: 'employee-a', mayorDisplayName: '');
+    expect(adapter.request!.data,
+        {'mayor_employee_id': 'employee-a', 'mayor_display_name': ''});
+    await api.updateDocumentAuthorityName("Fredy Patzi Barrios");
+    expect(
+        adapter.request!.data, {"mayor_display_name": "Fredy Patzi Barrios"});
     dio.close();
   });
   test('catálogo de autoridad usa endpoint de settings', () async {

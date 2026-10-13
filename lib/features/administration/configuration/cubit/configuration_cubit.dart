@@ -31,6 +31,7 @@ class ConfigurationCubit extends Cubit<ConfigurationState> {
     }
     final settings = result.valueOrNull()!;
     var employees = <repo.AuthorityEmployee>[];
+    var units = <repo.OrganizationalUnit>[];
     if (canManage) {
       final choices = await _repository.getAuthorityEmployees();
       if (choices case Err(:final failure)) {
@@ -38,10 +39,19 @@ class ConfigurationCubit extends Cubit<ConfigurationState> {
         return;
       }
       employees = choices.valueOrNull()!;
+      final unitChoices = await _repository.getIntakeUnits();
+      if (unitChoices case Err(:final failure)) {
+        _error(failure, 'No se pudieron cargar las unidades disponibles');
+        return;
+      }
+      units = unitChoices.valueOrNull()!;
     }
     emit(state.copyWith(
         settings: settings,
         employees: employees,
+        units: units,
+        intakeUnitId: settings.intakeUnitId ?? '',
+        recipientIds: settings.initialRecipientEmployeeIds,
         selectedEmployeeId: settings.mayorEmployeeId ?? '',
         loaded: true,
         generalStatus: GeneralStatus.success));
@@ -51,13 +61,20 @@ class ConfigurationCubit extends Cubit<ConfigurationState> {
     emit(state.copyWith(selectedEmployeeId: employee.employeeId));
   }
 
-  Future<void> save() async {
+  void selectIntakeUnit(String id) => emit(state.copyWith(intakeUnitId: id));
+  void addRecipient(String id) => emit(state.copyWith(recipientIds: {...state.recipientIds, id}.toList()));
+  void removeRecipient(String id) => emit(state.copyWith(recipientIds: state.recipientIds.where((x) => x != id).toList()));
+
+  Future<void> save({String? mayorDisplayName}) async {
     if (!state.loaded || state.generalStatus == GeneralStatus.loading) return;
     emit(state.copyWith(
         generalStatus: GeneralStatus.loading, clearDialogMessage: true));
     final result = await _repository.updateInstitutionalSettings(
         mayorEmployeeId:
-            state.selectedEmployeeId.isEmpty ? null : state.selectedEmployeeId);
+            state.selectedEmployeeId.isEmpty ? null : state.selectedEmployeeId,
+        mayorDisplayName: mayorDisplayName?.trim() ?? '',
+        intakeUnitId: state.intakeUnitId.isEmpty ? null : state.intakeUnitId,
+        initialRecipientEmployeeIds: state.recipientIds);
     if (result case Err(:final failure)) {
       _error(failure, 'No se pudo guardar la configuración');
       return;

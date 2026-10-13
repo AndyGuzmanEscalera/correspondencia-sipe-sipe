@@ -4,11 +4,12 @@ import 'package:correspondencia_sipe_sipe/core/helpers/full_widget_generics.dart
 import 'package:correspondencia_sipe_sipe/core/helpers/extensions/extension_context.dart';
 import 'package:correspondencia_sipe_sipe/core/util/enums.dart';
 import 'package:correspondencia_sipe_sipe/core/util/form/controllers/controllers.dart';
-import 'package:correspondencia_sipe_sipe/core/util/form/models/form_option.dart';
 import 'package:correspondencia_sipe_sipe/features/administration/configuration/cubit/configuration_cubit.dart';
 import 'package:correspondencia_sipe_sipe/features/app/cubit/app_session_cubit.dart';
 import 'package:correspondencia_sipe_sipe/injection/injection_bloc.dart';
+import 'package:correspondencia_sipe_sipe/shared/widgets/form/app_text_field.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/form/app_dropdown.dart';
+import 'package:correspondencia_sipe_sipe/core/util/form/models/form_option.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/section_header.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -48,24 +49,20 @@ class ConfigurationBody extends StatefulWidget {
 }
 
 class _ConfigurationBodyState extends State<ConfigurationBody> {
-  final _controller = ControllerFieldDropdown<AuthorityEmployee>();
+  final _displayNameController = ControllerFieldPro();
+  final _employeeController = ControllerFieldDropdown<AuthorityEmployee>();
+  final _intakeController = ControllerFieldDropdown<String>();
+  final _recipientController = ControllerFieldDropdown<AuthorityEmployee>();
+  final _formKey = GlobalKey<FormState>();
+  InstitutionalSettings? _appliedSettings;
   @override
   void dispose() {
-    _controller.dispose();
+    _displayNameController.dispose();
+    _employeeController.dispose();
+    _intakeController.dispose();
+    _recipientController.dispose();
     super.dispose();
   }
-
-  FormOption<AuthorityEmployee> _option(AuthorityEmployee employee, int id) =>
-      FormOption(
-          id: id,
-          value: employee,
-          text: employee.employeeName,
-          description: '${employee.positionName} · ${employee.unitName}',
-          keywords: [
-            employee.documentNumber ?? '',
-            employee.positionName,
-            employee.unitName
-          ]);
 
   @override
   Widget build(BuildContext context) {
@@ -76,13 +73,28 @@ class _ConfigurationBodyState extends State<ConfigurationBody> {
         onInit: () =>
             context.read<ConfigurationCubit>().load(canManage: canManage),
         child: AdminContent(
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-              const SectionHeader(
+            child: SingleChildScrollView(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+              SectionHeader(
                   title: 'Configuración institucional',
+                  actions: [
+                    IconButton(
+                        tooltip: 'Actualizar configuración',
+                        onPressed: context
+                                    .watch<ConfigurationCubit>()
+                                    .state
+                                    .generalStatus ==
+                                GeneralStatus.loading
+                            ? null
+                            : () => context
+                                .read<ConfigurationCubit>()
+                                .load(canManage: canManage),
+                        icon: const Icon(Icons.refresh))
+                  ],
                   subtitle:
-                      'Autoridad institucional para el primer destinatario automático EDIE'),
+                      'Autoridad documental, Ventanilla y receptores iniciales'),
               const SizedBox(height: 20),
               BlocBuilder<ConfigurationCubit, ConfigurationState>(
                   builder: (context, state) {
@@ -90,65 +102,193 @@ class _ConfigurationBodyState extends State<ConfigurationBody> {
                     state.generalStatus == GeneralStatus.loading) {
                   return const Center(child: CircularProgressIndicator());
                 }
+                if (state.loaded && state.settings != _appliedSettings) {
+                  _displayNameController
+                      .setValue(state.settings.mayorDisplayName ?? '');
+                  _appliedSettings = state.settings;
+                }
+                if (state.intakeUnitId.isNotEmpty) {
+                  _intakeController.setValue(FormOption<String>(
+                    id: state.intakeUnitId.hashCode,
+                    value: state.intakeUnitId,
+                    text: state.units
+                            .where((x) => x.id == state.intakeUnitId)
+                            .firstOrNull
+                            ?.name ??
+                        state.settings.intakeUnitName ??
+                        state.intakeUnitId,
+                  ));
+                }
                 final selected = state.selectedMayor;
                 if (selected == null) {
-                  _controller.clear();
+                  _employeeController.clear();
                 } else {
-                  final index = state.employees.indexWhere(
-                      (item) => item.employeeId == selected.employeeId);
-                  _controller
-                      .setValue(_option(selected, index < 0 ? -1 : index + 1));
+                  _employeeController.setValue(FormOption<AuthorityEmployee>(
+                    id: selected.employeeId.hashCode,
+                    value: selected,
+                    text: selected.employeeName,
+                    description:
+                        '${selected.positionName} · ${selected.unitName}',
+                  ));
                 }
                 return Card(
                     child: Padding(
                         padding: const EdgeInsets.all(24),
-                        child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              AppDropdown<AuthorityEmployee>(
-                                  controller: _controller,
-                                  enabled: canManage &&
-                                      state.loaded &&
-                                      state.generalStatus !=
-                                          GeneralStatus.loading,
-                                  label: 'Alcalde / Máxima Autoridad Ejecutiva',
-                                  searchHint:
-                                      'Buscar por nombre, CI, cargo o unidad',
-                                  items: [
-                                    for (var i = 0;
-                                        i < state.employees.length;
-                                        i++)
-                                      _option(state.employees[i], i + 1)
-                                  ],
-                                  onChanged: (option) => context
-                                      .read<ConfigurationCubit>()
-                                      .selectMayor(option.value!)),
-                              if (selected != null)
-                                Text(
-                                    '${selected.positionName} · ${selected.unitName}'),
-                              if (state.settings.mayorValidationError != null)
-                                Text(state.settings.mayorValidationError!),
-                              if (selected == null)
-                                const Text(
-                                    'Debe configurar al Alcalde/Máxima Autoridad Ejecutiva antes de registrar documentos EDIE.'),
-                              if (canManage)
-                                Align(
-                                    alignment: Alignment.centerRight,
-                                    child: FilledButton.icon(
-                                        onPressed: state.loaded &&
+                        child: Form(
+                            key: _formKey,
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  AppDropdown<String>(
+                                    controller: _intakeController,
+                                    label: 'Unidad de Ventanilla',
+                                    enabled: canManage &&
+                                        state.loaded &&
+                                        state.generalStatus !=
+                                            GeneralStatus.loading,
+                                    items: [
+                                      for (final unit in state.units)
+                                        FormOption<String>(
+                                            id: unit.id.hashCode,
+                                            value: unit.id,
+                                            text: unit.name)
+                                    ],
+                                    onChanged: (option) => context
+                                        .read<ConfigurationCubit>()
+                                        .selectIntakeUnit(option.value!),
+                                  ),
+                                  const Text(
+                                      'La unidad real del creador determina la política de Ventanilla.'),
+                                  const SizedBox(height: 16),
+                                  AppDropdown<AuthorityEmployee>(
+                                    controller: _recipientController,
+                                    label: 'Receptores iniciales de Alcaldía',
+                                    searchHint: 'Buscar funcionario habilitado',
+                                    enabled: canManage &&
+                                        state.loaded &&
+                                        state.generalStatus !=
+                                            GeneralStatus.loading,
+                                    items: [
+                                      for (final employee in state.employees
+                                          .where((x) => !state.recipientIds
+                                              .contains(x.employeeId)))
+                                        FormOption<AuthorityEmployee>(
+                                            id: employee.employeeId.hashCode,
+                                            value: employee,
+                                            text: employee.employeeName,
+                                            description:
+                                                '${employee.positionName} · ${employee.unitName}',
+                                            keywords: [
+                                              employee.documentNumber ?? '',
+                                              employee.positionName,
+                                              employee.unitName
+                                            ])
+                                    ],
+                                    onChanged: (option) {
+                                      context
+                                          .read<ConfigurationCubit>()
+                                          .addRecipient(
+                                              option.value!.employeeId);
+                                      _recipientController.clear();
+                                    },
+                                  ),
+                                  Wrap(spacing: 8, children: [
+                                    for (final id in state.recipientIds)
+                                      InputChip(
+                                        label: Text([
+                                              ...state.employees,
+                                              ...state
+                                                  .settings.initialRecipients
+                                            ]
+                                                .where(
+                                                    (x) => x.employeeId == id)
+                                                .firstOrNull
+                                                ?.employeeName ??
+                                            id),
+                                        onDeleted: canManage &&
                                                 state.generalStatus !=
                                                     GeneralStatus.loading
                                             ? () => context
                                                 .read<ConfigurationCubit>()
-                                                .save()
+                                                .removeRecipient(id)
                                             : null,
-                                        icon: const Icon(Icons.save_outlined),
-                                        label: const Text('Guardar')))
-                              else
-                                const Text(
-                                    'Solo lectura: no tiene permiso para modificar la configuración.'),
-                            ])));
+                                      )
+                                  ]),
+                                  const SizedBox(height: 20),
+                                  AppDropdown<AuthorityEmployee>(
+                                    controller: _employeeController,
+                                    label: 'Máxima autoridad institucional',
+                                    searchHint:
+                                        'Buscar por nombre, CI, cargo o unidad',
+                                    enabled: canManage &&
+                                        state.loaded &&
+                                        state.generalStatus !=
+                                            GeneralStatus.loading,
+                                    items: [
+                                      for (final employee in state.employees)
+                                        FormOption<AuthorityEmployee>(
+                                          id: employee.employeeId.hashCode,
+                                          value: employee,
+                                          text: employee.employeeName,
+                                          description:
+                                              '${employee.positionName} · ${employee.unitName}',
+                                          keywords: [
+                                            employee.documentNumber ?? '',
+                                            employee.positionName,
+                                            employee.unitName
+                                          ],
+                                        )
+                                    ],
+                                    onChanged: (option) => context
+                                        .read<ConfigurationCubit>()
+                                        .selectMayor(option.value!),
+                                  ),
+                                  const Text(
+                                      'La autoridad se usa en documentos. El receptor inicial seleccionado recibe el trámite.'),
+                                  if (state.settings.mayorValidationError !=
+                                      null)
+                                    Text(state.settings.mayorValidationError!),
+                                  const SizedBox(height: 20),
+                                  AppTextField(
+                                    controller: _displayNameController,
+                                    label:
+                                        'Texto de la Máxima Autoridad para documentos',
+                                    maxLength: 200,
+                                    readOnly: !canManage ||
+                                        !state.loaded ||
+                                        state.generalStatus ==
+                                            GeneralStatus.loading,
+                                  ),
+                                  const Text(
+                                      'Este texto es necesario para registrar nuevos documentos EDIE. Los documentos históricos conservan su texto original.'),
+                                  const SizedBox(height: 20),
+                                  if (canManage)
+                                    Align(
+                                        alignment: Alignment.centerRight,
+                                        child: FilledButton.icon(
+                                            onPressed: state.loaded &&
+                                                    state.generalStatus !=
+                                                        GeneralStatus.loading
+                                                ? () {
+                                                    if (!_formKey.currentState!
+                                                        .validate()) return;
+                                                    context
+                                                        .read<
+                                                            ConfigurationCubit>()
+                                                        .save(
+                                                            mayorDisplayName:
+                                                                _displayNameController
+                                                                    .getValue());
+                                                  }
+                                                : null,
+                                            icon:
+                                                const Icon(Icons.save_outlined),
+                                            label: const Text('Guardar')))
+                                  else
+                                    const Text(
+                                        'Solo lectura: no tiene permiso para modificar la configuración.'),
+                                ]))));
               }),
-            ])));
+            ]))));
   }
 }

@@ -24,7 +24,7 @@ class CorrespondenceDetailState extends Equatable implements StatusState {
   bool get canOperateCurrentUnit {
     final item = correspondence;
     if (item == null) return false;
-    return item.canOperateCurrentUnit(viewerUnitId);
+    return item.canOperate;
   }
 
   CorrespondenceDetailState copyWith({

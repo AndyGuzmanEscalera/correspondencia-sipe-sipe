@@ -58,6 +58,7 @@ class UpsertCorrespondenceInherited extends InheritedWidget {
   final priority = ControllerFieldDropdown<String>();
   final documentType = ControllerFieldDropdown<String>();
   final originEmployee = ControllerFieldDropdown<String>();
+  final firstRecipient = ControllerFieldDropdown<String>();
   final toUnit = ControllerFieldDropdown<String>();
   final toUser = ControllerFieldDropdown<String>();
 
@@ -108,6 +109,7 @@ class UpsertCorrespondenceInherited extends InheritedWidget {
     priority.setDefaultValue(priorityItems[1]);
     documentType.clear();
     originEmployee.clear();
+    firstRecipient.clear();
     toUnit.clear();
     toUser.clear();
     clearPendingAttachments();
@@ -137,6 +139,8 @@ class UpsertCorrespondenceInherited extends InheritedWidget {
     switch (profile) {
       case DocumentFormProfile.chaining:
         fieldKeys.addAll([
+          firstRecipient.fieldKey,
+          toUser.fieldKey,
           type.fieldKey,
           subject.fieldKey,
           reference.fieldKey,
@@ -178,11 +182,14 @@ class UpsertCorrespondenceInherited extends InheritedWidget {
     required DocumentFormProfile profile,
     required bool isExternal,
   }) {
-    final candidates = <({GlobalKey<FormFieldState<Object?>> key, FocusNode focusNode})>[
+    final candidates =
+        <({GlobalKey<FormFieldState<Object?>> key, FocusNode focusNode})>[
       (key: documentType.fieldKey, focusNode: documentType.focusNode),
       (key: priority.fieldKey, focusNode: priority.focusNode),
       (key: type.fieldKey, focusNode: type.focusNode),
       if (profile == DocumentFormProfile.chaining) ...[
+        (key: firstRecipient.fieldKey, focusNode: firstRecipient.focusNode),
+        (key: toUser.fieldKey, focusNode: toUser.focusNode),
         if (isExternal)
           (key: senderName.fieldKey, focusNode: senderName.focusNode)
         else
@@ -230,6 +237,7 @@ class UpsertCorrespondenceInherited extends InheritedWidget {
     priority.dispose();
     documentType.dispose();
     originEmployee.dispose();
+    firstRecipient.dispose();
     toUnit.dispose();
     toUser.dispose();
   }

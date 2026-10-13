@@ -4,6 +4,7 @@ import 'package:equatable/equatable.dart';
 class CorrespondenceEntity extends Equatable {
   const CorrespondenceEntity({
     required this.id,
+    this.canOperate = false,
     required this.uniqueNumber,
     required this.year,
     required this.cite,
@@ -36,6 +37,7 @@ class CorrespondenceEntity extends Equatable {
   });
 
   final String id;
+  final bool canOperate;
   final int uniqueNumber;
   final int year;
   final String cite;
@@ -68,19 +70,17 @@ class CorrespondenceEntity extends Equatable {
 
   String get documentTypeLabel => documentTypeName;
 
-  String get originTypeLabel => type == CorrespondenceTypeCode.ce
-      ? 'Externa'
-      : 'Interna';
+  String get originTypeLabel =>
+      type == CorrespondenceTypeCode.ce ? 'Externa' : 'Interna';
 
   /// Etiqueta larga para detalle (compatibilidad).
   String get typeLabel => type == CorrespondenceTypeCode.ce
       ? 'Correspondencia Externa (CE)'
       : 'Correspondencia Interna (CI)';
 
-  String get currentResponsibleUnitLabel =>
-      currentUnitName?.isNotEmpty == true
-          ? currentUnitName!
-          : 'Sin unidad asignada';
+  String get currentResponsibleUnitLabel => currentUnitName?.isNotEmpty == true
+      ? currentUnitName!
+      : 'Sin unidad asignada';
 
   String get currentResponsibleUserLabel {
     if (currentUserName == null || currentUserName!.isEmpty) {
@@ -117,22 +117,15 @@ class CorrespondenceEntity extends Equatable {
 
   bool get isConcludedStatus => status == 'CONCLUDED';
 
-  /// Unidad del operador coincide con [currentUnitId] (Concluir/Reabrir/Derivar).
-  bool canOperateCurrentUnit(String? viewerUnitId) {
-    final unitId = currentUnitId;
-    if (viewerUnitId == null || unitId == null || unitId.isEmpty) {
-      return false;
-    }
-    return viewerUnitId == unitId;
-  }
-
   CorrespondenceEntity copyWith({
     String? status,
+    bool? canOperate,
     String? statusLabel,
     DateTime? lastSentAt,
   }) {
     return CorrespondenceEntity(
       id: id,
+      canOperate: canOperate ?? this.canOperate,
       uniqueNumber: uniqueNumber,
       year: year,
       cite: cite,
@@ -168,6 +161,7 @@ class CorrespondenceEntity extends Equatable {
   @override
   List<Object?> get props => [
         id,
+        canOperate,
         uniqueNumber,
         year,
         cite,

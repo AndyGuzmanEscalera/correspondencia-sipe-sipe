@@ -1,3 +1,4 @@
+import 'package:correspondencia_sipe_sipe/features/app/cubit/app_session_cubit.dart';
 import 'package:correspondencia_sipe_sipe/core/util/enums.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/detail/views/correspondence_detail_page.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/domain/entities/correspondence_entity.dart';
@@ -16,6 +17,9 @@ class CorrespondenceBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cubit = context.read<CorrespondenceCubit>();
+    final session = context.watch<AppSessionCubit>().state.userSession;
+    final canCreate = session?.employeeId != null &&
+        (session?.permissions.contains('correspondence.create') ?? false);
 
     return AdminContent(
       child: Column(
@@ -24,26 +28,27 @@ class CorrespondenceBody extends StatelessWidget {
             title: 'Correspondencias',
             subtitle: 'Registro institucional de trámites',
             actions: [
-              ElevatedButton.icon(
-                onPressed: () {
-                  final ownerContext = context;
-                  showDialog<void>(
-                    context: context,
-                    builder: (dialogContext) {
-                      return BlocProvider.value(
-                        value: BlocProvider.of<CorrespondenceCubit>(context),
-                        child: UpsertCorrespondencePage(
-                          typeOperation: TypeOperation.create,
-                          hostDialogContext: dialogContext,
-                          ownerContext: ownerContext,
-                        ),
-                      );
-                    },
-                  );
-                },
-                icon: const Icon(Icons.add_rounded),
-                label: const Text('Nueva correspondencia'),
-              ),
+              if (canCreate)
+                ElevatedButton.icon(
+                  onPressed: () {
+                    final ownerContext = context;
+                    showDialog<void>(
+                      context: context,
+                      builder: (dialogContext) {
+                        return BlocProvider.value(
+                          value: BlocProvider.of<CorrespondenceCubit>(context),
+                          child: UpsertCorrespondencePage(
+                            typeOperation: TypeOperation.create,
+                            hostDialogContext: dialogContext,
+                            ownerContext: ownerContext,
+                          ),
+                        );
+                      },
+                    );
+                  },
+                  icon: const Icon(Icons.add_rounded),
+                  label: const Text('Nueva correspondencia'),
+                ),
             ],
           ),
           const SizedBox(height: 20),

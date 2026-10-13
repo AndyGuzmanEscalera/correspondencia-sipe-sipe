@@ -59,44 +59,44 @@ class DestinationSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (unitItems.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8),
-            child: Text('No hay unidades organizacionales activas.'),
-          )
-        else
-          AppDropdown<String>(
-            controller: inherited.toUnit,
-            label: 'Unidad destino',
-            items: unitItems,
-            validators: [
-              RequiredValid(error: 'Seleccione una unidad destino'),
-            ],
-            onChanged: (option) {
-              inherited.clearDestinationUser();
-              upsertCubit.loadUnitUsers(option.value!);
-            },
-          ),
-        if (inherited.toUnit.isExist()) ...[
-          if (unitUsersLoading)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 8),
-              child: SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
+              child: Text('No hay unidades organizacionales activas.'),
+            )
+          else
+            AppDropdown<String>(
+              controller: inherited.toUnit,
+              label: 'Unidad destino',
+              items: unitItems,
+              validators: [
+                RequiredValid(error: 'Seleccione una unidad destino'),
+              ],
+              onChanged: (option) {
+                inherited.clearDestinationUser();
+                upsertCubit.loadUnitUsers(option.value!);
+              },
             ),
-          AppDropdown<String>(
-            controller: inherited.toUser,
-            label: requireSpecificUser
-                ? 'Funcionario destino'
-                : 'Usuario destino (opcional)',
-            items: userItems,
-            validators: requireSpecificUser
-                ? [RequiredValid(error: 'Seleccione un funcionario destino')]
-                : null,
-          ),
-        ],
+          if (inherited.toUnit.isExist()) ...[
+            if (unitUsersLoading)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            AppDropdown<String>(
+              controller: inherited.toUser,
+              label: requireSpecificUser
+                  ? 'Funcionario destino'
+                  : 'Usuario destino (opcional)',
+              items: userItems,
+              validators: requireSpecificUser
+                  ? [RequiredValid(error: 'Seleccione un funcionario destino')]
+                  : null,
+            ),
+          ],
           AppTextField(
             controller: inherited.initialInstruction,
             label: 'Instrucción inicial / proveído (opcional)',

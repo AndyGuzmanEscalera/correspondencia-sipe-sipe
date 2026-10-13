@@ -19,6 +19,10 @@ class CorrespondenceRepository {
 
   final CorrespondenceApi _correspondenceApi;
 
+  Future<Result<bool, Failure>> getCreationPolicy() =>
+      handleExceptions<bool>(() => _correspondenceApi.getCreationPolicy(),
+          feature: 'correspondence', operation: 'creationPolicy');
+
   Future<Result<List<DocumentType>, Failure>> listDocumentTypes() {
     return handleExceptions<List<DocumentType>>(
       () async {
@@ -39,6 +43,23 @@ class CorrespondenceRepository {
       feature: 'correspondence',
       operation: 'listEmployees',
     );
+  }
+
+  Future<Result<List<InstitutionalMayor>, Failure>> listEdieFirstRecipients() {
+    return handleExceptions<List<InstitutionalMayor>>(() async {
+      final items = await _correspondenceApi.listEdieFirstRecipients();
+      return items
+          .map((item) => InstitutionalMayor(
+                userId: item.userId,
+                employeeId: item.employeeId,
+                unitId: item.unitId,
+                employeeName: item.employeeName,
+                positionName: item.positionName,
+                unitName: item.unitName,
+                paraLabel: item.paraLabel,
+              ))
+          .toList();
+    }, feature: 'correspondence', operation: 'listEdieFirstRecipients');
   }
 
   Future<Result<InstitutionalMayor, Failure>> getInstitutionalMayor() {
@@ -83,8 +104,7 @@ class CorrespondenceRepository {
 
   Future<Result<InboxCounts, Failure>> getInboxCounts() {
     return handleExceptions<InboxCounts>(
-      () async =>
-          (await _correspondenceApi.getInboxCounts()).toEntity(),
+      () async => (await _correspondenceApi.getInboxCounts()).toEntity(),
       feature: 'correspondence',
       operation: 'getInboxCounts',
     );
@@ -168,9 +188,9 @@ class CorrespondenceRepository {
   ) {
     return handleExceptions<Correspondence>(
       () async => (await _correspondenceApi.deriveCorrespondence(
-            id,
-            input.toRequest(),
-          ))
+        id,
+        input.toRequest(),
+      ))
           .toEntity(),
       feature: 'correspondence',
       operation: 'deriveCorrespondence',
@@ -183,9 +203,9 @@ class CorrespondenceRepository {
   ) {
     return handleExceptions<Correspondence>(
       () async => (await _correspondenceApi.concludeCorrespondence(
-            id,
-            input.toRequest(),
-          ))
+        id,
+        input.toRequest(),
+      ))
           .toEntity(),
       feature: 'correspondence',
       operation: 'concludeCorrespondence',
@@ -198,9 +218,9 @@ class CorrespondenceRepository {
   ) {
     return handleExceptions<Correspondence>(
       () async => (await _correspondenceApi.reopenCorrespondence(
-            id,
-            input.toRequest(),
-          ))
+        id,
+        input.toRequest(),
+      ))
           .toEntity(),
       feature: 'correspondence',
       operation: 'reopenCorrespondence',
@@ -225,7 +245,8 @@ class CorrespondenceRepository {
   ) {
     return handleExceptions<List<CorrespondenceAttachment>>(
       () async {
-        final items = await _correspondenceApi.listAttachments(correspondenceId);
+        final items =
+            await _correspondenceApi.listAttachments(correspondenceId);
         return items.map((item) => item.toEntity()).toList();
       },
       feature: 'correspondence',
@@ -239,11 +260,11 @@ class CorrespondenceRepository {
   }) {
     return handleExceptions<CorrespondenceAttachment>(
       () async => (await _correspondenceApi.uploadAttachment(
-            correspondenceId: correspondenceId,
-            filename: input.filename,
-            bytes: input.bytes,
-            mimeType: input.mimeType,
-          ))
+        correspondenceId: correspondenceId,
+        filename: input.filename,
+        bytes: input.bytes,
+        mimeType: input.mimeType,
+      ))
           .toEntity(),
       feature: 'correspondence',
       operation: 'uploadAttachment',
@@ -270,16 +291,17 @@ class CorrespondenceRepository {
   }) {
     return handleExceptions<CorrespondenceAttachment>(
       () async => (await _correspondenceApi.deactivateAttachment(
-            correspondenceId: correspondenceId,
-            attachmentId: attachmentId,
-          ))
+        correspondenceId: correspondenceId,
+        attachmentId: attachmentId,
+      ))
           .toEntity(),
       feature: 'correspondence',
       operation: 'deactivateAttachment',
     );
   }
 
-  Future<Result<List<int>, Failure>> downloadChainingPdf(String correspondenceId) {
+  Future<Result<List<int>, Failure>> downloadChainingPdf(
+      String correspondenceId) {
     return handleExceptions<List<int>>(
       () async => _correspondenceApi.downloadChainingPdf(correspondenceId),
       feature: 'correspondence',

@@ -1,6 +1,7 @@
 import 'package:correspondencia_api/correspondencia_api.dart';
 import 'package:failures/failures.dart';
 import '../entities/institutional_settings.dart';
+import '../../organization/entities/organizational_unit.dart';
 
 class SystemSettingsAdminRepository {
   SystemSettingsAdminRepository({required SystemSettingsAdminApi api})
@@ -15,6 +16,10 @@ class SystemSettingsAdminRepository {
           documentNumber: item.documentNumber);
   static InstitutionalSettings _settings(InstitutionalSettingsResponse item) =>
       InstitutionalSettings(
+          intakeUnitId: item.intakeUnitId,
+          intakeUnitName: item.intakeUnitName,
+          initialRecipientEmployeeIds: item.initialRecipientEmployeeIds,
+          initialRecipients: item.initialRecipients.map(_employee).toList(),
           mayorDisplayName: item.mayorDisplayName,
           mayorEmployeeId: item.mayorEmployeeId,
           mayor: item.mayor == null ? null : _employee(item.mayor!),
@@ -24,6 +29,13 @@ class SystemSettingsAdminRepository {
           () async => _settings(await _api.getInstitutionalSettings()),
           feature: 'systemSettings',
           operation: 'getInstitutionalSettings');
+  Future<Result<InstitutionalSettings, Failure>> updateDocumentAuthorityName(
+          String name) =>
+      handleExceptions(
+          () async => _settings(await _api.updateDocumentAuthorityName(name)),
+          feature: 'systemSettings',
+          operation: 'updateDocumentAuthorityName');
+
   Future<Result<List<AuthorityEmployee>, Failure>> getAuthorityEmployees() =>
       handleExceptions(
           () async =>
@@ -32,10 +44,20 @@ class SystemSettingsAdminRepository {
           operation: 'getAuthorityEmployees');
   Future<Result<InstitutionalSettings, Failure>> updateInstitutionalSettings({
     required String? mayorEmployeeId,
+    String? mayorDisplayName,
+    String? intakeUnitId,
+    List<String>? initialRecipientEmployeeIds,
   }) =>
       handleExceptions(
           () async => _settings(await _api.updateInstitutionalSettings(
-              mayorEmployeeId: mayorEmployeeId)),
+              mayorEmployeeId: mayorEmployeeId,
+              intakeUnitId: intakeUnitId,
+              initialRecipientEmployeeIds: initialRecipientEmployeeIds,
+              mayorDisplayName: mayorDisplayName)),
           feature: 'systemSettings',
           operation: 'updateInstitutionalSettings');
+
+  Future<Result<List<OrganizationalUnit>, Failure>> getIntakeUnits() => handleExceptions(
+      () async => (await _api.getIntakeUnits()).map((x) => OrganizationalUnit(id: x.id, code: x.code, name: x.name)).toList(),
+      feature: 'systemSettings', operation: 'getIntakeUnits');
 }

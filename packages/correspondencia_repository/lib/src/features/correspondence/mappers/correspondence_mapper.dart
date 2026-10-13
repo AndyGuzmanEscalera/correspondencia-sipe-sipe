@@ -27,6 +27,7 @@ extension EmployeeOptionResponseMapper on EmployeeOptionResponse {
 extension CorrespondenceResponseMapper on CorrespondenceResponse {
   Correspondence toEntity() => Correspondence(
         id: id,
+        canOperate: canOperate,
         routeNumber: routeNumber,
         routeYear: routeYear,
         routeSequence: routeSequence,
@@ -84,7 +85,8 @@ extension CorrespondenceInboxCountsResponseMapper
       canViewUnitCorrespondence: canViewUnitCorrespondence);
 }
 
-extension CorrespondenceMovementResponseMapper on CorrespondenceMovementResponse {
+extension CorrespondenceMovementResponseMapper
+    on CorrespondenceMovementResponse {
   CorrespondenceMovement toEntity() => CorrespondenceMovement(
         id: id,
         sequenceNumber: sequenceNumber,
@@ -102,7 +104,8 @@ extension CorrespondenceMovementResponseMapper on CorrespondenceMovementResponse
       );
 }
 
-extension CorrespondenceAttachmentResponseMapper on CorrespondenceAttachmentResponse {
+extension CorrespondenceAttachmentResponseMapper
+    on CorrespondenceAttachmentResponse {
   CorrespondenceAttachment toEntity() => CorrespondenceAttachment(
         id: id,
         correspondenceId: correspondenceId,
@@ -131,6 +134,7 @@ extension CreateCorrespondenceInputMapper on CreateCorrespondenceInput {
         senderDocument: senderDocument,
         senderContact: senderContact,
         originDescription: originDescription,
+        firstRecipientEmployeeId: firstRecipientEmployeeId,
         initialToUnitId: initialToUnitId,
         initialToUserId: initialToUserId,
         initialInstruction: initialInstruction,

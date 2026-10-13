@@ -20,14 +20,23 @@ class AuthorityEmployee extends Equatable {
 class InstitutionalSettings extends Equatable {
   const InstitutionalSettings(
       {this.mayorDisplayName,
+      this.intakeUnitId,
+      this.intakeUnitName,
+      this.initialRecipientEmployeeIds = const [],
+      this.initialRecipients = const [],
       this.mayorEmployeeId,
       this.mayor,
       this.mayorValidationError});
   final String? mayorDisplayName;
+  final String? intakeUnitId;
+  final String? intakeUnitName;
+  final List<String> initialRecipientEmployeeIds;
+  final List<AuthorityEmployee> initialRecipients;
   final String? mayorEmployeeId;
   final AuthorityEmployee? mayor;
   final String? mayorValidationError;
   @override
   List<Object?> get props =>
-      [mayorDisplayName, mayorEmployeeId, mayor, mayorValidationError];
+      [mayorDisplayName, mayorEmployeeId, mayor, mayorValidationError,
+       intakeUnitId, intakeUnitName, initialRecipientEmployeeIds, initialRecipients];
 }

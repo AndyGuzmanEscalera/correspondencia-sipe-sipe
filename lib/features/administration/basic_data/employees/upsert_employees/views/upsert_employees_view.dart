@@ -160,7 +160,7 @@ class UpsertEmployeesBody extends StatelessWidget {
         return AppFormDialog(
           title: isCreate ? 'Nuevo funcionario' : 'Editar funcionario',
           subtitle: isCreate
-              ? 'Complete los datos personales y de asignación'
+              ? 'Complete los datos personales y de asignaciÃ³n'
               : 'Actualice los datos del funcionario',
           maxWidth: 540,
           isLoading: isLoading,
@@ -230,7 +230,7 @@ class UpsertEmployeesBody extends StatelessWidget {
                 ),
                 AppTextField(
                   controller: inherited.phone,
-                  label: 'Teléfono (opcional)',
+                  label: 'TelÃ©fono (opcional)',
                   inputType: TextInputType.phone,
                 ),
                 AppDropdown<String>(

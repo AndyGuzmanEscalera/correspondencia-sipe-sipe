@@ -3,6 +3,7 @@ import 'package:correspondencia_sipe_sipe/features/correspondence/domain/entitie
 import 'package:correspondencia_sipe_sipe/features/correspondence/domain/entities/correspondence_movement_entity.dart';
 
 final externalCorrespondence = CorrespondenceEntity(
+  canOperate: true,
   id: 'corr-ext',
   uniqueNumber: 1,
   year: 2026,
@@ -29,6 +30,7 @@ final externalCorrespondence = CorrespondenceEntity(
 );
 
 final internalCorrespondence = CorrespondenceEntity(
+  canOperate: true,
   id: 'corr-int',
   uniqueNumber: 2,
   year: 2026,
@@ -49,6 +51,7 @@ final internalCorrespondence = CorrespondenceEntity(
 );
 
 final notaCorrespondence = CorrespondenceEntity(
+  canOperate: true,
   id: 'corr-nota',
   uniqueNumber: 3,
   year: 2026,
@@ -67,6 +70,7 @@ final notaCorrespondence = CorrespondenceEntity(
 );
 
 final inactiveResponsibleCorrespondence = CorrespondenceEntity(
+  canOperate: true,
   id: 'corr-inactive-user',
   uniqueNumber: 4,
   year: 2026,

@@ -32,11 +32,14 @@ class _TrackingCorrespondenceCubit extends CorrespondenceCubit {
 }
 
 class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
+  @override
+  Future<Result<bool, Failure>> getCreationPolicy() async => const Ok(false);
   _FakeCorrespondenceRepository({this.createResult});
 
   Result<repo.Correspondence, Failure>? createResult;
   Completer<void>? createGate;
   int createCalls = 0;
+  repo.CreateCorrespondenceInput? receivedInput;
   bool missingAuthority = false;
 
   @override
@@ -44,6 +47,7 @@ class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
     repo.CreateCorrespondenceInput input,
   ) async {
     createCalls++;
+    receivedInput = input;
     if (createGate != null) {
       await createGate!.future;
     }
@@ -84,23 +88,32 @@ class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
   }
 
   @override
-  Future<Result<repo.InstitutionalMayor, Failure>>
-      getInstitutionalMayor() async {
+  Future<Result<List<repo.InstitutionalMayor>, Failure>>
+      listEdieFirstRecipients() async {
     if (missingAuthority) {
       return const Err(ValidationFailure(
-          'Debe configurar al Alcalde/Máxima Autoridad Ejecutiva antes de registrar documentos EDIE.'));
+          'No se pudieron cargar los receptores iniciales configurados.'));
     }
-    return Ok(
+    return Ok([
       const repo.InstitutionalMayor(
         userId: 'mayor-user',
         employeeId: 'mayor-emp',
         unitId: 'unit-mayor',
         employeeName: 'Jaime Montero López',
-        positionName: 'Alcalde Municipal',
-        unitName: 'Alcaldía',
-        paraLabel: 'Alcaldía — Jaime Montero López',
+        positionName: 'Secretario Municipal Administrativo',
+        unitName: 'Secretaría Municipal Administrativa',
+        paraLabel: 'Secretaría — Jaime Montero López',
       ),
-    );
+      const repo.InstitutionalMayor(
+        userId: 'technical-user',
+        employeeId: 'technical-emp',
+        unitId: 'technical-unit',
+        employeeName: 'Secretario Técnico',
+        positionName: 'Secretario Municipal Técnico',
+        unitName: 'Secretaría Municipal Técnica',
+        paraLabel: 'Secretario Técnico',
+      ),
+    ]);
   }
 
   @override
@@ -135,6 +148,8 @@ class _FakeOrganizationRepository implements repo.OrganizationRepository {
 
 class _FakeDetailCorrespondenceRepository
     implements repo.CorrespondenceRepository {
+  @override
+  Future<Result<bool, Failure>> getCreationPolicy() async => const Ok(false);
   @override
   Future<Result<repo.Correspondence, Failure>> getCorrespondence(
     String id,
@@ -312,16 +327,30 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsNothing);
     });
 
-    testWidgets('EDIE usa autoridad automática y mantiene segundo destinatario',
+    testWidgets(
+        'EDIE registra un solo receptor y no muestra segundo destinatario',
         (tester) async {
       await pumpCreateDialog(tester);
       expect(find.text('Primer destinatario'), findsOneWidget);
-      expect(find.text('Jaime Montero López'), findsOneWidget);
-      expect(find.text('Segundo destinatario'), findsOneWidget);
+      expect(find.text('Receptor inicial'), findsOneWidget);
+      expect(find.text('Segundo destinatario'), findsNothing);
       await _fillMinimumExternalForm(tester);
       await tester.tap(find.text('Registrar'));
       await tester.pumpAndSettle();
       expect(correspondenceRepository.createCalls, 1);
+    });
+
+    testWidgets('Ventanilla elige secretario Técnico como primer destinatario',
+        (tester) async {
+      await pumpCreateDialog(tester);
+      await _fillMinimumExternalForm(tester,
+          firstRecipient: 'Secretario Técnico');
+      await tester.tap(find.text('Registrar'));
+      await tester.pumpAndSettle();
+      expect(correspondenceRepository.receivedInput!.firstRecipientEmployeeId,
+          'technical-emp');
+      expect(correspondenceRepository.receivedInput!.initialToUserId,
+          'technical-user');
     });
 
     testWidgets('EDIE sin autoridad muestra validación y no registra',
@@ -330,9 +359,8 @@ void main() {
       await pumpCreateDialog(tester);
       expect(
           find.text(
-              'Debe configurar al Alcalde/Máxima Autoridad Ejecutiva antes de registrar documentos EDIE.'),
+              'No se pudieron cargar los receptores iniciales configurados.'),
           findsOneWidget);
-      await _fillMinimumExternalForm(tester);
       expect(correspondenceRepository.createCalls, 0);
       expect(
           tester
@@ -452,14 +480,21 @@ void main() {
 
 class _FakeListRepository implements repo.CorrespondenceRepository {
   @override
+  Future<Result<bool, Failure>> getCreationPolicy() async => const Ok(false);
+  @override
   noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-Future<void> _fillMinimumExternalForm(WidgetTester tester) async {
+Future<void> _fillMinimumExternalForm(WidgetTester tester,
+    {String firstRecipient = 'Jaime Montero López'}) async {
   await tester.enterText(find.byType(TextFormField).at(0), 'Ciudadano');
   await tester.enterText(find.byType(TextFormField).at(4), 'Solicitud externa');
-  await _selectDestinationUnit(tester, unitName: 'Sistemas');
-  await _selectDestinationUser(tester, userName: 'Usuario Destino');
+  if (find.text('Receptor inicial').evaluate().isNotEmpty) {
+    await selectAppDropdownOption(tester,
+        dropdownIndex: 3,
+        optionText: firstRecipient,
+        scrollable: find.byType(Scrollable).first);
+  }
 }
 
 Future<void> _fillExternalFormWithoutSubject(WidgetTester tester) async {
@@ -470,45 +505,12 @@ Future<void> _fillExternalFormWithoutSubject(WidgetTester tester) async {
     scrollable: find.byType(Scrollable).first,
   );
   await tester.pumpAndSettle();
-  await _selectDestinationUnit(tester, unitName: 'Sistemas');
-  await _selectDestinationUser(tester, userName: 'Usuario Destino');
-}
-
-Future<void> _selectDestinationUser(
-  WidgetTester tester, {
-  required String userName,
-}) async {
-  await tester.scrollUntilVisible(
-    find.text('Funcionario destino'),
-    48,
-    scrollable: find.byType(Scrollable).first,
-  );
-  await tester.pumpAndSettle();
-  await selectAppDropdownOption(
-    tester,
-    dropdownIndex: 4,
-    optionText: userName,
-    scrollable: find.byType(Scrollable).first,
-  );
-}
-
-Future<void> _selectDestinationUnit(
-  WidgetTester tester, {
-  required String unitName,
-}) async {
-  final unitLabel = find.text('Unidad destino');
-  await tester.scrollUntilVisible(
-    unitLabel,
-    48,
-    scrollable: find.byType(Scrollable).first,
-  );
-  await tester.pumpAndSettle();
-  await selectAppDropdownOption(
-    tester,
-    dropdownIndex: 3,
-    optionText: unitName,
-    scrollable: find.byType(Scrollable).first,
-  );
+  if (find.text('Receptor inicial').evaluate().isNotEmpty) {
+    await selectAppDropdownOption(tester,
+        dropdownIndex: 3,
+        optionText: 'Jaime Montero López',
+        scrollable: find.byType(Scrollable).first);
+  }
 }
 
 Future<void> _selectTypeDropdown(

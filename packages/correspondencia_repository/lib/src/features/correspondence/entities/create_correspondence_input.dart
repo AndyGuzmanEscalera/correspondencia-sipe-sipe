@@ -11,6 +11,7 @@ class CreateCorrespondenceInput {
     this.senderDocument,
     this.senderContact,
     this.originDescription,
+    this.firstRecipientEmployeeId,
     required this.initialToUnitId,
     this.initialToUserId,
     this.initialInstruction,
@@ -27,6 +28,7 @@ class CreateCorrespondenceInput {
   final String? senderDocument;
   final String? senderContact;
   final String? originDescription;
+  final String? firstRecipientEmployeeId;
   final String initialToUnitId;
   final String? initialToUserId;
   final String? initialInstruction;

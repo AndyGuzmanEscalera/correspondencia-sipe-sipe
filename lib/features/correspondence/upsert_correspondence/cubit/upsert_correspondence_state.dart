@@ -3,14 +3,15 @@ part of 'upsert_correspondence_cubit.dart';
 class UpsertCorrespondenceState extends Equatable implements StatusState {
   const UpsertCorrespondenceState({
     this.documentTypes = const [],
+    this.isIntake = false,
     this.organizationalUnits = const [],
     this.employees = const [],
     this.unitUsers = const [],
     this.catalogLoaded = false,
     this.unitUsersLoading = false,
     this.defaultDocumentTypeId,
-    this.institutionalMayor,
-    this.institutionalMayorError,
+    this.firstRecipients = const [],
+    this.firstRecipientsError,
     this.createdCorrespondence,
     this.attachmentUploadFailures = const [],
     this.dialogMessage = const DialogMessage.empty(),
@@ -22,10 +23,11 @@ class UpsertCorrespondenceState extends Equatable implements StatusState {
   final List<repo.EmployeeOption> employees;
   final List<repo.UnitUser> unitUsers;
   final bool catalogLoaded;
+  final bool isIntake;
   final bool unitUsersLoading;
   final String? defaultDocumentTypeId;
-  final repo.InstitutionalMayor? institutionalMayor;
-  final String? institutionalMayorError;
+  final List<repo.InstitutionalMayor> firstRecipients;
+  final String? firstRecipientsError;
   final repo.Correspondence? createdCorrespondence;
   final List<String> attachmentUploadFailures;
 
@@ -39,7 +41,7 @@ class UpsertCorrespondenceState extends Equatable implements StatusState {
     required bool isExternal,
   }) {
     if (!hasBaseCatalog) return false;
-    if (profile == DocumentFormProfile.chaining && institutionalMayor == null) {
+    if (isIntake && firstRecipients.isEmpty) {
       return false;
     }
     if (!requiresOriginEmployee(profile: profile, isExternal: isExternal)) {
@@ -60,11 +62,11 @@ class UpsertCorrespondenceState extends Equatable implements StatusState {
     List<repo.EmployeeOption>? employees,
     List<repo.UnitUser>? unitUsers,
     bool? catalogLoaded,
+    bool? isIntake,
     bool? unitUsersLoading,
     String? defaultDocumentTypeId,
-    repo.InstitutionalMayor? institutionalMayor,
-    bool clearInstitutionalMayor = false,
-    String? institutionalMayorError,
+    List<repo.InstitutionalMayor>? firstRecipients,
+    String? firstRecipientsError,
     repo.Correspondence? createdCorrespondence,
     bool clearCreatedCorrespondence = false,
     List<String>? attachmentUploadFailures,
@@ -79,14 +81,12 @@ class UpsertCorrespondenceState extends Equatable implements StatusState {
       employees: employees ?? this.employees,
       unitUsers: clearUnitUsers ? const [] : (unitUsers ?? this.unitUsers),
       catalogLoaded: catalogLoaded ?? this.catalogLoaded,
+      isIntake: isIntake ?? this.isIntake,
       unitUsersLoading: unitUsersLoading ?? this.unitUsersLoading,
       defaultDocumentTypeId:
           defaultDocumentTypeId ?? this.defaultDocumentTypeId,
-      institutionalMayor: clearInstitutionalMayor
-          ? null
-          : (institutionalMayor ?? this.institutionalMayor),
-      institutionalMayorError:
-          institutionalMayorError ?? this.institutionalMayorError,
+      firstRecipients: firstRecipients ?? this.firstRecipients,
+      firstRecipientsError: firstRecipientsError ?? this.firstRecipientsError,
       createdCorrespondence: clearCreatedCorrespondence
           ? null
           : (createdCorrespondence ?? this.createdCorrespondence),
@@ -105,10 +105,11 @@ class UpsertCorrespondenceState extends Equatable implements StatusState {
         employees,
         unitUsers,
         catalogLoaded,
+        isIntake,
         unitUsersLoading,
         defaultDocumentTypeId,
-        institutionalMayor,
-        institutionalMayorError,
+        firstRecipients,
+        firstRecipientsError,
         createdCorrespondence,
         attachmentUploadFailures,
         dialogMessage,

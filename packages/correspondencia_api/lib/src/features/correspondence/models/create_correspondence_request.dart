@@ -11,6 +11,7 @@ class CreateCorrespondenceRequest {
     this.senderDocument,
     this.senderContact,
     this.originDescription,
+    this.firstRecipientEmployeeId,
     required this.initialToUnitId,
     this.initialToUserId,
     this.initialInstruction,
@@ -27,6 +28,7 @@ class CreateCorrespondenceRequest {
   final String? senderDocument;
   final String? senderContact;
   final String? originDescription;
+  final String? firstRecipientEmployeeId;
   final String initialToUnitId;
   final String? initialToUserId;
   final String? initialInstruction;
@@ -43,8 +45,11 @@ class CreateCorrespondenceRequest {
         if (senderDocument != null) 'sender_document': senderDocument,
         if (senderContact != null) 'sender_contact': senderContact,
         if (originDescription != null) 'origin_description': originDescription,
+        if (firstRecipientEmployeeId != null)
+          'first_recipient_employee_id': firstRecipientEmployeeId,
         'initial_to_unit_id': initialToUnitId,
         if (initialToUserId != null) 'initial_to_user_id': initialToUserId,
-        if (initialInstruction != null) 'initial_instruction': initialInstruction,
+        if (initialInstruction != null)
+          'initial_instruction': initialInstruction,
       };
 }

@@ -24,11 +24,33 @@ class UpsertCorrespondenceCubit extends Cubit<UpsertCorrespondenceState> {
   final repo.OrganizationRepository _organizationRepository;
 
   Future<void> init() async {
+    if (state.generalStatus == GeneralStatus.loading) return;
+    emit(state.copyWith(
+        catalogLoaded: false,
+        generalStatus: GeneralStatus.loading,
+        dialogMessage: const DialogMessage(
+            message: "Cargando catálogos...", showLoading: false)));
+    final policyResult = await _correspondenceRepository.getCreationPolicy();
+    if (isClosed) return;
+    if (policyResult case Err(:final failure)) {
+      emit(state.copyWith(
+          catalogLoaded: true,
+          generalStatus: GeneralStatus.error,
+          dialogMessage: DialogMessage(
+              title: 'Error',
+              message: FailureGeneric.message(
+                  failure: failure,
+                  messageResult:
+                      'No se pudo validar la configuración de recepción inicial'))));
+      return;
+    }
     final typesResult = await _correspondenceRepository.listDocumentTypes();
     final unitsResult = await _organizationRepository.listActiveUnits();
     final employeesResult = await _correspondenceRepository.listEmployees();
-    final mayorResult = await _correspondenceRepository.getInstitutionalMayor();
+    final recipientsResult =
+        await _correspondenceRepository.listEdieFirstRecipients();
 
+    if (isClosed) return;
     if (typesResult case Err(:final failure)) {
       emit(
         state.copyWith(
@@ -69,17 +91,19 @@ class UpsertCorrespondenceCubit extends Cubit<UpsertCorrespondenceState> {
 
     emit(
       state.copyWith(
+        generalStatus: GeneralStatus.initial,
+        dialogMessage: const DialogMessage.empty(),
+        isIntake: policyResult.valueOrNull()!,
         documentTypes: documentTypes,
         organizationalUnits: unitsResult.valueOrNull() ?? const [],
         employees: employeesResult.valueOrNull() ?? const [],
-        institutionalMayor: mayorResult.valueOrNull(),
-        clearInstitutionalMayor: mayorResult is Err,
-        institutionalMayorError: mayorResult.when(
+        firstRecipients: recipientsResult.valueOrNull() ?? const [],
+        firstRecipientsError: recipientsResult.when(
           ok: (_) => '',
           err: (failure) => FailureGeneric.message(
             failure: failure,
             messageResult:
-                'No se pudo cargar el titular ejecutivo municipal. Revise su configuración institucional.',
+                'No se pudieron cargar los receptores iniciales configurados.',
           ),
         ),
         defaultDocumentTypeId: defaultType?.id,
@@ -102,6 +126,7 @@ class UpsertCorrespondenceCubit extends Cubit<UpsertCorrespondenceState> {
     );
 
     final result = await _organizationRepository.listUsersByUnit(unitId);
+    if (isClosed) return;
 
     result.when(
       ok: (users) {
@@ -141,6 +166,7 @@ class UpsertCorrespondenceCubit extends Cubit<UpsertCorrespondenceState> {
     String? reference,
     String? description,
     String? originEmployeeId,
+    String? firstRecipientEmployeeId,
     String? initialToUserId,
     String? initialInstruction,
     String? senderName,
@@ -149,6 +175,7 @@ class UpsertCorrespondenceCubit extends Cubit<UpsertCorrespondenceState> {
     String? originDescription,
     List<PendingAttachment> pendingAttachments = const [],
   }) async {
+    if (state.generalStatus == GeneralStatus.loading) return;
     emit(
       state.copyWith(
         generalStatus: GeneralStatus.loading,
@@ -170,6 +197,7 @@ class UpsertCorrespondenceCubit extends Cubit<UpsertCorrespondenceState> {
       reference: reference,
       description: description,
       originEmployeeId: originEmployeeId,
+      firstRecipientEmployeeId: firstRecipientEmployeeId,
       initialToUserId: initialToUserId,
       initialInstruction: initialInstruction,
       senderName: senderName,
@@ -179,6 +207,7 @@ class UpsertCorrespondenceCubit extends Cubit<UpsertCorrespondenceState> {
     );
 
     final result = await _correspondenceRepository.createCorrespondence(input);
+    if (isClosed) return;
 
     if (result case Err(:final failure)) {
       emit(
@@ -231,6 +260,7 @@ class UpsertCorrespondenceCubit extends Cubit<UpsertCorrespondenceState> {
     String? reference,
     String? description,
     String? originEmployeeId,
+    String? firstRecipientEmployeeId,
     String? initialToUserId,
     String? initialInstruction,
     String? senderName,
@@ -269,6 +299,7 @@ class UpsertCorrespondenceCubit extends Cubit<UpsertCorrespondenceState> {
           senderDocument: isExternal ? _optional(senderDocument) : null,
           senderContact: isExternal ? _optional(senderContact) : null,
           originDescription: isExternal ? _optional(originDescription) : null,
+          firstRecipientEmployeeId: _optional(firstRecipientEmployeeId),
           initialToUnitId: initialToUnitId,
           initialToUserId: _optional(initialToUserId),
           initialInstruction: _optional(initialInstruction),

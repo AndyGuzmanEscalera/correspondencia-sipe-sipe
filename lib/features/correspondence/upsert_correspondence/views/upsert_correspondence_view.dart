@@ -9,7 +9,6 @@ import 'package:correspondencia_sipe_sipe/features/correspondence/domain/documen
 import 'package:correspondencia_sipe_sipe/features/correspondence/list_correspondence/cubit/correspondence_cubit.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/cubit/upsert_correspondence_cubit.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/helpers/upsert_correspondence_inherited.dart';
-import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/widgets/attachments_section.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/widgets/chaining_fields.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/widgets/chaining_destination_section.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/widgets/destination_section.dart';
@@ -164,6 +163,7 @@ class _UpsertCorrespondenceBodyState extends State<UpsertCorrespondenceBody> {
   CorrespondenceTypeCode _selectedType = CorrespondenceTypeCode.ce;
   DocumentFormProfile _profile = DocumentFormProfile.chaining;
   bool _defaultsApplied = false;
+  bool _useConfiguredRecipient = true;
 
   bool get _isExternal => _selectedType == CorrespondenceTypeCode.ce;
 
@@ -181,6 +181,7 @@ class _UpsertCorrespondenceBodyState extends State<UpsertCorrespondenceBody> {
           value: type.id,
         );
         _profile = resolveDocumentFormProfile(type.code);
+        _useConfiguredRecipient = _profile == DocumentFormProfile.chaining;
         break;
       }
     }
@@ -201,6 +202,7 @@ class _UpsertCorrespondenceBodyState extends State<UpsertCorrespondenceBody> {
     final profile = resolveDocumentFormProfile(documentType.code);
     setState(() {
       _profile = profile;
+      _useConfiguredRecipient = profile == DocumentFormProfile.chaining;
     });
     if (profile == DocumentFormProfile.technicalReport ||
         profile == DocumentFormProfile.internalNote) {
@@ -239,14 +241,18 @@ class _UpsertCorrespondenceBodyState extends State<UpsertCorrespondenceBody> {
         }
 
         if (!state.hasBaseCatalog) {
-          return const AppFormDialog(
-            title: 'Nueva correspondencia',
-            maxWidth: 640,
-            onSubmit: null,
-            child: Text(
-              'No se pudieron cargar los catálogos necesarios.',
-            ),
-          );
+          return AppFormDialog(
+              title: 'Nueva correspondencia',
+              maxWidth: 640,
+              onSubmit: null,
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                const Text(
+                    'No se pudieron cargar los catálogos o la configuración necesaria.'),
+                TextButton.icon(
+                    onPressed: upsertCubit.init,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Reintentar')),
+              ]));
         }
 
         _applyDefaultDocumentType(state);
@@ -256,7 +262,11 @@ class _UpsertCorrespondenceBodyState extends State<UpsertCorrespondenceBody> {
           profile: _profile,
           isExternal: _isExternal,
         );
-        final canSubmit = catalogReady && !isLoading && !state.unitUsersLoading;
+        final canSubmit = catalogReady &&
+            !isLoading &&
+            !state.unitUsersLoading &&
+            (!(state.isIntake || _useConfiguredRecipient) ||
+                state.firstRecipients.isNotEmpty);
 
         return AppFormDialog(
           title: 'Nueva correspondencia',
@@ -293,21 +303,40 @@ class _UpsertCorrespondenceBodyState extends State<UpsertCorrespondenceBody> {
                   const InternalNoteFields(),
                 if (_profile == DocumentFormProfile.generic)
                   const GenericFields(),
-                if (_profile == DocumentFormProfile.chaining)
+                if (!state.isIntake)
+                  SwitchListTile(
+                      title: const Text(
+                          'Enviar a un receptor inicial configurado'),
+                      value: _useConfiguredRecipient,
+                      onChanged: isLoading
+                          ? null
+                          : (value) => setState(() {
+                                _useConfiguredRecipient = value;
+                                inherited.firstRecipient.clear();
+                                inherited.toUnit.clear();
+                                inherited.toUser.clear();
+                              })),
+                if (state.isIntake || _useConfiguredRecipient)
                   ChainingDestinationSection(
-                    institutionalMayor: state.institutionalMayor,
-                    errorMessage: state.institutionalMayorError,
+                    firstRecipients: state.firstRecipients,
+                    errorMessage: state.firstRecipientsError,
                     organizationalUnits: state.organizationalUnits,
                     unitUsers: state.unitUsers,
                     unitUsersLoading: state.unitUsersLoading,
                   )
                 else
                   DestinationSection(
-                    organizationalUnits: state.organizationalUnits,
+                    organizationalUnits: state.organizationalUnits
+                        .where((unit) => !state.firstRecipients
+                            .any((recipient) => recipient.unitId == unit.id))
+                        .toList(),
                     unitUsers: state.unitUsers,
                     unitUsersLoading: state.unitUsersLoading,
                   ),
-                const AttachmentsSection(),
+                const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    child: Text(
+                        'El responsable actual puede gestionar los adjuntos desde el detalle después del registro.')),
               ],
             ),
           ),
@@ -320,6 +349,26 @@ class _UpsertCorrespondenceBodyState extends State<UpsertCorrespondenceBody> {
     UpsertCorrespondenceCubit upsertCubit,
     UpsertCorrespondenceInherited inherited,
   ) async {
+    final state = upsertCubit.state;
+    final useRecipient = state.isIntake || _useConfiguredRecipient;
+    if (useRecipient) {
+      final selected = state.firstRecipients
+          .where((r) => r.employeeId == inherited.firstRecipient.get())
+          .firstOrNull;
+      if (selected == null) {
+        setState(inherited.firstRecipient.clear);
+        inherited.firstRecipient.fieldKey.currentState?.validate();
+        return;
+      }
+      inherited.toUnit.setValue(FormOption<String>(
+          id: selected.unitId.hashCode,
+          value: selected.unitId,
+          text: selected.unitName));
+      inherited.toUser.setValue(FormOption<String>(
+          id: selected.userId.hashCode,
+          value: selected.userId,
+          text: selected.employeeName));
+    }
     final validResult = inherited.valid(
       profile: _profile,
       isExternal: _isExternal,
@@ -373,6 +422,8 @@ class _UpsertCorrespondenceBodyState extends State<UpsertCorrespondenceBody> {
       type: type,
       priorityLabel: priority,
       documentTypeId: documentTypeId,
+      firstRecipientEmployeeId:
+          useRecipient ? inherited.firstRecipient.get() : null,
       initialToUnitId: toUnitId,
       initialToUserId:
           selectedUser != null && selectedUser.isNotEmpty ? selectedUser : null,
@@ -381,7 +432,6 @@ class _UpsertCorrespondenceBodyState extends State<UpsertCorrespondenceBody> {
       senderDocument: inherited.senderDocument.getValue(),
       senderContact: inherited.senderContact.getValue(),
       originDescription: inherited.originDescription.getValue(),
-      pendingAttachments: List.of(inherited.pendingAttachments),
     );
   }
 }

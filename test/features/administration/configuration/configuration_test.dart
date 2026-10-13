@@ -17,12 +17,6 @@ const _authority = AuthorityEmployee(
     positionName: 'Dirección Ejecutiva',
     unitName: 'Despacho',
     documentNumber: '123456');
-const _other = AuthorityEmployee(
-    employeeId: 'employee-b',
-    employeeName: 'Nueva Autoridad',
-    positionName: 'Responsable Institucional',
-    unitName: 'Secretaría',
-    documentNumber: '987654');
 
 class _Auth extends Fake implements AuthenticationRepository {}
 
@@ -30,6 +24,7 @@ class _Settings extends Fake implements SystemSettingsAdminRepository {
   Result<InstitutionalSettings, Failure> result = const Ok(
       InstitutionalSettings(mayorEmployeeId: 'employee-a', mayor: _authority));
   String? saved;
+  String? savedText;
   int calls = 0;
   int candidateCalls = 0;
   @override
@@ -39,18 +34,26 @@ class _Settings extends Fake implements SystemSettingsAdminRepository {
   Future<Result<List<AuthorityEmployee>, Failure>>
       getAuthorityEmployees() async {
     candidateCalls++;
-    return const Ok([_authority, _other]);
+    return const Ok([_authority]);
   }
 
   @override
+  Future<Result<List<OrganizationalUnit>, Failure>> getIntakeUnits() async =>
+      const Ok([]);
+  @override
   Future<Result<InstitutionalSettings, Failure>> updateInstitutionalSettings(
-      {required String? mayorEmployeeId}) async {
+      {required String? mayorEmployeeId,
+      String? mayorDisplayName,
+      String? intakeUnitId,
+      List<String>? initialRecipientEmployeeIds}) async {
     calls++;
     saved = mayorEmployeeId;
+    savedText = mayorDisplayName;
     if (result is Err) return result;
     return Ok(InstitutionalSettings(
         mayorEmployeeId: mayorEmployeeId,
-        mayor: mayorEmployeeId == _other.employeeId ? _other : _authority));
+        mayor: _authority,
+        mayorDisplayName: mayorDisplayName));
   }
 }
 
@@ -80,74 +83,48 @@ Future<void> _pump(WidgetTester tester, _Settings repository,
 }
 
 void main() {
-  test('guardar referencia y conservar validación de dominio', () async {
+  testWidgets('texto y funcionario se muestran y guardan por separado',
+      (tester) async {
     final repository = _Settings();
-    final cubit = ConfigurationCubit(repository);
-    await cubit.load(canManage: true);
-    cubit.selectMayor(_other);
-    await cubit.save();
-    expect(repository.saved, 'employee-b');
-    expect(cubit.state.settings.mayor, _other);
-    repository.result = const Err(ValidationFailure('Funcionario inactivo'));
-    await cubit.save();
-    expect(cubit.state.generalStatus, GeneralStatus.error);
-    expect(cubit.state.dialogMessage.message, 'Funcionario inactivo');
-    await cubit.close();
+    await _pump(tester, repository);
+    await tester.enterText(
+        find.byType(TextFormField).last, '  Fredy Patzi Barrios  ');
+    await tester.ensureVisible(find.text('Guardar'));
+    await tester.tap(find.text('Guardar'));
+    await tester.pumpAndSettle();
+    expect(repository.savedText, 'Fredy Patzi Barrios');
+    expect(repository.saved, 'employee-a');
+    expect(repository.candidateCalls, 1);
+    expect(find.byType(AppDropdown<AuthorityEmployee>), findsNWidgets(2));
+    expect(find.text('Máxima autoridad institucional'), findsOneWidget);
+    expect(find.text('Texto de la Máxima Autoridad para documentos'),
+        findsOneWidget);
   });
   for (final manage in [false, true]) {
-    testWidgets('configuración manage=$manage respeta permissions',
+    testWidgets('texto institucional manage=$manage respeta permissions',
         (tester) async {
       final repository = _Settings();
       await _pump(tester, repository, manage: manage);
-      expect(find.text('Autoridad Actual'), findsOneWidget);
-      expect(find.text('Dirección Ejecutiva · Despacho'), findsOneWidget);
-      final dropdown = tester.widget<AppDropdown<AuthorityEmployee>>(
-          find.byType(AppDropdown<AuthorityEmployee>));
-      expect(dropdown.enabled, manage);
+      expect(tester.widget<TextField>(find.byType(TextField).last).readOnly,
+          !manage);
       expect(repository.candidateCalls, manage ? 1 : 0);
+      expect(
+          tester
+              .widget<AppDropdown<AuthorityEmployee>>(
+                  find.byType(AppDropdown<AuthorityEmployee>).last)
+              .enabled,
+          manage);
       expect(find.text('Guardar'), manage ? findsOneWidget : findsNothing);
-      if (!manage) {
-        await tester.tap(find.byIcon(Icons.search_rounded));
-        await tester.pumpAndSettle();
-        expect(find.byType(DraggableScrollableSheet), findsNothing);
-      }
     });
   }
-  for (final query in [
-    'Nueva Autoridad',
-    '987654',
-    'Responsable Institucional',
-    'Secretaría'
-  ]) {
-    testWidgets('buscar funcionario por $query y guardar ID', (tester) async {
-      final repository = _Settings();
-      await _pump(tester, repository);
-      await tester.tap(find.byIcon(Icons.search_rounded));
-      await tester.pumpAndSettle();
-      await tester.enterText(
-          find.descendant(
-              of: find.byType(DraggableScrollableSheet),
-              matching: find.byType(TextField)),
-          query);
-      await tester.pumpAndSettle();
-      final option = find.byWidgetPredicate(
-          (widget) => widget is Text && widget.data == 'Nueva Autoridad');
-      expect(option, findsOneWidget);
-      await tester.tap(option);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Guardar'));
-      await tester.pumpAndSettle();
-      expect(repository.saved, 'employee-b');
-      expect(repository.calls, 1);
-    });
-  }
-  testWidgets('sin autoridad muestra instrucción clara', (tester) async {
-    final repository = _Settings()..result = const Ok(InstitutionalSettings());
-    await _pump(tester, repository);
-    expect(
-        find.text(
-            'Debe configurar al Alcalde/Máxima Autoridad Ejecutiva antes de registrar documentos EDIE.'),
-        findsOneWidget);
-    expect(find.byType(TextFormField), findsNothing);
+  test('rechazo de guardado conserva validación de dominio', () async {
+    final repository = _Settings();
+    final cubit = ConfigurationCubit(repository);
+    await cubit.load();
+    repository.result = const Err(ValidationFailure('Texto inválido'));
+    await cubit.save(mayorDisplayName: 'Autoridad');
+    expect(cubit.state.generalStatus, GeneralStatus.error);
+    expect(cubit.state.dialogMessage.message, 'Texto inválido');
+    await cubit.close();
   });
 }

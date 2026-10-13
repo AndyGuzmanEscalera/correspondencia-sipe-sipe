@@ -36,19 +36,14 @@ class CorrespondenceDetailBody extends StatelessWidget {
       builder: (context, constraints) {
         final isCompact = constraints.maxWidth <= _compactMaxWidth;
         final isShort = constraints.maxHeight <= 820;
-        final padding = isCompact
-            ? 16.0
-            : (isShort ? 18.0 : 32.0);
-        final sectionGap = isCompact
-            ? 16.0
-            : (isShort ? 12.0 : 24.0);
+        final padding = isCompact ? 16.0 : (isShort ? 18.0 : 32.0);
+        final sectionGap = isCompact ? 16.0 : (isShort ? 12.0 : 24.0);
 
         return Container(
           color: UiColors.background,
-          padding:
-              EdgeInsets.fromLTRB(padding, padding - 4, padding, padding),
-          child: BlocBuilder<CorrespondenceDetailCubit,
-              CorrespondenceDetailState>(
+          padding: EdgeInsets.fromLTRB(padding, padding - 4, padding, padding),
+          child:
+              BlocBuilder<CorrespondenceDetailCubit, CorrespondenceDetailState>(
             builder: (context, state) {
               final item = state.correspondence;
               if (item == null) {
@@ -126,7 +121,7 @@ class _CompactDetailLayout extends StatelessWidget {
                 SizedBox(height: sectionGap),
                 CorrespondenceLifecycleSection(
                   item: item,
-                  canManage: canOperateCurrentUnit,
+                  canManage: canOperateCurrentUnit && item.isActiveStatus,
                   actionInProgress: lifecycleActionInProgress,
                 ),
               ],
@@ -246,7 +241,7 @@ class _WideFooterActions extends StatelessWidget {
         SizedBox(height: sectionGap),
         CorrespondenceLifecycleSection(
           item: item,
-          canManage: canOperateCurrentUnit,
+          canManage: canOperateCurrentUnit && item.isActiveStatus,
           actionInProgress: lifecycleActionInProgress,
         ),
         if (item.isActiveStatus && canOperateCurrentUnit) ...[
@@ -259,7 +254,8 @@ class _WideFooterActions extends StatelessWidget {
       ],
     );
 
-    final maxFooterHeight = math.min(220.0, MediaQuery.sizeOf(context).height * 0.28);
+    final maxFooterHeight =
+        math.min(220.0, MediaQuery.sizeOf(context).height * 0.28);
 
     return ConstrainedBox(
       constraints: BoxConstraints(maxHeight: maxFooterHeight),

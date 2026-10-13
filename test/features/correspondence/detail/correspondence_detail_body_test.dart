@@ -179,7 +179,7 @@ void main() {
     ) async {
       cubit.emit(
         cubit.state.copyWith(
-          correspondence: externalCorrespondence,
+          correspondence: externalCorrespondence.copyWith(canOperate:false),
           movements: [vigenteMovement],
           viewerUnitId: 'unit-otra',
         ),

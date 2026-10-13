@@ -20,6 +20,12 @@ class CorrespondenceApi {
 
   final ApiMethod _mainApi;
 
+  Future<bool> getCreationPolicy() async {
+    final json = await _mainApi.get(Endpoints.correspondenceCreationPolicy,
+        operation: 'correspondence.creationPolicy');
+    return json['is_intake'] as bool;
+  }
+
   Future<List<DocumentTypeResponse>> listDocumentTypes() async {
     final items = await _mainApi.getList(
       Endpoints.documentTypes,
@@ -34,6 +40,14 @@ class CorrespondenceApi {
       operation: 'correspondence.employees',
     );
     return items.map(EmployeeOptionResponse.fromJson).toList();
+  }
+
+  Future<List<InstitutionalMayorResponse>> listEdieFirstRecipients() async {
+    final items = await _mainApi.getList(
+      Endpoints.edieFirstRecipients,
+      operation: 'correspondence.edieFirstRecipients',
+    );
+    return items.map(InstitutionalMayorResponse.fromJson).toList();
   }
 
   Future<InstitutionalMayorResponse> getInstitutionalMayor() async {
@@ -111,7 +125,8 @@ class CorrespondenceApi {
         'page': page,
         'page_size': pageSize,
         if (status != null) 'status': status,
-        if (correspondenceType != null) 'correspondence_type': correspondenceType,
+        if (correspondenceType != null)
+          'correspondence_type': correspondenceType,
         if (search != null && search.isNotEmpty) 'search': search,
       },
       operation: 'correspondence.list',

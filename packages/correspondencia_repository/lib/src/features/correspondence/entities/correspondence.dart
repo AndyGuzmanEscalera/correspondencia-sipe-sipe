@@ -3,6 +3,7 @@ import 'package:equatable/equatable.dart';
 class Correspondence extends Equatable {
   const Correspondence({
     required this.id,
+    this.canOperate = false,
     required this.routeNumber,
     required this.routeYear,
     required this.routeSequence,
@@ -37,6 +38,7 @@ class Correspondence extends Equatable {
   });
 
   final String id;
+  final bool canOperate;
   final String routeNumber;
   final int routeYear;
   final int routeSequence;
@@ -74,6 +76,7 @@ class Correspondence extends Equatable {
   @override
   List<Object?> get props => [
         id,
+        canOperate,
         routeNumber,
         routeYear,
         routeSequence,
