@@ -1,3 +1,4 @@
+import 'package:correspondencia_sipe_sipe/shared/widgets/metric_tile.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/list_correspondence/cubit/correspondence_cubit.dart';
 import 'package:correspondencia_sipe_sipe/injection/injection_bloc.dart';
 import 'dart:async';
@@ -167,4 +168,47 @@ void main() {
     await refresh;
     expect(owner.isClosed, isTrue);
   });
+  for (final width in [390.0, 820.0, 1440.0]) {
+    testWidgets('Inicio institucional compacto sin overflow a $width',
+        (tester) async {
+      await tester.binding.setSurfaceSize(Size(width, 1000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final data = repo.DashboardData(
+          mine: 2,
+          unit: 5,
+          sent: 8,
+          concluded: 3,
+          total: 12,
+          canViewUnit: true,
+          activity: [
+            repo.RecentActivity(
+                id: 'm1',
+                correspondenceId: 'c1',
+                type: 'RECEIVED',
+                routeNumber: 'HR-2026-001',
+                subject:
+                    'Solicitud administrativa municipal con referencia extensa para revisar el diseño adaptable',
+                createdAt: DateTime.utc(2026, 10, 14, 12))
+          ]);
+      final cubit = await pump(tester, FakeDashboard()..result = Ok(data),
+          permissions: ['reports.view']);
+      await cubit.init();
+      await tester.pumpAndSettle();
+      expect(find.text('Gobierno Autónomo Municipal de Sipe Sipe'),
+          findsOneWidget);
+      expect(
+          find.text('Sistema de Gestión de Correspondencia'), findsOneWidget);
+      expect(find.text('Bienvenido/a, qa'), findsOneWidget);
+      expect(find.byType(MetricTile), findsNWidgets(5));
+      for (final tile in find.byType(MetricTile).evaluate()) {
+        expect(
+            tester.getSize(find.byWidget(tile.widget)).height, lessThan(150));
+      }
+      await tester.scrollUntilVisible(find.text('HR-2026-001'), 150,
+          scrollable: find.byType(Scrollable).first);
+      expect(find.text('Recibida'), findsOneWidget);
+      expect(find.byType(Card), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+  }
 }

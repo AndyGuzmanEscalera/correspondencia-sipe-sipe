@@ -249,7 +249,7 @@ void main() {
           findsOneWidget,
         );
         expect(
-          find.text('Panel institucional de gestión y trazabilidad documental'),
+          find.text('Gestión de Correspondencia'),
           findsOneWidget,
         );
 
@@ -289,8 +289,8 @@ void main() {
         await tester.pumpAndSettle();
 
         // Compact mobile title in AdminAppBar
-        expect(find.text('GAM SIPE SIPE'), findsOneWidget);
-        expect(find.text('Correspondencia municipal'), findsOneWidget);
+        expect(find.text('GAM Sipe Sipe'), findsOneWidget);
+        expect(find.text('Gestión de Correspondencia'), findsOneWidget);
         expect(find.text('Panel de control'), findsOneWidget);
       },
     );

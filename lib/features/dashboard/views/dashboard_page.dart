@@ -1,3 +1,4 @@
+import 'package:correspondencia_sipe_sipe/core/auth/session_header_labels.dart';
 import 'package:correspondencia_repository/correspondencia_repository.dart'
     as repo;
 import 'package:correspondencia_sipe_sipe/core/util/enums.dart';
@@ -41,26 +42,55 @@ class DashboardBody extends StatelessWidget {
   const DashboardBody({super.key});
   @override
   Widget build(BuildContext context) {
-    final permissions =
-        context.watch<AppSessionCubit>().state.userSession?.permissions ?? [];
+    final session = context.watch<AppSessionCubit>().state.userSession;
+    final permissions = session?.permissions ?? [];
+    final labels = SessionHeaderLabels.forSession(session, compact: false);
     final sideMenu = context.read<SideMenuCubit>();
     return AdminContent(
         child: SingleChildScrollView(
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      SectionHeader(
-          title: 'Inicio',
-          subtitle: 'Resumen de su correspondencia visible',
-          actions: [
-            IconButton(
-                tooltip: 'Actualizar',
-                onPressed: () async {
-                  await context.read<DashboardCubit>().refresh();
-                  await sideMenu.refreshBadges();
-                },
-                icon: const Icon(Icons.refresh_rounded))
-          ]),
+      Container(
+          width: double.infinity,
+          padding: const EdgeInsets.only(left: 16, bottom: 4),
+          decoration: const BoxDecoration(
+              border:
+                  Border(left: BorderSide(color: UiColors.primary, width: 3))),
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Gobierno Autónomo Municipal de Sipe Sipe',
+                style: Theme.of(context)
+                    .textTheme
+                    .titleLarge
+                    ?.copyWith(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 4),
+            const Text('Sistema de Gestión de Correspondencia',
+                style: TextStyle(color: UiColors.textSecondary)),
+            const SizedBox(height: 12),
+            Text('Bienvenido/a, ${labels.primaryLine}',
+                style: const TextStyle(fontWeight: FontWeight.w600)),
+            if (labels.secondaryLine.isNotEmpty)
+              Text(labels.secondaryLine,
+                  style: const TextStyle(
+                      color: UiColors.textSecondary, fontSize: 13)),
+          ])),
       const SizedBox(height: 20),
+      Row(children: [
+        Expanded(
+            child: Text('Resumen de correspondencia',
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w600))),
+        IconButton(
+            tooltip: 'Actualizar',
+            onPressed: () async {
+              await context.read<DashboardCubit>().refresh();
+              await sideMenu.refreshBadges();
+            },
+            icon: const Icon(Icons.refresh_rounded, size: 20)),
+      ]),
+      const SizedBox(height: 8),
       BlocBuilder<DashboardCubit, DashboardState>(builder: (context, state) {
         final loading = state.generalStatus == GeneralStatus.loading;
         Widget metric(
@@ -79,27 +109,41 @@ class DashboardBody extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Text(state.dialogMessage.message,
                     style: const TextStyle(color: UiColors.danger))),
-          Wrap(spacing: 18, runSpacing: 18, children: [
-            metric(
-                'Mis documentos pendientes',
-                state.mineCount,
-                Icons.inbox_outlined,
-                () => sideMenu.navigateToInbox(scope: repo.InboxScope.mine)),
-            if (state.canViewUnit)
-              metric('De mi unidad', state.unitCount, Icons.groups_outlined,
-                  () => sideMenu.navigateToInbox(scope: repo.InboxScope.unit)),
-            metric('Enviados', state.sentCount, Icons.send_outlined,
-                sideMenu.navigateToSent),
-            metric(
-                'Concluidos',
-                state.concludedCount,
-                Icons.check_circle_outline,
-                permissions.contains('reports.view')
-                    ? () => sideMenu.navigateToMenu(MenuEnum.reports)
-                    : null),
-            metric('Total relevante', state.totalCount, Icons.folder_outlined,
-                null),
-          ]),
+          LayoutBuilder(builder: (context, constraints) {
+            final columns = ((constraints.maxWidth + 12) / 195)
+                .floor()
+                .clamp(1, state.canViewUnit ? 5 : 4);
+            final width = (constraints.maxWidth - (columns - 1) * 12) / columns;
+            return Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  metric(
+                      'Mis documentos pendientes',
+                      state.mineCount,
+                      Icons.inbox_outlined,
+                      () => sideMenu.navigateToInbox(
+                          scope: repo.InboxScope.mine)),
+                  if (state.canViewUnit)
+                    metric(
+                        'De mi unidad',
+                        state.unitCount,
+                        Icons.groups_outlined,
+                        () => sideMenu.navigateToInbox(
+                            scope: repo.InboxScope.unit)),
+                  metric('Enviados', state.sentCount, Icons.send_outlined,
+                      sideMenu.navigateToSent),
+                  metric(
+                      'Concluidos',
+                      state.concludedCount,
+                      Icons.check_circle_outline,
+                      permissions.contains('reports.view')
+                          ? () => sideMenu.navigateToMenu(MenuEnum.reports)
+                          : null),
+                  metric('Total relevante', state.totalCount,
+                      Icons.folder_outlined, null),
+                ].map((tile) => SizedBox(width: width, child: tile)).toList());
+          }),
           const SizedBox(height: 20),
           Wrap(spacing: 12, runSpacing: 12, children: [
             if (permissions.contains('correspondence.create'))
@@ -133,25 +177,34 @@ class DashboardBody extends StatelessWidget {
           if (state.activity.isEmpty &&
               state.generalStatus == GeneralStatus.success)
             const Text('Sin actividad reciente en su alcance.'),
-          for (final item in state.activity)
-            Card(
-                child: ListTile(
-                    dense: true,
-                    leading: const Icon(Icons.history),
-                    title: Text('${_event(item.type)} · ${item.routeNumber}'),
-                    subtitle: Text(
-                        '${item.subject}\n${institutionalDate(item.createdAt)}',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis),
-                    onTap: () async {
-                      await Navigator.of(context).push(MaterialPageRoute<void>(
-                          builder: (_) => CorrespondenceDetailPage(
-                              correspondenceId: item.correspondenceId)));
-                      if (context.mounted) {
-                        await context.read<DashboardCubit>().refresh();
-                        await sideMenu.refreshBadges();
-                      }
-                    })),
+          if (state.activity.isNotEmpty)
+            Container(
+                decoration: BoxDecoration(
+                    color: UiColors.surface,
+                    border: Border.all(color: UiColors.border),
+                    borderRadius: BorderRadius.circular(8)),
+                child: Column(children: [
+                  for (var index = 0;
+                      index < state.activity.length;
+                      index++) ...[
+                    if (index > 0)
+                      const Divider(height: 1, color: UiColors.borderLight),
+                    _ActivityRow(
+                        item: state.activity[index],
+                        label: _event(state.activity[index].type),
+                        onTap: () async {
+                          await Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                  builder: (_) => CorrespondenceDetailPage(
+                                      correspondenceId: state
+                                          .activity[index].correspondenceId)));
+                          if (context.mounted) {
+                            await context.read<DashboardCubit>().refresh();
+                            await sideMenu.refreshBadges();
+                          }
+                        }),
+                  ]
+                ])),
         ]);
       }),
     ])));
@@ -173,4 +226,63 @@ class DashboardBody extends StatelessWidget {
               typeOperation: TypeOperation.create,
               hostDialogContext: dialogContext,
               ownerContext: context)));
+}
+
+class _ActivityRow extends StatelessWidget {
+  const _ActivityRow(
+      {required this.item, required this.label, required this.onTap});
+  final repo.RecentActivity item;
+  final String label;
+  final VoidCallback onTap;
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(builder: (context, box) {
+        final narrow = box.maxWidth < 620;
+        final detail =
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Wrap(
+              spacing: 10,
+              runSpacing: 4,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text(item.routeNumber,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 13)),
+                Text(label,
+                    style:
+                        const TextStyle(color: UiColors.primary, fontSize: 12)),
+              ]),
+          const SizedBox(height: 3),
+          Text(item.subject,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style:
+                  const TextStyle(color: UiColors.textSecondary, fontSize: 13)),
+          if (narrow)
+            Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(institutionalDate(item.createdAt),
+                    style: const TextStyle(
+                        color: UiColors.textSecondary, fontSize: 11))),
+        ]);
+        return Material(
+            color: Colors.transparent,
+            child: InkWell(
+                onTap: onTap,
+                child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    child: Row(children: [
+                      Expanded(child: detail),
+                      if (!narrow)
+                        Padding(
+                            padding: const EdgeInsets.only(left: 16),
+                            child: Text(institutionalDate(item.createdAt),
+                                style: const TextStyle(
+                                    color: UiColors.textSecondary,
+                                    fontSize: 12))),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.chevron_right,
+                          size: 18, color: UiColors.textSecondary),
+                    ]))));
+      });
 }

@@ -20,7 +20,8 @@ class AdminAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isSmall = context.isSmallScreen;
+    final isSmall =
+        context.isSmallScreen || MediaQuery.sizeOf(context).width < 1100;
 
     return BlocBuilder<SideMenuCubit, SideMenuState>(
       builder: (context, menuState) {
@@ -48,83 +49,21 @@ class AdminAppBar extends StatelessWidget {
                     const SizedBox(width: 4),
                   ],
                   Expanded(
-                    child: isSmall
-                        ? Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'GAM SIPE SIPE',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleSmall
-                                    ?.copyWith(
-                                      fontWeight: FontWeight.w800,
-                                      letterSpacing: 0.2,
-                                    ),
-                              ),
-                              const Text(
-                                'Correspondencia municipal',
-                                style: TextStyle(
-                                  color: UiColors.textSecondary,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ],
-                          )
-                        : Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    'Gobierno Autónomo Municipal de Sipe Sipe',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleSmall
-                                        ?.copyWith(
-                                          fontWeight: FontWeight.w800,
-                                          color: UiColors.textPrimary,
-                                          letterSpacing: -0.2,
-                                        ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 2,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: UiColors.primarySoft,
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: const Text(
-                                      'Correspondencia',
-                                      style: TextStyle(
-                                        color: UiColors.primary,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'Panel institucional de gestión y trazabilidad documental',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.copyWith(
-                                      color: UiColors.textSecondary,
-                                      fontSize: 12,
-                                    ),
-                              ),
-                            ],
-                          ),
-                  ),
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                        Text(
+                            isSmall
+                                ? 'GAM Sipe Sipe'
+                                : 'Gobierno Autónomo Municipal de Sipe Sipe',
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w700, fontSize: 13)),
+                        const SizedBox(height: 2),
+                        const Text('Gestión de Correspondencia',
+                            style: TextStyle(
+                                color: UiColors.textSecondary, fontSize: 12)),
+                      ])),
                   const NotificationsBell(),
                   if (!isSmall) ...[
                     _UserChip(sessionState: sessionState, compact: false),
