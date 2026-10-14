@@ -3,6 +3,18 @@ import 'package:failures/failures.dart';
 import 'entities.dart';
 import 'mappers.dart';
 
+enum ReportFormat {
+  csv('csv', 'text/csv', 'CSV'),
+  xlsx(
+      'xlsx',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Excel (.xlsx)'),
+  pdf('pdf', 'application/pdf', 'PDF');
+
+  const ReportFormat(this.extension, this.mimeType, this.label);
+  final String extension, mimeType, label;
+}
+
 class ReportFilter {
   const ReportFilter(
       {this.kind = 'registered',
@@ -47,7 +59,10 @@ class ReportsRepository {
               .toEntity(),
           feature: 'reports',
           operation: 'list');
-  Future<Result<List<int>, Failure>> export(ReportFilter filter) =>
-      handleExceptions(() => _api.export(filter.toQuery()),
-          feature: 'reports', operation: 'export');
+  Future<Result<List<int>, Failure>> export(ReportFilter filter,
+          {ReportFormat format = ReportFormat.csv}) =>
+      handleExceptions(
+          () => _api.export(filter.toQuery(), format: format.extension),
+          feature: 'reports',
+          operation: 'export');
 }

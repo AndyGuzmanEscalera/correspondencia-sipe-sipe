@@ -13,8 +13,15 @@ class ReportsApi {
       ReportPageResponse.fromJson(await _api.get(Endpoints.reports,
           queryParameters: {...filters, 'page': page, 'page_size': pageSize},
           operation: 'reports.list'));
-  Future<List<int>> export(Map<String, dynamic> filters) => _api.downloadBytes(
-      path: Endpoints.reportExport,
-      queryParameters: filters,
-      operation: 'reports.export');
+  Future<List<int>> export(Map<String, dynamic> filters,
+          {String format = 'csv'}) =>
+      _api.downloadBytes(
+          path: switch (format) {
+            'csv' => Endpoints.reportExport,
+            'xlsx' => Endpoints.reportExportXlsx,
+            'pdf' => Endpoints.reportExportPdf,
+            _ => throw ArgumentError.value(format, 'format'),
+          },
+          queryParameters: filters,
+          operation: 'reports.export');
 }

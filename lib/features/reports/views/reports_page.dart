@@ -227,16 +227,53 @@ class _ReportsBodyState extends State<ReportsBody> {
                                 FilledButton(
                                     onPressed: loading ? null : _apply,
                                     child: const Text('Aplicar filtros')),
-                                OutlinedButton.icon(
-                                    onPressed: loading ||
-                                            state.exporting ||
-                                            data == null
-                                        ? null
-                                        : cubit.export,
-                                    icon: const Icon(Icons.download_outlined),
-                                    label: Text(state.exporting
-                                        ? 'Exportando…'
-                                        : 'Exportar CSV')),
+                                PopupMenuButton<repo.ReportFormat>(
+                                    enabled: !loading &&
+                                        !state.exporting &&
+                                        data != null,
+                                    tooltip: 'Elegir formato de exportación',
+                                    onSelected: (format) =>
+                                        cubit.export(format: format),
+                                    itemBuilder: (_) => [
+                                          for (final format
+                                              in repo.ReportFormat.values)
+                                            PopupMenuItem(
+                                                value: format,
+                                                child: Text(format.label))
+                                        ],
+                                    child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 14, vertical: 8),
+                                        decoration: BoxDecoration(
+                                            border: Border.all(
+                                                color: Theme.of(context)
+                                                    .dividerColor),
+                                            borderRadius:
+                                                BorderRadius.circular(20)),
+                                        child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              if (state.exporting)
+                                                const SizedBox(
+                                                    width: 16,
+                                                    height: 16,
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                            strokeWidth: 2))
+                                              else
+                                                Icon(Icons.download_outlined,
+                                                    size: 18,
+                                                    color: Theme.of(context)
+                                                        .colorScheme
+                                                        .primary),
+                                              const SizedBox(width: 8),
+                                              Text(state.exporting
+                                                  ? 'Exportando…'
+                                                  : 'Exportar'),
+                                              const SizedBox(width: 4),
+                                              const Icon(Icons.expand_more,
+                                                  size: 18),
+                                            ]))),
                               ])))),
               const SizedBox(height: 12),
               if (loading) const LinearProgressIndicator(),

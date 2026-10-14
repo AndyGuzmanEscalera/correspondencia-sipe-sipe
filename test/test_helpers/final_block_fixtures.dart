@@ -126,6 +126,9 @@ class FakeReports implements repo.ReportsRepository {
   Future<Result<repo.ReportPage, Failure>>? pending;
   final calls = <({repo.ReportFilter filter, int page, int size})>[];
   repo.ReportFilter? exported;
+  repo.ReportFormat? exportedFormat;
+  Result<List<int>, Failure> exportResult = const Ok([65, 66]);
+  Future<Result<List<int>, Failure>>? pendingExport;
   @override
   Future<Result<repo.ReportOptions, Failure>> options() async =>
       Ok(configuration);
@@ -137,9 +140,11 @@ class FakeReports implements repo.ReportsRepository {
   }
 
   @override
-  Future<Result<List<int>, Failure>> export(repo.ReportFilter filter) async {
+  Future<Result<List<int>, Failure>> export(repo.ReportFilter filter,
+      {repo.ReportFormat format = repo.ReportFormat.csv}) async {
     exported = filter;
-    return const Ok([65, 66]);
+    exportedFormat = format;
+    return pendingExport ?? exportResult;
   }
 
   @override

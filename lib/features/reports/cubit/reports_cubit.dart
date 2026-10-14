@@ -104,20 +104,21 @@ class ReportsCubit extends Cubit<ReportsState> {
   }
 
   Future<void> refresh() => state.options == null ? init() : load();
-  Future<void> export() async {
+  Future<void> export(
+      {repo.ReportFormat format = repo.ReportFormat.csv}) async {
     if (state.exporting ||
         state.data == null ||
         state.generalStatus == GeneralStatus.loading) return;
     final filter = state.filter;
     emit(state.copyWith(exporting: true));
-    final result = await repository.export(filter);
+    final result = await repository.export(filter, format: format);
     if (isClosed) return;
     await result.when(ok: (bytes) async {
       try {
         await download.downloadBytes(
-            filename: 'correspondencia.csv',
+            filename: _filename(filter, format),
             bytes: bytes,
-            mimeType: 'text/csv');
+            mimeType: format.mimeType);
       } catch (_) {
         if (!isClosed)
           _error(const ServerFailure('No se pudo descargar el archivo'));
@@ -126,5 +127,24 @@ class ReportsCubit extends Cubit<ReportsState> {
       _error(failure);
     });
     if (!isClosed) emit(state.copyWith(exporting: false));
+  }
+
+  String _filename(repo.ReportFilter filter, repo.ReportFormat format) {
+    final kind = const {
+          'registered': 'correspondencia',
+          'received': 'recibidos',
+          'sent': 'enviados',
+          'concluded': 'concluidos'
+        }[filter.kind] ??
+        'correspondencia';
+    final dates =
+        [filter.dateFrom, filter.dateTo].whereType<String>().join('_');
+    final today = DateTime.now()
+        .toUtc()
+        .subtract(const Duration(hours: 4))
+        .toIso8601String()
+        .substring(0, 10);
+    return 'reporte_${kind}_${dates.isEmpty ? today : dates}.${format.extension}'
+        .replaceAll(RegExp(r'[^a-zA-Z0-9_.-]'), '_');
   }
 }

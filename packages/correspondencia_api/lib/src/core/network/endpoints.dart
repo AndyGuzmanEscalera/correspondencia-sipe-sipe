@@ -12,6 +12,8 @@ class Endpoints {
   static const reports = '/reports';
   static const reportOptions = '/reports/options';
   static const reportExport = '/reports/export.csv';
+  static const reportExportXlsx = '/reports/export.xlsx';
+  static const reportExportPdf = '/reports/export.pdf';
 
   static const String authLogin = '/auth/login';
   static const String authRefresh = '/auth/refresh';

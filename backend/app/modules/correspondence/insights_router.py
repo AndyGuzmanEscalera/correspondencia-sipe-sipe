@@ -2,12 +2,13 @@ import uuid
 from datetime import date
 from typing import Annotated, Literal
 from fastapi import APIRouter, Depends, Query
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, Response
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.modules.auth.dependencies import get_current_user, require_permission
 from app.modules.identity.user import User
 from app.modules.correspondence.insights import InsightsService
+from app.modules.correspondence.report_exports import generate_export, export_filename
 
 router = APIRouter(tags=["dashboard", "reports"])
 Db = Annotated[Session, Depends(get_db)]
@@ -32,7 +33,18 @@ def options(db: Db, user: Reporter):
 @router.get("/reports/export.csv")
 def export(db: Db, user: Reporter, selection: Annotated[dict, Depends(filters)]):
     return StreamingResponse(InsightsService(db).export(user, **selection), media_type="text/csv; charset=utf-8",
-        headers={"Content-Disposition": 'attachment; filename="correspondencia.csv"'})
+        headers={"Content-Disposition": f'attachment; filename="{export_filename("csv", selection)}"'})
+
+@router.get("/reports/export.xlsx")
+def export_xlsx(db: Db, user: Reporter, selection: Annotated[dict, Depends(filters)]):
+    return Response(generate_export(InsightsService(db), user, "xlsx", selection),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{export_filename("xlsx", selection)}"'})
+
+@router.get("/reports/export.pdf")
+def export_pdf(db: Db, user: Reporter, selection: Annotated[dict, Depends(filters)]):
+    return Response(generate_export(InsightsService(db), user, "pdf", selection), media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{export_filename("pdf", selection)}"'})
 
 @router.get("/reports")
 def reports(db: Db, user: Reporter, selection: Annotated[dict, Depends(filters)],

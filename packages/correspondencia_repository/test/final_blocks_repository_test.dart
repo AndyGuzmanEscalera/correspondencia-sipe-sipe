@@ -5,6 +5,15 @@ import 'package:flutter_test/flutter_test.dart';
 
 class _Reports implements ReportsApi {
   bool fail = false;
+  String? exportedFormat;
+  @override
+  Future<List<int>> export(Map<String, dynamic> filters,
+      {String format = 'csv'}) async {
+    exportedFormat = format;
+    if (fail) throw ServerException(message: 'Error de exportación QA');
+    return [80, 75];
+  }
+
   @override
   Future<ReportPageResponse> list(Map<String, dynamic> filters,
       {int page = 1, int pageSize = 20}) async {
@@ -63,4 +72,18 @@ void main() {
         ok: (_) => fail('Unexpected success'),
         err: (failure) => expect(failure, isA<ServerFailure>()));
   });
+  for (final format in ReportFormat.values) {
+    test('repository export ${format.extension} y Failure pipeline', () async {
+      final api = _Reports();
+      final repository = ReportsRepository(api: api);
+      final result =
+          await repository.export(const ReportFilter(), format: format);
+      expect(api.exportedFormat, format.extension);
+      expect(result.valueOrNull(), [80, 75]);
+      api.fail = true;
+      final failure =
+          await repository.export(const ReportFilter(), format: format);
+      expect(failure, isA<Err<List<int>, Failure>>());
+    });
+  }
 }

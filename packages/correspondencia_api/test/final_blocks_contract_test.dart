@@ -121,4 +121,22 @@ void main() {
     expect(n.readAt!.hour, 13);
     expect(n.correspondenceId, isNull);
   });
+  for (final format in ['csv', 'xlsx', 'pdf']) {
+    test('export $format mantiene filtros exactos y ruta fija', () async {
+      final http = _Api();
+      final filters = {
+        'kind': 'sent',
+        'date_from': '2026-10-01',
+        'date_to': '2026-10-31',
+        'status': 'ACTIVE',
+        'unit_id': 'u',
+        'employee_id': 'e',
+        'document_type_id': 't',
+        'search': 'literal %'
+      };
+      await ReportsApi(mainApi: http).export(filters, format: format);
+      expect(http.path, '/reports/export.$format');
+      expect(http.query, filters);
+    });
+  }
 }

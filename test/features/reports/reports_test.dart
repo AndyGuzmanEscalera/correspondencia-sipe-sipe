@@ -15,12 +15,15 @@ import '../../test_helpers/final_block_fixtures.dart';
 
 class _Download implements FileDownloadService {
   List<int>? bytes;
+  String? filename, mime;
   @override
   Future<void> downloadBytes(
       {required String filename,
       required List<int> bytes,
       String? mimeType}) async {
     this.bytes = bytes;
+    this.filename = filename;
+    mime = mimeType;
   }
 
   @override
@@ -135,8 +138,10 @@ void main() {
     await tester.enterText(
         find.widgetWithText(TextFormField, 'Hoja de ruta / referencia'),
         'UNAPPLIED');
-    await tester.ensureVisible(find.text('Exportar CSV'));
-    await tester.tap(find.text('Exportar CSV'));
+    await tester.ensureVisible(find.text('Exportar'));
+    await tester.tap(find.text('Exportar'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('CSV'));
     await tester.pumpAndSettle();
     expect(repository.exported!.kind, 'received');
     expect(repository.exported!.status, 'ACTIVE');
@@ -179,5 +184,66 @@ void main() {
         MenuOptions.build(counts: const {}, permissions: ['reports.view'])
             .any((m) => m.menu == MenuEnum.reports),
         isTrue);
+  });
+  for (final format in repo.ReportFormat.values) {
+    testWidgets(
+        'Exportar menú descarga ${format.extension} con filtros aplicados',
+        (tester) async {
+      await pump(tester);
+      await cubit.load(
+          filter: const repo.ReportFilter(
+              kind: 'received',
+              dateFrom: '2026-10-01',
+              dateTo: '2026-10-31',
+              status: 'ACTIVE'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Exportar'));
+      await tester.tap(find.text('Exportar'));
+      await tester.pumpAndSettle();
+      expect(find.text('CSV'), findsOneWidget);
+      expect(find.text('Excel (.xlsx)'), findsOneWidget);
+      expect(find.text('PDF'), findsOneWidget);
+      await tester.tap(find.text(format.label));
+      await tester.pumpAndSettle();
+      expect(repository.exportedFormat, format);
+      expect(repository.exported!.status, 'ACTIVE');
+      expect(download.filename,
+          'reporte_recibidos_2026-10-01_2026-10-31.${format.extension}');
+      expect(download.mime, format.mimeType);
+      expect(download.bytes, [65, 66]);
+    });
+    test('export ${format.extension} loading y Failure no descargan bytes',
+        () async {
+      await cubit.init();
+      final waiting = Completer<Result<List<int>, Failure>>();
+      repository.pendingExport = waiting.future;
+      final request = cubit.export(format: format);
+      expect(cubit.state.exporting, isTrue);
+      waiting.complete(const Err(ServerFailure('Error de generación QA')));
+      await request;
+      expect(cubit.state.exporting, isFalse);
+      expect(cubit.state.generalStatus, GeneralStatus.error);
+      expect(download.bytes, isNull);
+    });
+  }
+  testWidgets('generación muestra indicador y bloquea exportación duplicada',
+      (tester) async {
+    await pump(tester);
+    final pending = Completer<Result<List<int>, Failure>>();
+    repository.pendingExport = pending.future;
+    final request = cubit.export(format: repo.ReportFormat.pdf);
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('Exportando…'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(
+        tester
+            .widget<PopupMenuButton<repo.ReportFormat>>(
+                find.byType(PopupMenuButton<repo.ReportFormat>))
+            .enabled,
+        isFalse);
+    pending.complete(const Ok([65]));
+    await request;
+    await tester.pumpAndSettle();
   });
 }
