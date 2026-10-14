@@ -48,6 +48,7 @@ class CorrespondenceCubit extends Cubit<CorrespondenceState> {
     required int page,
     required int pageSize,
   }) async {
+    if (isClosed) return;
     final isInitialLoad = state.list.isEmpty;
     emit(
       state.copyWith(
@@ -65,6 +66,7 @@ class CorrespondenceCubit extends Cubit<CorrespondenceState> {
       search: search.isEmpty ? null : search,
     );
 
+    if (isClosed) return;
     result.when(
       ok: (pageResult) {
         emit(

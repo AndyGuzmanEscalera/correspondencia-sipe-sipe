@@ -1,3 +1,4 @@
+import 'package:correspondencia_sipe_sipe/features/notifications/views/notifications_panel.dart';
 import 'package:correspondencia_sipe_sipe/core/auth/session_header_labels.dart';
 import 'package:correspondencia_sipe_sipe/core/helpers/extensions/extension_device.dart';
 import 'package:correspondencia_sipe_sipe/core/routes.dart';
@@ -124,6 +125,7 @@ class AdminAppBar extends StatelessWidget {
                             ],
                           ),
                   ),
+                  const NotificationsBell(),
                   if (!isSmall) ...[
                     _UserChip(sessionState: sessionState, compact: false),
                     const SizedBox(width: 12),
@@ -208,7 +210,8 @@ class _MobileUserSummary extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(labels.primaryLine, style: const TextStyle(fontWeight: FontWeight.w600)),
+        Text(labels.primaryLine,
+            style: const TextStyle(fontWeight: FontWeight.w600)),
         if (labels.secondaryLine.isNotEmpty)
           Text(
             labels.secondaryLine,
@@ -263,12 +266,14 @@ class _UserChip extends StatelessWidget {
             children: [
               Text(
                 labels.primaryLine,
-                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                style:
+                    const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
               ),
               if (labels.secondaryLine.isNotEmpty)
                 Text(
                   labels.secondaryLine,
-                  style: const TextStyle(color: UiColors.textSecondary, fontSize: 12),
+                  style: const TextStyle(
+                      color: UiColors.textSecondary, fontSize: 12),
                 ),
             ],
           ),

@@ -1,3 +1,5 @@
+import '../../features/notifications/cubit/notifications_cubit.dart';
+import '../../features/reports/cubit/reports_cubit.dart';
 import 'package:get_it/get_it.dart';
 import 'package:correspondencia_repository/correspondencia_repository.dart';
 
@@ -37,16 +39,23 @@ final getIt = GetIt.instance;
 /// Feature cubits ([SplashCubit], [SignInCubit]) are `factory` and created
 /// per-page via `BlocProvider(create: (_) => sl<...>())`.
 void registerCubits() {
+  getIt.registerLazySingleton<NotificationsCubit>(
+      () => NotificationsCubit(getIt<NotificationsRepository>()));
+  getIt.registerFactory<ReportsCubit>(
+      () => ReportsCubit(getIt<ReportsRepository>()));
   // Global session cubit. The widget tree consumes the same instance via
   // BlocProvider.value.
   getIt.registerLazySingleton<AppSessionCubit>(
-    () => AppSessionCubit(authRepository: getIt<AuthenticationRepository>()),
+    () => AppSessionCubit(
+        authRepository: getIt<AuthenticationRepository>(),
+        onSessionChanged: () => getIt<NotificationsCubit>().reset()),
   );
 
   // Per-page cubits.
   getIt.registerFactory<SideMenuCubit>(
     () => SideMenuCubit(
       correspondenceRepository: getIt<CorrespondenceRepository>(),
+      onBadgesRefresh: () => getIt<NotificationsCubit>().refreshCount(),
     ),
   );
 
@@ -57,7 +66,7 @@ void registerCubits() {
     () => SentEntryCubit(getIt<CorrespondenceRepository>()),
   );
   getIt.registerFactory<DashboardCubit>(
-    () => DashboardCubit(getIt<CorrespondenceRepository>()),
+    () => DashboardCubit(getIt<DashboardRepository>()),
   );
   getIt.registerFactory<SplashCubit>(
     () => SplashCubit(authRepository: getIt<AuthenticationRepository>()),

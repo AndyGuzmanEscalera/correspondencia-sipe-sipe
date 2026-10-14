@@ -1,3 +1,4 @@
+import 'package:correspondencia_sipe_sipe/features/app/cubit/app_session_cubit.dart';
 import 'package:correspondencia_repository/correspondencia_repository.dart'
     as repo;
 import 'package:correspondencia_sipe_sipe/core/presentation/widget/responsive_breakpoints.dart';
@@ -11,7 +12,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
+class _FakeCorrespondenceRepository
+    implements repo.CorrespondenceRepository, repo.DashboardRepository {
   @override
   Future<Result<repo.InboxCounts, Failure>> getInboxCounts() async {
     return const Ok(repo.InboxCounts(mine: 2, unit: 5));
@@ -23,19 +25,45 @@ class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
   }
 
   @override
+  Future<Result<repo.DashboardData, Failure>> load() async {
+    final inbox = await getInboxCounts();
+    final sent = await getSentCount();
+    if (inbox case Err(:final failure)) return Err(failure);
+    if (sent case Err(:final failure)) return Err(failure);
+    final counts = (inbox as Ok<repo.InboxCounts, Failure>).value;
+    final sentCount = (sent as Ok<repo.SentCount, Failure>).value;
+    return Ok(repo.DashboardData(
+        mine: counts.mine,
+        unit: counts.unit,
+        sent: sentCount.total,
+        concluded: 0,
+        total: counts.mine + sentCount.total,
+        canViewUnit: true,
+        activity: const []));
+  }
+
+  @override
   noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-Future<({
-  DashboardCubit dashboardCubit,
-  SideMenuCubit sideMenuCubit,
-})> _pumpDashboard(
+class _Auth implements repo.AuthenticationRepository {
+  @override
+  noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+Future<
+    ({
+      DashboardCubit dashboardCubit,
+      SideMenuCubit sideMenuCubit,
+    })> _pumpDashboard(
   WidgetTester tester, {
   required double width,
 }) async {
   await tester.binding.setSurfaceSize(Size(width, 900));
   addTearDown(() => tester.binding.setSurfaceSize(null));
 
+  final session = AppSessionCubit(authRepository: _Auth());
+  addTearDown(session.close);
   final repository = _FakeCorrespondenceRepository();
   final dashboardCubit = DashboardCubit(repository);
   final sideMenuCubit = SideMenuCubit(correspondenceRepository: repository);
@@ -46,6 +74,7 @@ Future<({
       builder: ResponsiveBreakpointsConfig.builder,
       home: MultiBlocProvider(
         providers: [
+          BlocProvider.value(value: session),
           BlocProvider.value(value: dashboardCubit),
           BlocProvider.value(value: sideMenuCubit),
         ],
@@ -74,7 +103,7 @@ void main() {
     testWidgets('muestra métricas reales', (tester) async {
       await _pumpDashboard(tester, width: 1024);
 
-      expect(find.text('Asignados a mí'), findsOneWidget);
+      expect(find.text('Mis documentos pendientes'), findsOneWidget);
       expect(find.text('De mi unidad'), findsOneWidget);
       expect(find.text('Enviados'), findsOneWidget);
       expect(find.text('2'), findsOneWidget);
@@ -89,7 +118,7 @@ void main() {
       await _pumpDashboard(tester, width: 390);
 
       expect(tester.takeException(), isNull);
-      expect(find.text('Asignados a mí'), findsOneWidget);
+      expect(find.text('Mis documentos pendientes'), findsOneWidget);
       expect(find.text('22'), findsOneWidget);
     });
 
@@ -99,7 +128,7 @@ void main() {
       sideMenuCubit.init();
       await sideMenuCubit.refreshBadges();
 
-      await tester.tap(find.text('Asignados a mí'));
+      await tester.tap(find.text('Mis documentos pendientes'));
       await tester.pumpAndSettle();
 
       expect(sideMenuCubit.state.selected.menu, MenuEnum.inbox);

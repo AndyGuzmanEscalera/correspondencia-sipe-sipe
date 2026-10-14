@@ -19,7 +19,8 @@ import 'package:intl/intl.dart';
 
 import '../correspondence/detail/detail_test_fixtures.dart';
 
-class _FakeAuthRepository extends Fake implements repo.AuthenticationRepository {}
+class _FakeAuthRepository extends Fake
+    implements repo.AuthenticationRepository {}
 
 class _StubSentEntryCubit extends Cubit<SentEntryState>
     implements SentEntryCubit {
@@ -75,6 +76,11 @@ class _StubSideMenuCubit extends Cubit<SideMenuState> implements SideMenuCubit {
 
   @override
   repo.InboxScope? consumePendingInboxScope() => null;
+
+  @override
+  Future<void> Function()? get onBadgesRefresh => null;
+  @override
+  void navigateToMenu(MenuEnum menu) {}
 }
 
 final sentCorrespondence = externalCorrespondence.copyWith(
@@ -156,8 +162,8 @@ void main() {
       final cubit = _StubSentEntryCubit(
         _loadedState(items: [sentCorrespondence], total: 1, totalPages: 1),
       );
-      final sentLabel = DateFormat('dd/MM/yyyy HH:mm')
-          .format(sentCorrespondence.lastSentAt!);
+      final sentLabel =
+          DateFormat('dd/MM/yyyy HH:mm').format(sentCorrespondence.lastSentAt!);
 
       await tester.pumpWidget(_buildSubject(cubit: cubit));
       await tester.pumpAndSettle();

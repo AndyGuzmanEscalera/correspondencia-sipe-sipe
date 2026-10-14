@@ -19,8 +19,7 @@ class AppSessionState extends Equatable implements StatusState {
     bool clearSession = false,
   }) {
     return AppSessionState(
-      userSession:
-          clearSession ? null : (userSession ?? this.userSession),
+      userSession: clearSession ? null : (userSession ?? this.userSession),
     );
   }
 
@@ -36,25 +35,31 @@ class AppSessionState extends Equatable implements StatusState {
 
 /// Sesión global en memoria. La navegación la maneja GoRouter.
 class AppSessionCubit extends Cubit<AppSessionState> {
-  AppSessionCubit({required AuthenticationRepository authRepository})
+  AppSessionCubit(
+      {required AuthenticationRepository authRepository, this.onSessionChanged})
       : _authRepository = authRepository,
         super(const AppSessionState());
 
   final AuthenticationRepository _authRepository;
+  final void Function()? onSessionChanged;
 
   void onSessionRestored(UserSession session) {
+    onSessionChanged?.call();
     emit(AppSessionState(userSession: session));
   }
 
   void onSignedIn(UserSession session) {
+    onSessionChanged?.call();
     emit(AppSessionState(userSession: session));
   }
 
   void onNoSession() {
+    onSessionChanged?.call();
     emit(const AppSessionState());
   }
 
   void onAuthCleared() {
+    onSessionChanged?.call();
     emit(const AppSessionState());
   }
 

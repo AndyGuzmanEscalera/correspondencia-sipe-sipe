@@ -12,6 +12,7 @@ class MenuOptions {
       if (count == null || count <= 0) return null;
       return count;
     }
+
     final all = [
       MenuItemData(
         menu: MenuEnum.dashboard,
@@ -43,7 +44,8 @@ class MenuOptions {
       ),
       MenuItemData(
         menu: MenuEnum.reports,
-        title: 'Reporte general',
+        title: 'Reportes',
+        requiredPermission: Permissions.reportsView,
         icon: Icons.analytics_outlined,
       ),
       const MenuItemData(

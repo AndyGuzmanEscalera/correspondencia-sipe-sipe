@@ -1,9 +1,11 @@
 import 'package:correspondencia_repository/correspondencia_repository.dart';
 
 class Permissions {
+  static const reportsView = 'reports.view';
   const Permissions._();
 
-  static const organizationalUnitsRead = 'master_data.organizational_units.read';
+  static const organizationalUnitsRead =
+      'master_data.organizational_units.read';
   static const organizationalUnitsManage =
       'master_data.organizational_units.manage';
   static const positionsRead = 'master_data.positions.read';

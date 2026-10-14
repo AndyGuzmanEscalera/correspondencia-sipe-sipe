@@ -80,6 +80,11 @@ class _StubSideMenuCubit extends Cubit<SideMenuState> implements SideMenuCubit {
 
   @override
   repo.InboxScope? consumePendingInboxScope() => null;
+
+  @override
+  Future<void> Function()? get onBadgesRefresh => null;
+  @override
+  void navigateToMenu(MenuEnum menu) {}
 }
 
 Widget _buildSubject({

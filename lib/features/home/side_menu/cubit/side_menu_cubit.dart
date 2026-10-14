@@ -14,10 +14,12 @@ part 'side_menu_state.dart';
 class SideMenuCubit extends Cubit<SideMenuState> {
   SideMenuCubit({
     repo.CorrespondenceRepository? correspondenceRepository,
+    this.onBadgesRefresh,
   })  : _correspondenceRepository = correspondenceRepository,
         super(const SideMenuState());
 
   final repo.CorrespondenceRepository? _correspondenceRepository;
+  final Future<void> Function()? onBadgesRefresh;
 
   /// Último count real de inbox (mine). Nunca se rellena desde LocalStore.
   int? _lastInboxMineCount;
@@ -27,10 +29,14 @@ class SideMenuCubit extends Cubit<SideMenuState> {
 
   /// Permisos efectivos de la sesión (reutilizados al refrescar badges).
   List<String> _sessionPermissions = const [];
+  int _sessionGeneration = 0;
 
   repo.InboxScope? _pendingInboxScope;
 
   void init({List<String> permissions = const []}) {
+    ++_sessionGeneration;
+    _lastInboxMineCount = null;
+    _lastSentCount = null;
     _sessionPermissions = permissions;
     _emitMenus(
       counts: _buildMenuCounts(),
@@ -52,6 +58,8 @@ class SideMenuCubit extends Cubit<SideMenuState> {
     _selectMenu(MenuEnum.inbox, preservePendingInboxScope: true);
   }
 
+  void navigateToMenu(MenuEnum menu) => _selectMenu(menu);
+
   void navigateToSent() {
     _selectMenu(MenuEnum.sent);
   }
@@ -63,6 +71,8 @@ class SideMenuCubit extends Cubit<SideMenuState> {
   }
 
   Future<void> refreshBadges({List<String>? permissions}) async {
+    final generation = _sessionGeneration;
+    await onBadgesRefresh?.call();
     if (permissions != null) {
       _sessionPermissions = permissions;
     }
@@ -70,6 +80,7 @@ class SideMenuCubit extends Cubit<SideMenuState> {
       _fetchInboxMineCount(),
       _fetchSentCount(),
     ]);
+    if (isClosed || generation != _sessionGeneration) return;
     final inboxMineCount = results[0];
     final sentCount = results[1];
     if (inboxMineCount != null) {

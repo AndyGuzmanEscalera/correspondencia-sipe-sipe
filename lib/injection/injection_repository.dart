@@ -97,6 +97,19 @@ Future<void> registerRepositories() async {
     ),
   );
 
+  getIt.registerLazySingleton<DashboardApi>(
+      () => DashboardApi(mainApi: getIt<ApiMethod>(instanceName: 'mainApi')));
+  getIt.registerLazySingleton<NotificationsApi>(() =>
+      NotificationsApi(mainApi: getIt<ApiMethod>(instanceName: 'mainApi')));
+  getIt.registerLazySingleton<ReportsApi>(
+      () => ReportsApi(mainApi: getIt<ApiMethod>(instanceName: 'mainApi')));
+  getIt.registerLazySingleton<DashboardRepository>(
+      () => DashboardRepository(api: getIt<DashboardApi>()));
+  getIt.registerLazySingleton<NotificationsRepository>(
+      () => NotificationsRepository(api: getIt<NotificationsApi>()));
+  getIt.registerLazySingleton<ReportsRepository>(
+      () => ReportsRepository(api: getIt<ReportsApi>()));
+
   // ─── Repositories ─────────────────────────────────────────────
   getIt.registerLazySingleton<AuthenticationRepository>(
     () => AuthenticationRepository(

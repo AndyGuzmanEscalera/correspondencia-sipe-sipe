@@ -5,7 +5,8 @@ import 'package:correspondencia_sipe_sipe/features/dashboard/cubit/dashboard_cub
 import 'package:failures/failures.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
+class _FakeCorrespondenceRepository
+    implements repo.CorrespondenceRepository, repo.DashboardRepository {
   _FakeCorrespondenceRepository({
     this.inboxCountsResult,
     this.sentCountResult,
@@ -22,6 +23,24 @@ class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
   @override
   Future<Result<repo.SentCount, Failure>> getSentCount() async {
     return sentCountResult ?? const Ok(repo.SentCount(total: 0));
+  }
+
+  @override
+  Future<Result<repo.DashboardData, Failure>> load() async {
+    final inbox = await getInboxCounts();
+    final sent = await getSentCount();
+    if (inbox case Err(:final failure)) return Err(failure);
+    if (sent case Err(:final failure)) return Err(failure);
+    final counts = (inbox as Ok<repo.InboxCounts, Failure>).value;
+    final sentCount = (sent as Ok<repo.SentCount, Failure>).value;
+    return Ok(repo.DashboardData(
+        mine: counts.mine,
+        unit: counts.unit,
+        sent: sentCount.total,
+        concluded: 0,
+        total: counts.mine + sentCount.total,
+        canViewUnit: true,
+        activity: const []));
   }
 
   @override
