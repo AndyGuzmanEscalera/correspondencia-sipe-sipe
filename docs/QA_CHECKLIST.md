@@ -1,11 +1,11 @@
 # Correspondencia — QA READY
 
-13/10/2026 · develop · cierre P0/P1: `f8b0488` a `7914ace` (antes del commit documental).
+14/10/2026 · `feature/correspondencia-final` · base limpia `b28e08b` · backend/API `1b898ca`, UI `1abb422`.
 Sin push ni deploy. No usar el árbol local con WIP de Turnos/RR.HH./Website como artefacto QA.
 
 ## Preparación
 
-- BD y almacenamiento QA aislados; variables configuradas sin incluir secretos en este documento. Aplicar `alembic upgrade head` al árbol committeado: head `f2a3b4c5d6e7`. Sin reset ni borrado de volúmenes.
+- BD y almacenamiento QA aislados; variables configuradas sin incluir secretos en este documento. Aplicar `alembic upgrade head` al árbol committeado: head `g2b3c4d5e6f7`. Sin reset ni borrado de volúmenes.
 - Unidades, cargos, funcionarios, usuarios vinculados y tipos documentales activos. Cuentas para creador, responsable, ajeno, lector de unidad y administración; proporcionar credenciales por canal separado.
 - `correspondence.create` en roles activos para creadores; `Position.can_view_unit_correspondence` para el lector de unidad. Read/manage de maestros y settings según tarea; roles.assign sólo para asignación de roles.
 - **Antes de probar Ventanilla:** entrar a Datos básicos → Institucional con permiso manage; seleccionar la unidad de Ventanilla, abrir “Receptores iniciales de Alcaldía”, buscar y seleccionar uno o varios funcionarios y guardar. Para los dos secretarios, seleccionar ambos. Verificar al volver a abrir que ambos permanecen seleccionados. Cada receptor necesita funcionario, cargo, unidad y usuario vinculados activos. No elegir personas por nombres de rol ni copiar IDs del smoke.
@@ -43,18 +43,18 @@ Errores 400/422 muestran validación; 403 falta de autorización; 404 recurso in
 
 ## Evidencia del cierre P0/P1
 
-Validación sobre exportación del árbol versionado del release, sin WIP. Los 661 archivos versionados coinciden con HEAD (normalizando únicamente CRLF/LF); las herramientas y fixtures del smoke están fuera del repositorio.
+Validación sobre el worktree limpio del release, sin WIP. La base limpia transportó 33 commits sin Website. La implementación funcional posterior vive exclusivamente en este worktree; herramientas, credenciales y fixtures del smoke permanecen fuera del repositorio.
 
-- Backend completo: **272**; Flutter completo: **454**; API: **19**; repository: **24**; failures: **4**. Cero tests fallidos.
-- Analyzer: **0 errores, 0 warnings, 93 infos**. Exit 1 por infos; no se presenta como exit 0. `git diff --check` correcto (Git avisa únicamente conversiones LF/CRLF en WIP previo).
-- Alembic: una head **f2a3b4c5d6e7**. `upgrade head` desde PostgreSQL nuevo aislado; backend inicia y health, login, auth/me y listado de Funcionarios devuelven 200. No hay tabla work_shifts ni columna employees.work_shift_id en ese esquema.
+- Backend completo: **298**; Flutter completo: **488**; API: **23**; repository: **27**; failures: **4**. Cero tests fallidos.
+- Analyzer: **0 errores, 0 warnings, 98 infos**. Exit 1 por infos; no se presenta como exit 0. `git diff --check` correcto en el worktree limpio.
+- Alembic: una head **g2b3c4d5e6f7**. `upgrade head` desde PostgreSQL nuevo aislado; backend inicia y health, login, auth/me y listado de Funcionarios devuelven 200. No hay tabla work_shifts ni columna employees.work_shift_id en ese esquema.
 - La base habitual necesitó a3b4c5d6e7f8 porque ejecutaba el Employee del WIP, que mapeaba work_shift_id. No es una dependencia del release; no se modificó ni se reseteó esa base durante este cierre.
 - Build web **API_BASE_URL=/api** correcto. Proxy local elimina /api y COOKIE_PATH=/api/auth permite cookies y refresh. Sin deploy.
 - CORS: excepción interna controlada GET/PATCH → 500 seguro con CORS y credenciales; cliente → ServerFailure. Sin traceback en respuesta.
 - Adjuntos: bloqueo de Correspondence y populate_existing actualizan ownership/estado antes de autorizar la baja. Derivación o conclusión concurrente/caché obsoleta bloquean la operación y conservan el adjunto activo.
 - ListenerPro elimina exclusivamente su DialogRoute de loading. Regresiones cubren success/error iniciales, loading visible/silencioso y reconstrucción, preservando formularios.
 
-## Smoke real en Chrome
+## Smoke anterior del core (13/10/2026)
 
 Playwright en Chrome headless, autorizado por el usuario, contra **browser_qa** y almacenamiento separados, únicamente con actores ficticios. Se operaron controles reales del build; las llamadas auxiliares verificaron payloads, ownership, movimientos y SHA-256. No se sustituyeron interacciones de negocio por llamadas API.
 
@@ -82,12 +82,58 @@ Fallos reales encontrados y corregidos en el smoke: controles de adjuntos visibl
 
 El ciclo final es CREATED → DERIVED → DERIVED → CONCLUDED → REOPENED. Capturas locales revisadas: configuración, detalle con adjunto y detalle final. Esta aceptación automatizada local no equivale a un despliegue ni a aceptación manual con datos reales de QA.
 
+## Validación final: Inicio, Notificaciones y Reportes
+
+Auditoría inicial: Inicio/métricas/badges PARCIAL; notificaciones FALTA; reportes PARCIAL (placeholder y exportación simulada). Los tres bloques quedan IMPLEMENTADOS en esta rama, sin rediseño completo.
+
+### Preparación y permisos
+
+- Migrar desde la cadena limpia: f2a3b4c5d6e7 → **g1b2c3d4e5f6** (notifications) → **g2b3c4d5e6f7** (reports.view). Una sola head, sin a3b4c5d6e7f8 ni dependencia de Turnos.
+- `reports.view` se comprueba por permissions efectivos. La migración concede ese permiso de forma aditiva a ADMIN/MANAGER activos; OPERATOR no lo recibe automáticamente. Los nombres de roles se usan exclusivamente para el grant inicial, nunca para autorización runtime. Los roles personalizados pueden recibir el mismo permiso mediante role_permissions, sin alcance adicional.
+- Para la prueba de unidad, usar un usuario con funcionario/cargo/unidad activos y `Position.can_view_unit_correspondence=true`. Un usuario normal no debe ver la métrica ni el filtro de toda la unidad.
+- No hay permiso global reports.all. La campana y sus endpoints solo muestran notificaciones del usuario autenticado, sin selector user_id.
+
+### Inicio
+
+Métricas SQL: mis pendientes, pendientes de mi unidad cuando corresponde, enviados personales, concluidos y total visible. Actividad reciente limitada a diez movimientos visibles: recepción, derivación, conclusión y reapertura. Acciones de registro/administración/reportes por permissions reales; loading, error con última información real, empty y refresh. Los cambios de badges refrescan Inicio; no se recorren listados completos en Flutter.
+
+### Notificaciones
+
+Modelo persistido: usuario, correspondencia opcional, movimiento para deduplicación, tipo, título, mensaje, leído, creación y lectura. Entrega en la misma transacción de CREATED→DERIVED inicial, DERIVED posteriores y REOPENED. Destinatario directo activo más lectores activos de la unidad con cargo habilitado; unidad-only nunca notifica a funcionarios normales. Unique(movement_id,user_id), exclusión del actor y rollback conjunto del documento/movimiento/notificación.
+
+Campana con badge real, panel paginado responsive, fecha, resumen, marcar una/todas leídas y navegación al Detail normal. Una notificación no concede visibilidad: si el lector perdió scope o el documento cambió de unidad, el endpoint de Detail responde 404. Leer es idempotente y conserva read_at. Conteos/respuestas antiguas no reaparecen después de cambiar sesión o marcar leídas.
+
+Actualización al entrar, refrescar badges/panel y volver de operaciones relevantes. Sin email, WhatsApp, Firebase, WebSockets ni polling. No se generan notificaciones retroactivas de documentos anteriores a la migración.
+
+### Reportes
+
+- **Registrada:** todos los documentos actualmente visibles, fecha de registro.
+- **Recibida:** documentos visibles con una recepción dirigida al usuario o a su unidad si tiene scope; fecha de la última recepción aplicable.
+- **Enviada:** seguimiento personal existente (creador o actor de derivación), fecha de último envío personal o registro.
+- **Concluida:** documentos visibles en estado CONCLUDED, fecha de último cierre.
+- Fechas inclusivas en horario Bolivia (UTC−4); tipo documental, estado, unidad actual solo habilitada para el scope propio, funcionario responsable aplicable y búsqueda literal por HR/CITE/asunto/referencia. Rango invertido/fechas inválidas se rechazan. Tipos inactivos con documentos visibles históricos siguen disponibles para filtrar.
+- Tabla AppDataGrid con paginación backend. Agregados SQL sobre exactamente el mismo conjunto filtrado: total, pendientes, concluidas, distribución por tipo y por unidad cuando corresponde.
+- **CSV productivo** desde backend, todos los resultados del filtro aplicado, no solo la página. Misma autorización, visibilidad y filtros que la tabla; no exporta contactos, documentos personales, credenciales ni campos adicionales ocultos. BOM UTF-8 y escape de celdas con riesgo de fórmula. Streaming por bloques con sesión propia; Flutter descarga bytes y no cuenta miles de filas.
+- La exportación existía como intención en la UI anterior simulada. Se implementó CSV según la preferencia de este cierre; no se inventó PDF de reporte. Los controles editados aún sin aplicar no cambian el CSV: utiliza los últimos filtros aplicados.
+
+### Evidencia 14/10/2026
+
+- **298 backend, 488 Flutter, 23 API, 27 repository, 4 failures; cero fallos.** Dos deprecations de dependencias backend conocidas. Analyzer: **0 errors / 0 warnings / 98 infos**, exit 1 por infos.
+- PostgreSQL nuevo final_browser: upgrade hasta g2b3c4d5e6f7, backend inicia; Dashboard, Notifications y Reports operaron por HTTP y desde Chrome. Esquema sin work_shifts ni employees.work_shift_id. La suite utiliza otra base temporal final_tests.
+- **Chrome/Playwright 18/18 PASS**, únicamente usuarios ficticios: login → métricas → creación desde Inicio → notificación del destinatario → badge → abrir → Detail → lectura persistida → derivar → nueva notificación → reportes con rol personalizado → fechas → tipo/estado → alcance sin bypass de unidad → CSV → logout → login → estado leído persistido. Sin errores JavaScript en la ejecución final. Capturas del Inicio/badge, panel del destinatario y tabla filtrada revisadas visualmente.
+- El smoke detectó una excepción intermitente de recarga al cerrar la creación desde Inicio. Se conservó el Cubit de lista en la pantalla dueña y se protegió la respuesta tardía después del cierre; regresiones y nuevo smoke confirmaron la corrección. Se sincronizan badges/Inicio/Reportes al volver del detalle y se descartan respuestas de sesiones anteriores.
+- No se repitió el smoke previo de 17 pasos del core: permanece como evidencia anterior. El flujo nuevo usa el mismo core sin cambiar sus reglas de ownership.
+
+### Comprobaciones adicionales para QA con sus datos
+
+Verificar dos usuarios de unidades distintas y uno con scope unidad; rol personalizado con reports.view y roles sin ese permiso; revocar scope y abrir una notificación histórica (404); recepción directa/unidad-only, lectura parcial/todas y persistencia tras recarga; paginación y CSV con más de una página; filtros vacíos/invalidación/errores de red; 390px y escritorio. No provisionar personas reales en migraciones.
+
 ## Incidencias aceptadas y alcance
 
 Sin bloqueos A/B conocidos. Se aceptan infos de const/estilo/biblioteca web y dos avisos de deprecación de dependencias backend (Starlette/AnyIO y ReportLab). No son fallos ni warnings de analyzer.
 - Históricos: nombres de participantes de movimientos todavía se resuelven desde maestros actuales; documentos antiguos sin snapshot pueden usar referencias históricas parciales; textos perdidos antes del snapshot no se pueden reconstruir. Limitación aceptada, sin refactor ni bloqueo QA.
 
-Reportes y consulta pública: **No disponible**, sin simulaciones; backend productivo queda post-QA. Código mock antiguo sin ruta activa queda como limpieza posterior.
+Consulta pública: **No disponible**, fuera de alcance. Reportes ahora son productivos, con CSV y fuente backend real. Código mock antiguo sin ruta activa queda como limpieza posterior.
 Fuera de alcance: Turnos, Asistencia, RR.HH., Website, módulos nuevos, refactors/cosmética y despliegue remoto. Los WIP respectivos permanecen preservados.
 
 ## Entorno de aceptación QA

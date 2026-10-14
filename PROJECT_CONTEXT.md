@@ -6,13 +6,13 @@ Handoff del Sistema de Gestión de Correspondencia y Documentos / Hoja de Ruta d
 
 ## 1. Estado de cierre y límites
 
-Actualizado el **13 de octubre de 2026**. Rama `develop`. **QA READY: núcleo de Correspondencia**.
+Actualizado el **14 de octubre de 2026**. Rama de trabajo aislada `feature/correspondencia-final`, desde `release/correspondencia-qa` (`b28e08b`). **QA READY: núcleo de Correspondencia**.
 
 - Cierre P0/P1: `f8b0488`, `8703f2e`, `fbc00ad`, `0ec7367`; correcciones del smoke Chrome: `28b41ef`, `a92cbb4`, `7914ace`. Todos los bloqueos P0/P1 solicitados quedaron resueltos. Checklist: [docs/QA_CHECKLIST.md](docs/QA_CHECKLIST.md).
 - Crear genera exactamente CREATED + un DERIVED inicial. Los destinos posteriores requieren derivaciones reales. Esta regla sustituye el antiguo encadenamiento automático de dos destinos.
 - Ventanilla se identifica por configuración institucional; no por nombres de rol/cargo/unidad. Autoridad documental y receptor operativo son conceptos separados.
-- NO PUSH. NO DEPLOY. No iniciar Turnos, Asistencia, RR.HH., Website ni funcionalidades nuevas.
-- El árbol de trabajo conserva WIP ajeno. La entrega QA validada es el árbol **committeado**, exportado sin ese WIP; no construir el handoff desde el directorio sucio.
+- NO PUSH. NO DEPLOY. No iniciar Turnos, Asistencia, RR.HH. ni Website. Inicio, Notificaciones y Reportes se completaron por autorización explícita en el worktree limpio.
+- El árbol original conserva WIP ajeno. La entrega QA validada es el árbol **committeado**, exportado sin ese WIP; no construir el handoff desde el directorio sucio.
 - No crear rama/worktree, reescribir historial, resetear bases ni borrar volúmenes sin instrucción. No usar `git add .`; seleccionar archivos/hunks.
 - El historial previo incluye commits Website; excluir su WIP no los elimina del historial. Revisar el rango antes de cualquier publicación futura.
 
@@ -98,7 +98,7 @@ Para users, employees, positions, units y document_types:
 
 ## 5. Alembic
 
-El núcleo committeado tiene **una sola head: `f2a3b4c5d6e7`**, que agrega `correspondence.create` de forma aditiva. Incluye el snapshot JSONB histórico `d0e1f2a3b4c5` sin reescribir esa migración.
+La cadena limpia actual tiene **una sola head: `g2b3c4d5e6f7`**, después de notificaciones (`g1b2c3d4e5f6`) y de `correspondence.create` (`f2a3b4c5d6e7`). Incluye el snapshot JSONB histórico `d0e1f2a3b4c5` sin reescribir esa migración.
 
 Se probó `upgrade head` desde PostgreSQL nuevo aislado y `alembic heads/history`. El WIP local de Turnos añade `a3b4c5d6e7f8`: no pertenece al artefacto QA. Los cambios WIP de migraciones previas también permanecen fuera de los commits.
 No resetear BD ni modificar docker-compose. Ejecutar migraciones en el entorno QA elegido después de revisar backup/configuración; los tests no deben usar bases del usuario/servidor.
@@ -148,9 +148,7 @@ Se probaron PDF, campos heredados y caracteres especiales, sin sustituir el rece
 - Mensajes de validación de negocio admitidos se conservan; 500 muestra mensaje seguro.
 - No crear manejo paralelo de errores por pantalla ni exponer excepciones crudas.
 
-Reportes generales y consulta pública no tienen backend productivo integrado:
-las pantallas muestran indisponibilidad; no generan resultados simulados.
-No existe un reports.view implementado por este cierre.
+Reportes tienen backend productivo, agregados y CSV, protegidos por reports.view y por visibilidad personal/unidad. Consulta pública sigue mostrando indisponibilidad; no genera resultados simulados.
 Arranque ya no siembra mocks de LocalStore. Bandejas heredadas no disponibles no instancian cubits de datos simulados desde su UI.
 Puede quedar código legacy/mocks sin ruta activa: no deducir que fue eliminado todo archivo histórico.
 
@@ -186,14 +184,14 @@ Suite completa sobre exportación del núcleo committeado, excluyendo WIP:
 
 | Verificación | Resultado |
 | --- | --- |
-| Backend `pytest tests/` | 272 pasaron |
-| Flutter `flutter test` | 454 pasaron |
-| Package API / repository / failures | 19 / 24 / 4 pasaron |
-| Flutter analyze | 0 errors, 0 warnings; 93 infos |
-| Alembic | Una head f2a3b4c5d6e7; migración desde BD nueva correcta |
+| Backend `pytest tests/` | 298 pasaron |
+| Flutter `flutter test` | 488 pasaron |
+| Package API / repository / failures | 23 / 27 / 4 pasaron |
+| Flutter analyze | 0 errors, 0 warnings; 98 infos |
+| Alembic | Una head g2b3c4d5e6f7; migración desde BD nueva correcta |
 | Build web API_BASE_URL=/api | Correcto |
 | HTTP web /api | Assets/health/BD/login/me/refresh 200; logout 204 y cookie eliminada |
-| Smoke funcional | 17 pasos reales en Chrome headless/Playwright, usuarios ficticios; todos PASS |
+| Smoke funcional | 18 pasos nuevos en Chrome headless/Playwright; todos PASS, sin errores JS |
 | git diff --check | Correcto |
 
 Cierre adicional P0/P1: receptor inicial compartido para EDIE, INFORME, NOTA y genérico, matriz perfil × Ventanilla × receptor; validación de receptores activos y error explícito sin configuración. ListenerPro conserva formularios y solo elimina su loading. Boundary ASGI conserva CORS en 500 con respuesta segura; pipeline cliente emite ServerFailure. Baja de adjuntos bloquea y refresca Correspondence antes de evaluar permisos. Smoke real descubrió y resolvió permisos visuales de adjuntos, Reabrir oculto y navegación de logout desde contexto global. Checklist contiene evidencia detallada.
@@ -222,7 +220,7 @@ El GET de Funcionarios seguía fallando en el contenedor real por work_shift_id 
 - Website es otro producto; sus componentes/layout/CSS y commits previos no se confundieron con Flutter.
 - `TURNOS_HANDOFF.txt`, work_shifts y sus tests/migración permanecen pausados.
 - Scripts clean/reset no se ejecutaron ni stagearon. Sus barreras heurísticas, credenciales fijas y borrado físico no los convierten en herramientas aprobadas.
-- Reportes y consulta pública siguen **No disponible**, sin datos ficticios; implementación productiva queda post-QA. Código mock heredado sin ruta activa puede retirarse después.
+- Consulta pública sigue **No disponible**, fuera de alcance. Reportes se completaron con backend real y CSV filtrado. Código mock heredado sin ruta activa puede retirarse después.
 - Ningún bloqueo A/B conocido queda abierto en el núcleo validado. Las pruebas automatizadas no sustituyen la aceptación manual por QA con sus datos reales.
 
 ### Pasos antes de entregar a QA
@@ -233,3 +231,13 @@ El GET de Funcionarios seguía fallando en el contenedor real por work_shift_id 
 4. Entregar docs/QA_CHECKLIST.md y ejecutar aceptación manual con esas cuentas/datos.
 
 Push y deploy requieren una instrucción posterior; no forman parte de este cierre.
+
+## 11. Bloques finales en worktree limpio (14/10/2026)
+
+Worktree C:/dev/correspondencia_sipe_sipe_qa_release, rama feature/correspondencia-final, HEAD inicial b28e08b. El original C:/dev/correspondencia_sipe_sipe permanece en develop/61ed753 y no se usa para compilar ni probar. Los 109 WIP se verifican por huellas; ninguna modificación del producto se realiza allí.
+
+Backend/API/repository: 1b898ca; UI: 1abb422. Dashboard usa SQL y visibilidad existente para cinco métricas y diez eventos recientes. Notificaciones internas persistentes y transaccionales, unique por movimiento/usuario, sin actor propio ni funcionarios normales en unidad-only. La campana se actualiza con sesión/badges/operaciones, sin polling ni canales externos; lectura persistida y acceso al Detail siempre revalidado.
+
+Reportes productivos: registrada, recibida, enviada y concluida; reports.view dinámico (seed aditivo ADMIN/MANAGER, custom roles válidos), sin alcance institucional automático. Filtros y agregados SQL compartidos con CSV, paginación AppDataGrid, fechas Bolivia inclusivas y exportación solo del filtro aplicado. No PDF de reporte nuevo. Consulta pública permanece fuera de alcance.
+
+Nuevas migraciones f2a3b4c5d6e7 → g1b2c3d4e5f6 → g2b3c4d5e6f7; una sola head. BD nueva/arranque/operación de los tres bloques probados sin Turnos. Validación detallada y límites: docs/QA_CHECKLIST.md. No notificaciones históricas retroactivas ni actualización push; aceptación manual con datos reales de QA pendiente. Sin push ni deploy.
