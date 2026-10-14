@@ -241,3 +241,12 @@ Backend/API/repository: 1b898ca; UI: 1abb422. Dashboard usa SQL y visibilidad ex
 Reportes productivos: registrada, recibida, enviada y concluida; reports.view dinámico (seed aditivo ADMIN/MANAGER, custom roles válidos), sin alcance institucional automático. Filtros y agregados SQL compartidos con CSV, paginación AppDataGrid, fechas Bolivia inclusivas y exportación solo del filtro aplicado. No PDF de reporte nuevo. Consulta pública permanece fuera de alcance.
 
 Nuevas migraciones f2a3b4c5d6e7 → g1b2c3d4e5f6 → g2b3c4d5e6f7; una sola head. BD nueva/arranque/operación de los tres bloques probados sin Turnos. Validación detallada y límites: docs/QA_CHECKLIST.md. No notificaciones históricas retroactivas ni actualización push; aceptación manual con datos reales de QA pendiente. Sin push ni deploy.
+
+
+### 14/10/2026 — Inicio institucional y exportación de Reportes
+
+Sobre develop 300ede1, en el repo principal, sin tocar las ramas RRHH/Website. Dashboard compacto con cabecera tipográfica institucional; no existe escudo oficial verificable en esta rama. Se eliminan los iconos stock Flutter y se usa web/document-mark.svg como marca neutra de navegador/PWA. No cambian métricas, alcance, permisos ni eventos de notificaciones.
+
+Reportes conserva CSV y agrega exportaciones backend XLSX (openpyxl 3.1.5) y PDF (ReportLab existente). Rutas /reports/export.xlsx y /reports/export.pdf, mismo reports.view y filtros/visibilidad que la tabla. Metadatos institucionales, resumen y tabla sin UUID; XLSX con header congelado y strings seguros; PDF A4 horizontal multipágina con cabecera repetida y Página X de Y. Flutter ofrece los tres formatos con loading/Failure y filtros aplicados.
+
+Validación: backend 318, Flutter 498, API 26, repository 30, failures 4; analyzer 0 errors/0 warnings/98 infos; build web OK; Chrome 18/18 sin JS errors; archivos descargados abiertos y comparados (64 HR y filtro de una HR en los tres formatos; cero registros ajenos). PDF de 8 páginas renderizado y revisado. Alembic g2b3c4d5e6f7, sin migraciones nuevas. Más evidencia en docs/QA_CHECKLIST.md. Sin push ni deploy; pendiente revisión del usuario.

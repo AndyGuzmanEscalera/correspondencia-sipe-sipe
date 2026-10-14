@@ -114,7 +114,7 @@ Actualización al entrar, refrescar badges/panel y volver de operaciones relevan
 - Fechas inclusivas en horario Bolivia (UTC−4); tipo documental, estado, unidad actual solo habilitada para el scope propio, funcionario responsable aplicable y búsqueda literal por HR/CITE/asunto/referencia. Rango invertido/fechas inválidas se rechazan. Tipos inactivos con documentos visibles históricos siguen disponibles para filtrar.
 - Tabla AppDataGrid con paginación backend. Agregados SQL sobre exactamente el mismo conjunto filtrado: total, pendientes, concluidas, distribución por tipo y por unidad cuando corresponde.
 - **CSV productivo** desde backend, todos los resultados del filtro aplicado, no solo la página. Misma autorización, visibilidad y filtros que la tabla; no exporta contactos, documentos personales, credenciales ni campos adicionales ocultos. BOM UTF-8 y escape de celdas con riesgo de fórmula. Streaming por bloques con sesión propia; Flutter descarga bytes y no cuenta miles de filas.
-- La exportación existía como intención en la UI anterior simulada. Se implementó CSV según la preferencia de este cierre; no se inventó PDF de reporte. Los controles editados aún sin aplicar no cambian el CSV: utiliza los últimos filtros aplicados.
+- La exportación existía como intención en la UI anterior simulada. En este cierre inicial se implementó CSV; XLSX y PDF se incorporan en el lote posterior documentado al final. Los controles editados aún sin aplicar no cambian el CSV: utiliza los últimos filtros aplicados.
 
 ### Evidencia 14/10/2026
 
@@ -139,3 +139,41 @@ Fuera de alcance: Turnos, Asistencia, RR.HH., Website, módulos nuevos, refactor
 ## Entorno de aceptación QA
 
 Seleccionar el árbol committeado, preparar entorno QA aislado/proxy, aplicar migraciones sin reset, configurar datos/cuentas reales y entregar este checklist para aceptación manual. No publicar ni desplegar sin nueva instrucción.
+
+
+## Lote previo a QA: presentación institucional y exportaciones (14/10/2026)
+
+Base: develop 300ede1, coincidente con origin/develop al iniciar. Trabajo en el repo principal; sin Turnos/RRHH, Website ni scripts clean/reset. No push ni deploy.
+
+### Identidad e Inicio
+
+- Auditoría: el Dashboard anterior no usaba escudo/imagen, pero las tarjetas tenían iconos grandes, padding/sombras y la actividad una Card por fila. Los iconos web eran los cinco PNG predeterminados de Flutter. No había un escudo institucional verificable en los assets de esta rama; no se copió ni modificó Website.
+- Se usa cabecera **tipográfica**, con Gobierno Autónomo Municipal de Sipe Sipe y Sistema de Gestión de Correspondencia. El saludo y cargo/unidad provienen de la sesión. No se generó ni reinterpretó un escudo.
+- Marca neutra del sistema: **web/document-mark.svg**, documento lineal blanco sobre verde sobrio, únicamente favicon/PWA; sustituye los PNG stock Flutter. No representa un símbolo oficial. El Dashboard y PDF usan tipografía, sin logo inventado.
+- Métricas reales compactas, número protagonista, icono funcional de 20px, borde fino, sin sombras. Distribución adaptable al espacio. Actividad continua con separadores, HR, evento, asunto resumido y fecha Bolivia; fecha debajo en móvil. Acciones por los mismos permisos dinámicos; la campana conserva su modelo, eventos y badge.
+- Sin cambios al DashboardCubit ni a las consultas de métricas/visibilidad ni a los eventos de notificaciones. Cabecera superior compacta y adaptable; revisión visual a 1440, 820 y 390px sin overflow.
+
+### Exportaciones productivas
+
+- CSV conservado con su consulta/stream y protección de fórmulas; filename útil según tipo/periodo. Nuevos GET /reports/export.xlsx y /reports/export.pdf.
+- Todos usan el mismo dependency reports.view, filtros tipados y InsightsService.query/rows_query que el reporte. Nunca se acepta un scope privilegiado del cliente. Unidad/funcionario ajenos se rechazan; no se exportan UUID, contactos ni datos personales adicionales.
+- XLSX real desde backend: **openpyxl 3.1.5**. Hoja Correspondencia, cabecera institucional, tipo/periodo/filtros/generación Bolivia, resumen, siete columnas, anchos razonables, wrap, filtro y encabezado congelado A11. Textos de usuario explícitamente de tipo string, sin fórmulas/hipervínculos ejecutables.
+- PDF desde backend reutiliza **ReportLab 4.2.5**, en el mismo módulo pdf del proyecto. A4 horizontal, cabecera institucional y de tabla repetida, Paragraph con texto escapado y wrap, LongTable con división de filas largas, márgenes y pie Página X de Y. No se introdujo otro motor PDF.
+- Flutter: Exportar ofrece CSV / Excel (.xlsx) / PDF; estado Exportando, bloqueo durante carga/generación y errores por el pipeline Result/Failure. Descarga bytes mediante el servicio existente y utiliza los últimos filtros aplicados, nunca el borrador ni URLs externas.
+- El smoke detectó que un botón deshabilitado anidado en PopupMenuButton perjudicaba semántica/interacción; se sustituyó por un solo control y se repitieron Flutter, analyzer, build y smoke sobre el código corregido.
+
+### Validación aprobada de este lote
+
+- Backend completo: **318 passed**, cero fallos, dos deprecations conocidas de dependencias.
+- Flutter completo: **498 passed**, cero fallos. API **26**, repository **30**, failures **4**.
+- Analyzer: **0 errors / 0 warnings / 98 infos**, exit 1 por infos. Build web local /api: correcto. git diff --check: correcto.
+- Alembic: una sola head **g2b3c4d5e6f7**, sin nueva migración. PostgreSQL nuevo exports_tests y exports_browser con upgrade desde cero; sin Turnos. Bases y usuarios exclusivamente ficticios y aislados.
+- Backend incluye 20 pruebas nuevas: validez de formatos, CSV, filtros/fechas/tipo/estado, scope personal/unidad, permiso obligatorio, fuera de alcance 403, ausencia de filas privadas, texto/fórmulas XLSX y PDF multipágina con texto mayor que una página.
+- Chrome/Playwright: **18/18 pasos PASS**, sin errores JavaScript. Login, Inicio, identidad tipográfica, métricas, actividad, acciones, campana/panel, desktop/tablet/mobile, Reportes, CSV/XLSX/PDF, filtros y reexportación de los tres, 403 para unidad ajena en los tres.
+- Apertura real de los archivos descargados: XLSX válido y legible por openpyxl; PDF válido y legible por pypdf. Los tres contienen exactamente las mismas **64 HR visibles**, no solo las 20 de la página. El filtro HR-QA-0001 produce exactamente **una fila** en cada formato. Los cuatro registros privados ajenos no aparecen.
+- PDF de 64 filas: **8 páginas**, numeración y encabezados repetidos verificados; todas las páginas renderizadas y revisadas, sin texto fuera de márgenes ni solapamientos. PDF filtrado: 1 página. Capturas del Inicio a los tres anchos y Reportes revisadas.
+- Evidencia local (no versionada): %TEMP%/codex-ui-exports-20261014; screenshots, logs, smoke-results.json y artifact-validation.json. smoke-private.json contiene solo la credencial temporal sintética y no se comparte ni commitea.
+
+### Revisión de QA pendiente
+
+Aceptación del usuario del diseño y validación con datos/perfiles del entorno QA cuando se autorice el deploy. Este lote no publica ni despliega. Se mantienen los 98 infos de estilo y las dos deprecaciones ya conocidas.
