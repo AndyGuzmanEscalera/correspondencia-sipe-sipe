@@ -23,6 +23,9 @@ from app.modules.organization.admin_router import (
 from app.modules.organization.router import router as organization_router
 from app.modules.system.admin_router import router as system_settings_admin_router
 
+from app.modules.notifications.router import router as notifications_router
+from app.modules.correspondence.insights_router import router as insights_router
+
 settings = get_settings()
 
 app = FastAPI(
@@ -51,6 +54,8 @@ if origins or origin_regex:
         ],
     )
 
+app.include_router(insights_router)
+app.include_router(notifications_router)
 app.include_router(auth_router)
 app.include_router(correspondence_catalog_router)
 app.include_router(correspondence_router)

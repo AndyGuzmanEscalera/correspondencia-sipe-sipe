@@ -4,6 +4,15 @@
 class Endpoints {
   const Endpoints._();
 
+  static const dashboard = '/dashboard';
+  static const notifications = '/notifications';
+  static const notificationCount = '/notifications/unread-count';
+  static const notificationsReadAll = '/notifications/read-all';
+  static String notificationRead(String id) => '/notifications/$id/read';
+  static const reports = '/reports';
+  static const reportOptions = '/reports/options';
+  static const reportExport = '/reports/export.csv';
+
   static const String authLogin = '/auth/login';
   static const String authRefresh = '/auth/refresh';
   static const String authLogout = '/auth/logout';
@@ -13,7 +22,8 @@ class Endpoints {
   static const String employees = '/employees';
   static const String institutionalMayor = '/institutional-mayor';
   static const String edieFirstRecipients = '/edie-first-recipients';
-  static const String correspondenceCreationPolicy = '/correspondence-creation-policy';
+  static const String correspondenceCreationPolicy =
+      '/correspondence-creation-policy';
   static const String correspondences = '/correspondences';
   static const String correspondencesInbox = '/correspondences/inbox';
   static const String correspondencesInboxCounts =

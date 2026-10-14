@@ -13,7 +13,7 @@ if BACKEND_ROOT not in sys.path:
 
 from app.core.config import get_settings  # noqa: E402
 from app.core.database import Base  # noqa: E402
-from app.modules import auth, correspondence, identity, organization  # noqa: F401, E402
+from app.modules import auth, correspondence, identity, organization, notifications  # noqa: F401, E402
 
 config = context.config
 

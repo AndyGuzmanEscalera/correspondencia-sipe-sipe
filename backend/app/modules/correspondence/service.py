@@ -1283,6 +1283,10 @@ class CorrespondenceService:
             created_by_user_id=created_by_user_id,
         )
         self._db.add(movement)
+        if movement_type in {MOVEMENT_DERIVED, MOVEMENT_REOPENED}:
+            from app.modules.notifications.service import notify_movement
+            self._db.flush()
+            notify_movement(self._db, correspondence, movement)
         return movement
 
     def _unit_name(self, unit_id: uuid.UUID | None) -> str | None:

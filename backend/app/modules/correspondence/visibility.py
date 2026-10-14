@@ -49,7 +49,7 @@ def tracking_visibility_filter(user_id: uuid.UUID):
         CorrespondenceMovement.correspondence_id == Correspondence.id,
         CorrespondenceMovement.movement_type == MOVEMENT_DERIVED,
         CorrespondenceMovement.created_by_user_id == user_id,
-    ))
+    ).correlate(Correspondence))
     return or_(Correspondence.created_by_user_id == user_id, derived_by_me)
 
 

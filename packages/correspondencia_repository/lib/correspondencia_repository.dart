@@ -11,3 +11,12 @@ export 'src/features/correspondence/correspondence.dart';
 export 'src/features/identity/identity.dart';
 export 'src/features/organization/organization.dart';
 export 'src/features/system/system.dart';
+
+export 'src/features/dashboard/entities.dart';
+export 'src/features/dashboard/repository.dart';
+
+export 'src/features/notifications/entities.dart';
+export 'src/features/notifications/repository.dart';
+
+export 'src/features/reports/entities.dart';
+export 'src/features/reports/repository.dart';

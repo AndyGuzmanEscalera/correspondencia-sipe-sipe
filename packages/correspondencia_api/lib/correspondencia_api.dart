@@ -31,3 +31,12 @@ export 'src/features/correspondence/correspondence.dart';
 export 'src/features/identity/identity.dart';
 export 'src/features/organization/organization.dart';
 export 'src/features/system/system.dart';
+
+export 'src/features/dashboard/api/dashboard_api.dart';
+export 'src/features/dashboard/models/responses.dart';
+
+export 'src/features/notifications/api/notifications_api.dart';
+export 'src/features/notifications/models/responses.dart';
+
+export 'src/features/reports/api/reports_api.dart';
+export 'src/features/reports/models/responses.dart';
