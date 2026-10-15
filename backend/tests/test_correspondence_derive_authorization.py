@@ -550,3 +550,45 @@ def test_derive_inbox_origin_dest_and_sent(
 
     sent = client.get("/correspondences/sent", headers=actor_headers).json()
     assert any(item["id"] == created["id"] for item in sent["items"])
+
+
+import pytest
+from sqlalchemy import select, func
+
+
+@pytest.mark.parametrize("assignment,scope,same_unit,allowed", [
+    ("direct", False, True, True),
+    ("unit_only", True, True, True),
+    ("peer", True, True, True),
+    ("unit_only", False, True, False),
+    ("peer", False, True, False),
+    ("unit_only", True, False, False),
+    ("peer", True, False, False),
+])
+def test_derivation_scope_and_capability(client, db, auth_headers, user, second_user,
+        position, document_type, org_unit, second_org_unit,
+        assignment, scope, same_unit, allowed):
+    created = _create_in_unit(client, auth_headers, document_type, org_unit.id)
+    row = db.get(Correspondence, uuid.UUID(created["id"]))
+    position.can_view_unit_correspondence = scope
+    row.current_unit_id = org_unit.id if same_unit else second_org_unit.id
+    row.current_user_id = {"direct": user.id, "unit_only": None, "peer": second_user.id}[assignment]
+    db.commit()
+    detail = client.get(f"/correspondences/{row.id}", headers=auth_headers)
+    assert detail.status_code == 200, detail.text
+    assert detail.json()["can_derive"] is allowed
+    if assignment == "peer" and same_unit:
+        assert detail.json()["can_operate"] is False
+        # Derivation scope does not grant lifecycle mutations or attachments.
+        for action in ("conclude", "reopen"):
+            result = client.post(f"/correspondences/{row.id}/{action}", headers=auth_headers, json={})
+            assert result.status_code == 403, result.text
+    count = lambda: db.scalar(select(func.count()).select_from(CorrespondenceMovement).where(
+        CorrespondenceMovement.correspondence_id == row.id,
+        CorrespondenceMovement.movement_type == "DERIVED"))
+    before = count()
+    response = _derive(client, auth_headers, str(row.id), to_unit_id=second_org_unit.id,
+                       to_user_id=second_user.id if assignment != "peer" else None)
+    assert response.status_code == (200 if allowed else 403), response.text
+    db.expire_all()
+    assert count() == before + (1 if allowed else 0)

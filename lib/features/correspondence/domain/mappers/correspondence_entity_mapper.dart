@@ -8,6 +8,7 @@ extension CorrespondenceToEntity on repo.Correspondence {
   CorrespondenceEntity toUiEntity() => CorrespondenceEntity(
         id: id,
         canOperate: canOperate,
+        canDerive: canDerive,
         uniqueNumber: routeSequence,
         year: routeYear,
         cite: displayCite,

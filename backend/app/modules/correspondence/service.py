@@ -383,7 +383,7 @@ class CorrespondenceService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Correspondencia no encontrada",
             )
-        self.assert_current_unit_operator(user, correspondence)
+        self.assert_can_derive(user, correspondence)
         if correspondence.status != STATUS_ACTIVE:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -624,6 +624,15 @@ class CorrespondenceService:
                 detail="Correspondencia no encontrada",
             )
         return correspondence
+
+    def assert_can_derive(self, user: User, correspondence: Correspondence) -> None:
+        context = resolve_visibility_context(self._db, user)
+        if context is None or not (
+            correspondence.current_user_id == user.id
+            or (correspondence.current_unit_id == context.unit_id
+                and context.can_view_unit_correspondence)
+        ):
+            raise HTTPException(status_code=403, detail="No tiene alcance para derivar esta correspondencia")
 
     def assert_current_unit_operator(
         self,
@@ -1393,7 +1402,14 @@ class CorrespondenceService:
                 can_operate=True
             except HTTPException:
                 pass
-        return CorrespondenceDetail(can_operate=can_operate,
+        can_derive = False
+        if user is not None and correspondence.is_active and correspondence.status == STATUS_ACTIVE:
+            try:
+                self.assert_can_derive(user, correspondence)
+                can_derive = True
+            except HTTPException:
+                pass
+        return CorrespondenceDetail(can_operate=can_operate, can_derive=can_derive,
             **base.model_dump(),
             description=correspondence.description,
             sender_name=correspondence.sender_name,

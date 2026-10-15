@@ -28,6 +28,7 @@ extension CorrespondenceResponseMapper on CorrespondenceResponse {
   Correspondence toEntity() => Correspondence(
         id: id,
         canOperate: canOperate,
+        canDerive: canDerive,
         routeNumber: routeNumber,
         routeYear: routeYear,
         routeSequence: routeSequence,

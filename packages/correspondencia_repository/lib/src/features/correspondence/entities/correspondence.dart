@@ -4,6 +4,7 @@ class Correspondence extends Equatable {
   const Correspondence({
     required this.id,
     this.canOperate = false,
+    this.canDerive = false,
     required this.routeNumber,
     required this.routeYear,
     required this.routeSequence,
@@ -39,6 +40,7 @@ class Correspondence extends Equatable {
 
   final String id;
   final bool canOperate;
+  final bool canDerive;
   final String routeNumber;
   final int routeYear;
   final int routeSequence;
@@ -77,6 +79,7 @@ class Correspondence extends Equatable {
   List<Object?> get props => [
         id,
         canOperate,
+        canDerive,
         routeNumber,
         routeYear,
         routeSequence,

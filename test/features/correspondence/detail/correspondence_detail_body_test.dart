@@ -20,8 +20,8 @@ import 'detail_test_fixtures.dart';
 
 class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
   @override
-  Future<Result<List<repo.CorrespondenceAttachment>, Failure>>
-      listAttachments(String correspondenceId) async {
+  Future<Result<List<repo.CorrespondenceAttachment>, Failure>> listAttachments(
+      String correspondenceId) async {
     return const Ok([]);
   }
 
@@ -106,7 +106,8 @@ void main() {
           correspondenceId: correspondenceId,
         ),
       );
-      getIt.registerFactoryParam<CorrespondenceDocumentActionsCubit, String, void>(
+      getIt.registerFactoryParam<CorrespondenceDocumentActionsCubit, String,
+          void>(
         (correspondenceId, _) => CorrespondenceDocumentActionsCubit(
           repository: _FakeCorrespondenceRepository(),
           correspondenceId: correspondenceId,
@@ -167,14 +168,18 @@ void main() {
 
     for (final size in [const Size(390, 844), const Size(1366, 900)]) {
       for (final authorized in [true, false]) {
-        testWidgets('CONCLUDED $size authorized=$authorized permits only reopening', (tester) async {
+        testWidgets(
+            'CONCLUDED $size authorized=$authorized permits only reopening',
+            (tester) async {
           cubit.emit(cubit.state.copyWith(
             correspondence: externalCorrespondence.copyWith(
-              status: 'CONCLUDED', canOperate: authorized,
+              status: 'CONCLUDED',
+              canOperate: authorized,
             ),
           ));
           await pumpBody(tester, size: size);
-          expect(find.text('Reabrir'), authorized ? findsOneWidget : findsNothing);
+          expect(
+              find.text('Reabrir'), authorized ? findsOneWidget : findsNothing);
           expect(find.text('Concluir'), findsNothing);
           expect(find.text('Agregar archivos'), findsNothing);
           expect(find.byType(DeriveCorrespondencePage), findsNothing);
@@ -197,7 +202,8 @@ void main() {
     ) async {
       cubit.emit(
         cubit.state.copyWith(
-          correspondence: externalCorrespondence.copyWith(canOperate:false),
+          correspondence: externalCorrespondence.copyWith(
+              canOperate: false, canDerive: false),
           movements: [vigenteMovement],
           viewerUnitId: 'unit-otra',
         ),
@@ -207,6 +213,21 @@ void main() {
       expect(find.text('Concluir'), findsNothing);
       expect(find.text('Derivar trámite'), findsNothing);
     });
+
+    for (final size in [const Size(1366, 900), const Size(390, 844)]) {
+      testWidgets(
+          'capacidad de derivar independiente de otras mutaciones $size',
+          (tester) async {
+        cubit.emit(cubit.state.copyWith(
+            correspondence: externalCorrespondence.copyWith(
+                canOperate: false, canDerive: true)));
+        await pumpBody(tester, size: size);
+        expect(find.text('Derivar trámite'), findsOneWidget);
+        expect(find.text('Concluir'), findsNothing);
+        expect(find.text('Agregar archivos'), findsNothing);
+        expect(tester.takeException(), isNull);
+      });
+    }
 
     testWidgets('muestra info, adjuntos, movements y derive', (tester) async {
       await pumpBody(tester);

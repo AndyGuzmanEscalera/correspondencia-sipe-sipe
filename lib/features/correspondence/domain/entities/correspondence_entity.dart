@@ -5,6 +5,7 @@ class CorrespondenceEntity extends Equatable {
   const CorrespondenceEntity({
     required this.id,
     this.canOperate = false,
+    this.canDerive = false,
     required this.uniqueNumber,
     required this.year,
     required this.cite,
@@ -38,6 +39,7 @@ class CorrespondenceEntity extends Equatable {
 
   final String id;
   final bool canOperate;
+  final bool canDerive;
   final int uniqueNumber;
   final int year;
   final String cite;
@@ -120,12 +122,14 @@ class CorrespondenceEntity extends Equatable {
   CorrespondenceEntity copyWith({
     String? status,
     bool? canOperate,
+    bool? canDerive,
     String? statusLabel,
     DateTime? lastSentAt,
   }) {
     return CorrespondenceEntity(
       id: id,
       canOperate: canOperate ?? this.canOperate,
+      canDerive: canDerive ?? this.canDerive,
       uniqueNumber: uniqueNumber,
       year: year,
       cite: cite,
@@ -162,6 +166,7 @@ class CorrespondenceEntity extends Equatable {
   List<Object?> get props => [
         id,
         canOperate,
+        canDerive,
         uniqueNumber,
         year,
         cite,

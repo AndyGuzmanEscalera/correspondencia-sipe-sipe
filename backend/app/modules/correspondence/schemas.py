@@ -124,6 +124,7 @@ class CorrespondenceSentCountResponse(BaseModel):
 
 class CorrespondenceDetail(CorrespondenceListItem):
     can_operate: bool = False
+    can_derive: bool = False
     description: str | None
     sender_name: str | None
     sender_document: str | None

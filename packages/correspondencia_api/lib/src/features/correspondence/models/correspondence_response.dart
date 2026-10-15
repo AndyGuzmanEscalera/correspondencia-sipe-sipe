@@ -2,6 +2,7 @@ class CorrespondenceResponse {
   const CorrespondenceResponse({
     required this.id,
     this.canOperate = false,
+    this.canDerive = false,
     required this.routeNumber,
     required this.routeYear,
     required this.routeSequence,
@@ -44,6 +45,7 @@ class CorrespondenceResponse {
     return CorrespondenceResponse(
       id: json['id'] as String,
       canOperate: json['can_operate'] as bool? ?? false,
+      canDerive: json['can_derive'] as bool? ?? false,
       routeNumber: json['route_number'] as String,
       routeYear: json['route_year'] as int,
       routeSequence: json['route_sequence'] as int,
@@ -91,6 +93,7 @@ class CorrespondenceResponse {
 
   final String id;
   final bool canOperate;
+  final bool canDerive;
   final String routeNumber;
   final int routeYear;
   final int routeSequence;
