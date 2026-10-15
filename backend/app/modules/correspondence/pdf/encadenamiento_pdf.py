@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
+from app.core.branding import OFFICIAL_CREST
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
@@ -189,9 +190,10 @@ def _draw_header(
     logo_size = 0.85 * inch
     logo_x = inner_left + 0.12 * inch
     logo_y = y - logo_size
-    if context.logo_path and context.logo_path.is_file():
+    logo_path = context.logo_path if context.logo_path and context.logo_path.is_file() else OFFICIAL_CREST
+    if logo_path.is_file():
         c.drawImage(
-            str(context.logo_path),
+            str(logo_path),
             logo_x,
             logo_y,
             width=logo_size,
@@ -199,12 +201,6 @@ def _draw_header(
             preserveAspectRatio=True,
             mask="auto",
         )
-    else:
-        c.setLineWidth(0.75)
-        c.rect(logo_x, logo_y, logo_size, logo_size)
-        c.setFont("Helvetica-Bold", 7)
-        c.drawCentredString(logo_x + logo_size / 2, logo_y + logo_size / 2 - 4, "SIPE")
-        c.drawCentredString(logo_x + logo_size / 2, logo_y + logo_size / 2 - 14, "SIPE")
 
     header_center_x = inner_left + inner_width / 2
     c.setFont("Helvetica-Bold", 11)
@@ -219,7 +215,7 @@ def _draw_header(
     c.drawCentredString(
         header_center_x,
         y - 0.42 * inch,
-        '"Sipe Sipe Construyendo Nuestro Futuro"',
+        '"Trabajo · Justicia · Progreso"',
     )
 
     number_box_w = 0.95 * inch
@@ -258,15 +254,19 @@ def _draw_continuation_header(
     inner_right: float,
 ) -> float:
     y = inner_top - 0.2 * inch
-    c.setFont("Helvetica-Bold", 10)
-    c.drawString(inner_left + 0.12 * inch, y, f"HR: {context.route_number}")
+    if OFFICIAL_CREST.is_file():
+        c.drawImage(str(OFFICIAL_CREST), inner_left + 8, y - 22, width=25, height=30, preserveAspectRatio=True, mask="auto")
+    c.setFont("Helvetica-Bold", 8)
+    c.drawString(inner_left + 42, y, "GOBIERNO AUTÓNOMO MUNICIPAL DE SIPE SIPE")
+    c.setFont("Helvetica", 8)
+    c.drawString(inner_left + 42, y - 12, f"HR: {context.route_number}")
     c.setFont("Helvetica", 8.5)
     c.drawRightString(
         inner_right - 0.12 * inch,
         y,
-        "ENCADENAMIENTO — continuación",
+        "EDIE — continuación",
     )
-    y -= 0.22 * inch
+    y -= 0.38 * inch
     _draw_horizontal_rule(c, inner_left + 0.08 * inch, inner_right - 0.08 * inch, y)
     return y - 0.12 * inch
 

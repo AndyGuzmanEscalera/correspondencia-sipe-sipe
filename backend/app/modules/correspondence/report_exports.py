@@ -1,5 +1,6 @@
 """Institutional exports reuse the report query; no additional visibility scope."""
 import io
+from app.core.branding import PRIMARY_HEX
 import re
 from datetime import datetime
 from openpyxl import Workbook
@@ -65,7 +66,7 @@ def generate_xlsx(metadata, summary, rows):
             cell.font = Font(name="Calibri", size=11, color="172A3A")
             cell.alignment = Alignment(vertical="top", wrap_text=True)
     append([INSTITUTION]); sheet.merge_cells("A1:G1")
-    sheet['A1'].font = Font(name="Calibri", size=15, bold=True, color="134E4A")
+    sheet['A1'].font = Font(name="Calibri", size=15, bold=True, color=PRIMARY_HEX)
     append(["Reporte de Correspondencia"]); sheet.merge_cells("A2:G2")
     for label, value in metadata:
         append([label, value]); sheet.merge_cells(start_row=sheet.max_row, start_column=2, end_row=sheet.max_row, end_column=7)
@@ -77,7 +78,7 @@ def generate_xlsx(metadata, summary, rows):
     header = sheet.max_row
     for cell in sheet[header]:
         cell.font = Font(name="Calibri", bold=True, color="FFFFFF")
-        cell.fill = PatternFill("solid", fgColor="134E4A")
+        cell.fill = PatternFill("solid", fgColor=PRIMARY_HEX)
     widths = [24, 22, 24, 65, 35, 48, 18]
     for index, width in enumerate(widths, 1):sheet.column_dimensions[get_column_letter(index)].width = width
     for values in rows:
