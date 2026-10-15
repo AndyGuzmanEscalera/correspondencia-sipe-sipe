@@ -6,8 +6,10 @@ import 'package:flutter_test/flutter_test.dart';
 class _Api extends Fake implements SystemSettingsAdminApi {
   String? saved;
   String? savedText;
+  String? savedEmail;
   bool fail = false;
   final response = const InstitutionalSettingsResponse(
+      institutionalEmail: 'contacto@sipesipe.gob.bo',
       mayorEmployeeId: 'employee-a',
       mayor: AuthorityEmployeeResponse(
           employeeId: 'employee-a',
@@ -25,10 +27,12 @@ class _Api extends Fake implements SystemSettingsAdminApi {
   Future<InstitutionalSettingsResponse> updateInstitutionalSettings(
       {required String? mayorEmployeeId,
       String? mayorDisplayName,
+      String? institutionalEmail,
       String? intakeUnitId,
       List<String>? initialRecipientEmployeeIds}) async {
     saved = mayorEmployeeId;
     savedText = mayorDisplayName;
+    savedEmail = institutionalEmail;
     if (fail) throw ValidationException('Funcionario inactivo');
     return response;
   }
@@ -48,6 +52,19 @@ void main() {
         mayorEmployeeId: 'employee-a', mayorDisplayName: 'Texto institucional');
     expect(api.saved, 'employee-a');
     expect(api.savedText, 'Texto institucional');
+  });
+  test('repository mapea correo y transporta cambio o borrado', () async {
+    final api = _Api();
+    final repository = SystemSettingsAdminRepository(api: api);
+    final settings =
+        (await repository.getInstitutionalSettings()).valueOrNull()!;
+    expect(settings.institutionalEmail, 'contacto@sipesipe.gob.bo');
+    await repository.updateInstitutionalSettings(
+        mayorEmployeeId: null, institutionalEmail: 'nuevo@sipesipe.gob.bo');
+    expect(api.savedEmail, 'nuevo@sipesipe.gob.bo');
+    await repository.updateInstitutionalSettings(
+        mayorEmployeeId: null, institutionalEmail: '');
+    expect(api.savedEmail, '');
   });
   test('repository traduce rechazo de configuración a ValidationFailure',
       () async {

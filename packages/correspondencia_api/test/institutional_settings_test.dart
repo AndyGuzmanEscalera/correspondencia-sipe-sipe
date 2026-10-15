@@ -57,6 +57,28 @@ void main() {
         adapter.request!.data, {"mayor_display_name": "Fredy Patzi Barrios"});
     dio.close();
   });
+  test('correo se deserializa y puede enviarse o limpiarse sin afectar omision',
+      () async {
+    final adapter = _Adapter()
+      ..body = {'institutional_email': 'contacto@sipesipe.gob.bo'};
+    final dio = Dio(BaseOptions(baseUrl: 'http://localhost'))
+      ..httpClientAdapter = adapter;
+    final api = SystemSettingsAdminApi(mainApi: ApiMethod(dio: dio));
+    final loaded = await api.getInstitutionalSettings();
+    expect(loaded.institutionalEmail, 'contacto@sipesipe.gob.bo');
+    expect(
+        InstitutionalSettingsResponse.fromJson(loaded.toJson())
+            .institutionalEmail,
+        loaded.institutionalEmail);
+    for (final email in ['nuevo@sipesipe.gob.bo', '']) {
+      await api.updateInstitutionalSettings(
+          mayorEmployeeId: null, institutionalEmail: email);
+      expect(adapter.request!.data['institutional_email'], email);
+    }
+    expect(
+        InstitutionalSettingsResponse.fromJson({}).institutionalEmail, isNull);
+    dio.close();
+  });
   test('catálogo de autoridad usa endpoint de settings', () async {
     final adapter = _Adapter()
       ..body = [

@@ -12,7 +12,7 @@ from app.modules.organization.organizational_unit import OrganizationalUnit
 from app.modules.correspondence.creation_policy import (
     configured_creation_ids, INTAKE_UNIT_KEY, INITIAL_RECIPIENTS_KEY,
 )
-from app.modules.system.constants import INSTITUTIONAL_MAYOR_DISPLAY_NAME, INSTITUTIONAL_MAYOR_EMPLOYEE_ID
+from app.modules.system.constants import INSTITUTIONAL_MAYOR_DISPLAY_NAME, INSTITUTIONAL_MAYOR_EMPLOYEE_ID, INSTITUTIONAL_EMAIL
 from app.modules.correspondence.institutional_mayor import resolve_employee_authority, resolve_institutional_mayor, list_active_authorities
 from app.modules.system.schemas import (
     InstitutionalSettingsResponse,
@@ -49,7 +49,9 @@ class SystemSettingsService:
         recipients = [AuthorityEmployeeResponse(**asdict(item))
                       for item in list_active_authorities(self._db)
                       if item.employee_id in recipient_ids]
+        email_row = self._db.get(SystemSetting, INSTITUTIONAL_EMAIL)
         return InstitutionalSettingsResponse(
+            institutional_email=email_row.value if email_row else None,
             intake_unit_id=intake_id,
             intake_unit_name=intake.name if intake else None,
             initial_recipient_employee_ids=recipient_ids,
@@ -114,6 +116,17 @@ class SystemSettingsService:
             else:
                 selection.value = str(body.mayor_employee_id)
                 selection.updated_by_user_id = user.id
+        if "institutional_email" in body.model_fields_set:
+            row = self._db.get(SystemSetting, INSTITUTIONAL_EMAIL)
+            if body.institutional_email is None:
+                if row is not None:
+                    self._db.delete(row)
+            elif row is None:
+                self._db.add(SystemSetting(key=INSTITUTIONAL_EMAIL,
+                    value=body.institutional_email, updated_by_user_id=user.id))
+            else:
+                row.value = body.institutional_email
+                row.updated_by_user_id = user.id
         if "mayor_display_name" not in body.model_fields_set:
             self._db.commit()
             return self.get_institutional_settings()

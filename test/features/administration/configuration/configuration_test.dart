@@ -6,6 +6,7 @@ import 'package:correspondencia_sipe_sipe/features/app/cubit/app_session_cubit.d
 import 'package:correspondencia_sipe_sipe/features/administration/configuration/cubit/configuration_cubit.dart';
 import 'package:correspondencia_sipe_sipe/features/administration/configuration/views/configuration_page.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/form/app_dropdown.dart';
+import 'package:correspondencia_sipe_sipe/shared/widgets/form/app_text_field.dart';
 import 'package:failures/failures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -22,9 +23,13 @@ class _Auth extends Fake implements AuthenticationRepository {}
 
 class _Settings extends Fake implements SystemSettingsAdminRepository {
   Result<InstitutionalSettings, Failure> result = const Ok(
-      InstitutionalSettings(mayorEmployeeId: 'employee-a', mayor: _authority));
+      InstitutionalSettings(
+          mayorEmployeeId: 'employee-a',
+          mayor: _authority,
+          institutionalEmail: 'actual@sipesipe.gob.bo'));
   String? saved;
   String? savedText;
+  String? savedEmail;
   List<String>? savedRecipients;
   int calls = 0;
   int candidateCalls = 0;
@@ -46,16 +51,19 @@ class _Settings extends Fake implements SystemSettingsAdminRepository {
   Future<Result<InstitutionalSettings, Failure>> updateInstitutionalSettings(
       {required String? mayorEmployeeId,
       String? mayorDisplayName,
+      String? institutionalEmail,
       String? intakeUnitId,
       List<String>? initialRecipientEmployeeIds}) async {
     calls++;
     saved = mayorEmployeeId;
     savedText = mayorDisplayName;
+    savedEmail = institutionalEmail;
     savedRecipients = initialRecipientEmployeeIds;
     if (result is Err) return result;
     return Ok(InstitutionalSettings(
         mayorEmployeeId: mayorEmployeeId,
         mayor: _authority,
+        institutionalEmail: institutionalEmail,
         mayorDisplayName: mayorDisplayName));
   }
 }
@@ -86,21 +94,69 @@ Future<void> _pump(WidgetTester tester, _Settings repository,
 }
 
 void main() {
-  testWidgets('selecciona dos receptores desde el buscador y los guarda', (tester) async {
-    const second = AuthorityEmployee(employeeId: 'employee-b', employeeName: 'Receptor Prueba B',
-      positionName: 'Secretaría', unitName: 'Despacho');
+  testWidgets(
+      'correo institucional carga valor existente y guarda cambios con trim',
+      (tester) async {
+    final repository = _Settings();
+    await _pump(tester, repository);
+    final email = find.byKey(const Key('institutional-email'));
+    expect(tester.widget<TextFormField>(email).controller!.text,
+        'actual@sipesipe.gob.bo');
+    await tester.ensureVisible(email);
+    await tester.enterText(email, '  nuevo@sipesipe.gob.bo  ');
+    await tester.ensureVisible(find.text('Guardar'));
+    await tester.tap(find.text('Guardar'));
+    await tester.pumpAndSettle();
+    expect(repository.savedEmail, 'nuevo@sipesipe.gob.bo');
+    expect(find.text('COMUNICACIONES'), findsOneWidget);
+  });
+
+  testWidgets('correo invalido impide guardar y vacio esta permitido',
+      (tester) async {
+    final repository = _Settings();
+    await _pump(tester, repository);
+    final email = find.byKey(const Key('institutional-email'));
+    await tester.ensureVisible(email);
+    await tester.enterText(email, 'correo invalido');
+    await tester.ensureVisible(find.text('Guardar'));
+    await tester.tap(find.text('Guardar'));
+    await tester.pumpAndSettle();
+    expect(repository.calls, 0);
+    expect(find.text('Ingrese un correo institucional válido'), findsOneWidget);
+    await tester.ensureVisible(email);
+    await tester.enterText(email, '');
+    await tester.ensureVisible(find.text('Guardar'));
+    await tester.tap(find.text('Guardar'));
+    await tester.pumpAndSettle();
+    expect(repository.savedEmail, '');
+  });
+
+  testWidgets('selecciona dos receptores desde el buscador y los guarda',
+      (tester) async {
+    const second = AuthorityEmployee(
+        employeeId: 'employee-b',
+        employeeName: 'Receptor Prueba B',
+        positionName: 'Secretaría',
+        unitName: 'Despacho');
     final repository = _Settings()..candidates = const [_authority, second];
     await _pump(tester, repository);
     for (final employee in repository.candidates) {
-      final dropdown = find.byWidgetPredicate((widget) => widget is AppDropdown<AuthorityEmployee> && widget.label == 'Receptores iniciales de Alcaldía');
-      final search = find.descendant(of: dropdown, matching: find.byIcon(Icons.search_rounded));
-      await tester.ensureVisible(search); await tester.tap(search); await tester.pumpAndSettle();
-      await tester.tap(find.text(employee.employeeName).last); await tester.pumpAndSettle();
+      final dropdown = find.byWidgetPredicate((widget) =>
+          widget is AppDropdown<AuthorityEmployee> &&
+          widget.label == 'Receptores iniciales de Alcaldía');
+      final search = find.descendant(
+          of: dropdown, matching: find.byIcon(Icons.search_rounded));
+      await tester.ensureVisible(search);
+      await tester.tap(search);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(employee.employeeName).last);
+      await tester.pumpAndSettle();
     }
     expect(find.byType(InputChip), findsNWidgets(2));
-    await tester.ensureVisible(find.text('Guardar')); await tester.tap(find.text('Guardar'));
+    await tester.ensureVisible(find.text('Guardar'));
+    await tester.tap(find.text('Guardar'));
     await tester.pumpAndSettle();
-    expect(repository.savedRecipients, ['employee-a','employee-b']);
+    expect(repository.savedRecipients, ['employee-a', 'employee-b']);
   });
 
   testWidgets('texto y funcionario se muestran y guardan por separado',
@@ -108,7 +164,12 @@ void main() {
     final repository = _Settings();
     await _pump(tester, repository);
     await tester.enterText(
-        find.byType(TextFormField).last, '  Fredy Patzi Barrios  ');
+        find.descendant(
+            of: find.byWidgetPredicate((w) =>
+                w is AppTextField &&
+                w.label == 'Texto de la Máxima Autoridad para documentos'),
+            matching: find.byType(TextFormField)),
+        '  Fredy Patzi Barrios  ');
     await tester.ensureVisible(find.text('Guardar'));
     await tester.tap(find.text('Guardar'));
     await tester.pumpAndSettle();

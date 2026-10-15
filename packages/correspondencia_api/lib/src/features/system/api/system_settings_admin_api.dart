@@ -29,6 +29,7 @@ class SystemSettingsAdminApi {
   Future<InstitutionalSettingsResponse> updateInstitutionalSettings({
     required String? mayorEmployeeId,
     String? mayorDisplayName,
+    String? institutionalEmail,
     String? intakeUnitId,
     List<String>? initialRecipientEmployeeIds,
   }) async {
@@ -37,8 +38,11 @@ class SystemSettingsAdminApi {
       data: {
         'mayor_employee_id': mayorEmployeeId,
         if (mayorDisplayName != null) 'mayor_display_name': mayorDisplayName,
+        if (institutionalEmail != null)
+          'institutional_email': institutionalEmail,
         if (intakeUnitId != null) 'intake_unit_id': intakeUnitId,
-        if (initialRecipientEmployeeIds != null) 'initial_recipient_employee_ids': initialRecipientEmployeeIds,
+        if (initialRecipientEmployeeIds != null)
+          'initial_recipient_employee_ids': initialRecipientEmployeeIds,
       },
       operation: 'systemSettings.updateInstitutional',
     );
@@ -56,7 +60,8 @@ class SystemSettingsAdminApi {
   }
 
   Future<List<OrganizationalUnitResponse>> getIntakeUnits() async {
-    final rows = await _mainApi.getList('/admin/system-settings/intake-units', operation: 'systemSettings.intakeUnits');
+    final rows = await _mainApi.getList('/admin/system-settings/intake-units',
+        operation: 'systemSettings.intakeUnits');
     return rows.map(OrganizationalUnitResponse.fromJson).toList();
   }
 }

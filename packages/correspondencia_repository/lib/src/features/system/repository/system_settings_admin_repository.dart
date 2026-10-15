@@ -16,6 +16,7 @@ class SystemSettingsAdminRepository {
           documentNumber: item.documentNumber);
   static InstitutionalSettings _settings(InstitutionalSettingsResponse item) =>
       InstitutionalSettings(
+          institutionalEmail: item.institutionalEmail,
           intakeUnitId: item.intakeUnitId,
           intakeUnitName: item.intakeUnitName,
           initialRecipientEmployeeIds: item.initialRecipientEmployeeIds,
@@ -45,11 +46,13 @@ class SystemSettingsAdminRepository {
   Future<Result<InstitutionalSettings, Failure>> updateInstitutionalSettings({
     required String? mayorEmployeeId,
     String? mayorDisplayName,
+    String? institutionalEmail,
     String? intakeUnitId,
     List<String>? initialRecipientEmployeeIds,
   }) =>
       handleExceptions(
           () async => _settings(await _api.updateInstitutionalSettings(
+              institutionalEmail: institutionalEmail,
               mayorEmployeeId: mayorEmployeeId,
               intakeUnitId: intakeUnitId,
               initialRecipientEmployeeIds: initialRecipientEmployeeIds,
@@ -57,7 +60,12 @@ class SystemSettingsAdminRepository {
           feature: 'systemSettings',
           operation: 'updateInstitutionalSettings');
 
-  Future<Result<List<OrganizationalUnit>, Failure>> getIntakeUnits() => handleExceptions(
-      () async => (await _api.getIntakeUnits()).map((x) => OrganizationalUnit(id: x.id, code: x.code, name: x.name)).toList(),
-      feature: 'systemSettings', operation: 'getIntakeUnits');
+  Future<Result<List<OrganizationalUnit>, Failure>> getIntakeUnits() =>
+      handleExceptions(
+          () async => (await _api.getIntakeUnits())
+              .map((x) =>
+                  OrganizationalUnit(id: x.id, code: x.code, name: x.name))
+              .toList(),
+          feature: 'systemSettings',
+          operation: 'getIntakeUnits');
 }

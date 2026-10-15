@@ -62,14 +62,18 @@ class ConfigurationCubit extends Cubit<ConfigurationState> {
   }
 
   void selectIntakeUnit(String id) => emit(state.copyWith(intakeUnitId: id));
-  void addRecipient(String id) => emit(state.copyWith(recipientIds: {...state.recipientIds, id}.toList()));
-  void removeRecipient(String id) => emit(state.copyWith(recipientIds: state.recipientIds.where((x) => x != id).toList()));
+  void addRecipient(String id) =>
+      emit(state.copyWith(recipientIds: {...state.recipientIds, id}.toList()));
+  void removeRecipient(String id) => emit(state.copyWith(
+      recipientIds: state.recipientIds.where((x) => x != id).toList()));
 
-  Future<void> save({String? mayorDisplayName}) async {
+  Future<void> save(
+      {String? mayorDisplayName, String? institutionalEmail}) async {
     if (!state.loaded || state.generalStatus == GeneralStatus.loading) return;
     emit(state.copyWith(
         generalStatus: GeneralStatus.loading, clearDialogMessage: true));
     final result = await _repository.updateInstitutionalSettings(
+        institutionalEmail: institutionalEmail?.trim(),
         mayorEmployeeId:
             state.selectedEmployeeId.isEmpty ? null : state.selectedEmployeeId,
         mayorDisplayName: mayorDisplayName?.trim() ?? '',
@@ -87,6 +91,6 @@ class ConfigurationCubit extends Cubit<ConfigurationState> {
         dialogMessage: const DialogMessage(
             title: 'Configuración guardada',
             message:
-                'La autoridad institucional se aplicará a los nuevos documentos EDIE.')));
+                'La configuración institucional se guardó correctamente.')));
   }
 }

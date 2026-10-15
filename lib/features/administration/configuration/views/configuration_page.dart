@@ -49,6 +49,7 @@ class ConfigurationBody extends StatefulWidget {
 }
 
 class _ConfigurationBodyState extends State<ConfigurationBody> {
+  final _emailController = TextEditingController();
   final _displayNameController = ControllerFieldPro();
   final _employeeController = ControllerFieldDropdown<AuthorityEmployee>();
   final _intakeController = ControllerFieldDropdown<String>();
@@ -57,6 +58,7 @@ class _ConfigurationBodyState extends State<ConfigurationBody> {
   InstitutionalSettings? _appliedSettings;
   @override
   void dispose() {
+    _emailController.dispose();
     _displayNameController.dispose();
     _employeeController.dispose();
     _intakeController.dispose();
@@ -105,6 +107,8 @@ class _ConfigurationBodyState extends State<ConfigurationBody> {
                 if (state.loaded && state.settings != _appliedSettings) {
                   _displayNameController
                       .setValue(state.settings.mayorDisplayName ?? '');
+                  _emailController.text =
+                      state.settings.institutionalEmail ?? '';
                   _appliedSettings = state.settings;
                 }
                 if (state.intakeUnitId.isNotEmpty) {
@@ -262,25 +266,68 @@ class _ConfigurationBodyState extends State<ConfigurationBody> {
                                   const Text(
                                       'Este texto es necesario para registrar nuevos documentos EDIE. Los documentos históricos conservan su texto original.'),
                                   const SizedBox(height: 20),
+                                  const Divider(),
+                                  const SizedBox(height: 16),
+                                  Text('COMUNICACIONES',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleSmall),
+                                  const SizedBox(height: 16),
+                                  TextFormField(
+                                    key: const Key('institutional-email'),
+                                    controller: _emailController,
+                                    keyboardType: TextInputType.emailAddress,
+                                    maxLength: 254,
+                                    readOnly: !canManage ||
+                                        !state.loaded ||
+                                        state.generalStatus ==
+                                            GeneralStatus.loading,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Correo institucional',
+                                      helperText:
+                                          'Correo institucional utilizado como referencia para comunicaciones del sistema.',
+                                      helperMaxLines: 3,
+                                      border: OutlineInputBorder(),
+                                    ),
+                                    validator: (value) {
+                                      final email = value?.trim() ?? '';
+                                      if (email.isEmpty) return null;
+                                      final parts = email.split('@');
+                                      if (email.length > 254 ||
+                                          parts.length != 2 ||
+                                          parts.first.length > 64 ||
+                                          !RegExp(r"^[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+)*$")
+                                              .hasMatch(parts.first) ||
+                                          !RegExp(r'^(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,63}$')
+                                              .hasMatch(parts.last)) {
+                                        return 'Ingrese un correo institucional válido';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                  const SizedBox(height: 20),
                                   if (canManage)
                                     Align(
                                         alignment: Alignment.centerRight,
                                         child: FilledButton.icon(
-                                            onPressed: state.loaded &&
-                                                    state.generalStatus !=
-                                                        GeneralStatus.loading
-                                                ? () {
-                                                    if (!_formKey.currentState!
-                                                        .validate()) return;
-                                                    context
-                                                        .read<
-                                                            ConfigurationCubit>()
-                                                        .save(
+                                            onPressed:
+                                                state.loaded &&
+                                                        state.generalStatus !=
+                                                            GeneralStatus
+                                                                .loading
+                                                    ? () {
+                                                        if (!_formKey
+                                                            .currentState!
+                                                            .validate()) return;
+                                                        context.read<ConfigurationCubit>().save(
+                                                            institutionalEmail:
+                                                                _emailController
+                                                                    .text,
                                                             mayorDisplayName:
                                                                 _displayNameController
                                                                     .getValue());
-                                                  }
-                                                : null,
+                                                      }
+                                                    : null,
                                             icon:
                                                 const Icon(Icons.save_outlined),
                                             label: const Text('Guardar')))

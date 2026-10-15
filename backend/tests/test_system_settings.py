@@ -131,3 +131,47 @@ def test_migration_is_additive_idempotent(db, monkeypatch):
         holders = db.scalars(select(Role.code).join(RolePermission).where(RolePermission.permission_id == pid)).all()
         assert "ADMIN" in holders
         assert "MANAGER" not in holders and "OPERATOR" not in holders
+
+
+def test_institutional_email_persistence_update_trim_and_omission(client, db, user, auth_headers):
+    from app.modules.system.system_setting import SystemSetting
+    from app.modules.system.constants import INSTITUTIONAL_EMAIL
+    _grant_system_settings(db, user)
+    endpoint = "/admin/system-settings/institutional"
+    for raw, expected in [("contacto@sipesipe.gob.bo", "contacto@sipesipe.gob.bo"),
+                          ("  nueva@sipesipe.gob.bo  ", "nueva@sipesipe.gob.bo")]:
+        response = client.put(endpoint, headers=auth_headers, json={"institutional_email": raw})
+        assert response.status_code == 200, response.text
+        assert response.json()["institutional_email"] == expected
+        assert client.get(endpoint, headers=auth_headers).json()["institutional_email"] == expected
+        db.expire_all()
+        assert db.get(SystemSetting, INSTITUTIONAL_EMAIL).value == expected
+    response = client.put(endpoint, headers=auth_headers, json={"mayor_display_name": "Autoridad"})
+    assert response.json()["institutional_email"] == "nueva@sipesipe.gob.bo"
+
+
+import pytest
+
+
+@pytest.mark.parametrize("value", [None, "", "   "])
+def test_institutional_email_can_be_cleared(client, db, user, auth_headers, value):
+    _grant_system_settings(db, user)
+    endpoint = "/admin/system-settings/institutional"
+    assert client.put(endpoint, headers=auth_headers,
+        json={"institutional_email": "contacto@sipesipe.gob.bo"}).status_code == 200
+    response = client.put(endpoint, headers=auth_headers, json={"institutional_email": value})
+    assert response.status_code == 200, response.text
+    assert response.json()["institutional_email"] is None
+    assert client.get(endpoint, headers=auth_headers).json()["institutional_email"] is None
+
+
+@pytest.mark.parametrize("value", ["incorrecto", "a@", "@example.com", "a b@example.com",
+    "a..b@example.com", "a@-dominio.com", "a@example..com", "a" * 65 + "@example.com",
+    "a@" + "b" * 250 + ".bo"])
+def test_institutional_email_invalid_rejected(client, db, user, auth_headers, value):
+    _grant_system_settings(db, user)
+    endpoint = "/admin/system-settings/institutional"
+    client.put(endpoint, headers=auth_headers, json={"institutional_email": "previo@sipesipe.gob.bo"})
+    response = client.put(endpoint, headers=auth_headers, json={"institutional_email": value})
+    assert response.status_code == 422, response.text
+    assert client.get(endpoint, headers=auth_headers).json()["institutional_email"] == "previo@sipesipe.gob.bo"
