@@ -10,7 +10,7 @@ Sin push ni deploy. No usar el árbol local con WIP de Turnos/RR.HH./Website com
 - `correspondence.create` en roles activos para creadores; `Position.can_view_unit_correspondence` para el lector de unidad. Read/manage de maestros y settings según tarea; roles.assign sólo para asignación de roles.
 - **Antes de probar Ventanilla:** entrar a Datos básicos → Institucional con permiso manage; seleccionar la unidad de Ventanilla, abrir “Receptores iniciales de Alcaldía”, buscar y seleccionar uno o varios funcionarios y guardar. Para los dos secretarios, seleccionar ambos. Verificar al volver a abrir que ambos permanecen seleccionados. Cada receptor necesita funcionario, cargo, unidad y usuario vinculados activos. No elegir personas por nombres de rol ni copiar IDs del smoke.
 - Esa UI guarda `institutional.intake_unit_id`, `institutional.initial_recipient_employee_ids` y `institutional.mayor_display_name`. Sin receptores configurados, crear desde Ventanilla devuelve 422 con un mensaje claro y no consume numeración ni crea movimientos. La autoridad documental no es ownership operativo; no se insertaron personas reales ni IDs fijos en migraciones.
-- Build con `API_BASE_URL=/api`. Proxy elimina /api; adaptar cookie a /api/auth mediante proxy (Apache ya preparado) o COOKIE_PATH equivalente. Comprobar refresh tras recarga y logout en ese entorno.
+- Web release usa `/api` automáticamente; script QA define APP_ENV=qa. Backend COOKIE_PATH=/auth; Apache elimina /api y reescribe la cookie a /api/auth. No configurar el prefijo público también en backend. Ver [contrato API/CORS](API_NETWORK_ARCHITECTURE.md). Comprobar refresh tras recarga y logout.
 
 ## Escenarios y resultados esperados
 
@@ -200,3 +200,18 @@ Base e7f50aa en develop. El usuario aportó ocho PNG oficiales y registró asset
 - Evidencia local no versionada: %TEMP%/codex-branding-qa-20261015. Credencial sintética privada no incluida en commits. Originales verificados por SHA256 después de la integración.
 
 No quedan logos provisionales en las superficies revisadas. Las variantes no usadas de identidad permanente están documentadas; los textos de gestión están solo en el respaldo externo. Pendiente aceptación visual del usuario. **No push ni deploy.**
+
+
+## API/CORS definitivo — 15/10/2026
+
+- DEV: ApiConfig localhost:8000 configurable, CORS exclusivamente localhost/127.0.0.1 HTTP(S) con cualquier puerto. Origins externos de env no amplían DEV. QA/production web usan /api; build release ignora overrides absolutos.
+- CORS externo QA/production vacío por defecto. Sin wildcard de origins con credenciales. Mantiene CORS en errores 500 seguros.
+- Cookies HttpOnly/Lax, backend Path=/auth; Apache real reescribe emisión y eliminación a /api/auth. Secure=false en DEV/QA HTTP; production exige Secure=true y HTTPS. Defaults env/Compose corregidos sin cambiar servicios, puertos, volúmenes ni PostgreSQL.
+- Backend completo: **341 passed**, 2 deprecations de dependencias; PostgreSQL 16 temporal aislado, nueva BD migrada a **g2b3c4d5e6f7**. Sin Turnos.
+- Flutter completo: **503 passed**. Paquete API: **26 passed**; Chrome contrato **2/2 DEV override, 2/2 QA, 2/2 production**. QA/production probados con override absoluto ficticio que debe ignorarse. Endpoints reales auth, dashboard, notificaciones, reportes CSV/XLSX/PDF y adjuntos, ambos Dio y sin /api/api.
+- Analyzer: **0 errors / 0 warnings / 98 infos** (exit 1 por infos preexistentes). git diff --check correcto.
+- Build `flutter build web --release` sin define de URL: correcto. Inspección de JS/JSON/HTML: sin IP LAN, sin http://localhost:8000, sin URL absoluta de IP fija; /api presente en main.dart.js.
+- Chrome DEV: **6/6 PASS**, login UI, cookie HttpOnly/Lax Path=/auth, refresh/me, CORS exact-origin con credentials, F5 recupera sesión, logout elimina cookie; sin errores JS ni prefijo duplicado.
+- Chrome QA: **6/6 PASS**, release servido por **Apache 2.4 real temporal**, backend APP_ENV=qa sin CORS externo, cookie pública Path=/api/auth, refresh/me y F5 correctos, logout elimina cookie; sin errores JS ni prefijo duplicado. Apache httpd -t: **Syntax OK**; /api/health JSON correcto. Reglas versionadas usadas en el harness, cambiando solo upstream interno a host.docker.internal:55450 por aislamiento.
+- Los puertos habituales 5000 y 8000 estaban ocupados. No se ejecutó literalmente flutter run -d chrome --web-port 5000 contra localhost:8000. Se sirvió DEV con flutter run -d web-server en localhost:5001 y override DEV localhost:55450; Playwright controló Chrome instalado. QA usó 127.0.0.1:55451 con Apache. Usuarios, BD y almacenamiento ficticios aislados. No se alteraron los servicios habituales ni sus datos.
+- No se probó TLS real del servidor: Secure production cubierto por tests de settings y Set-Cookie. No acceso Debian, push ni deploy. Evidencia local temporal: codex-network-qa-20261015 (logs, screenshots, resultados smoke y scan del build); credenciales ficticias fuera del repositorio.

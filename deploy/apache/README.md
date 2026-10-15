@@ -1,8 +1,8 @@
-# Demo Flutter con Apache y API en /api
+# Flutter QA/producción con Apache y API same-origin
 
-Desarrollo conserva el default `http://localhost:8000`. La demo sirve Flutter en
-la raiz del sitio y usa `API_BASE_URL=/api`, relativo al mismo origen. No se cambia
-ApiConfig, Docker Compose, PostgreSQL ni el flujo de autenticacion.
+Contrato oficial: [API_NETWORK_ARCHITECTURE](../../docs/API_NETWORK_ARCHITECTURE.md).
+DEV usa localhost:8000 configurable; web release y QA/production usan siempre /api.
+No fijar IP LAN, hostname ni IP externa del Debian en Flutter.
 
 ## Build local
 
@@ -13,10 +13,10 @@ Desde la raiz del repositorio:
 ```
 
 El script ejecuta `flutter pub get` y
-`flutter build web --release --dart-define=API_BASE_URL=/api`, se detiene si falla
+`flutter build web --release --dart-define=APP_ENV=qa`, se detiene si falla
 un comando y restaura el directorio de trabajo. Genera `build/web`; no copia
-archivos al servidor ni configura servicios. Ese build usa /api: para volver a
-generar uno local, compilar sin el define.
+archivos al servidor ni configura servicios. Todo build web release usa /api automáticamente. Para desarrollo directo
+utilizar flutter run en debug.
 
 ## Pruebas de configuracion
 
@@ -24,11 +24,12 @@ Desde `packages/correspondencia_api`:
 
 ```powershell
 flutter test test/api_config_test.dart
-flutter test --platform chrome --web-renderer html --dart-define=API_BASE_URL=/api test/api_config_test.dart
+flutter test --platform chrome --web-renderer html --dart-define=APP_ENV=qa test/api_config_test.dart
+flutter test --platform chrome --web-renderer html --dart-define=APP_ENV=production test/api_config_test.dart
 ```
 
-La segunda prueba usa Chrome con renderer HTML del SDK actual para la URL relativa.
-Ambas verifican
+Las pruebas web usan Chrome con renderer HTML del SDK actual para la URL relativa.
+Todas verifican
 ApiConfig, las bases de los clientes principal y refresh, las rutas auth y
 correspondencia y `withCredentials`. No verifican una cookie real ni Apache.
 
@@ -70,11 +71,10 @@ Referencia: [Apache mod_proxy](https://httpd.apache.org/docs/2.4/mod/mod_proxy.h
 
 ## Limites y riesgos
 
-Este VirtualHost es una demo HTTP. Una cookie Secure requiere HTTPS; para
-publicacion con datos reales se necesita un VirtualHost TLS y revisar sus
-valores de cookie. No cambies COOKIE_PATH a /api/auth en el backend con esta
+Este VirtualHost es QA HTTP (APP_ENV=qa, COOKIE_SECURE=false). Para
+producción usar un VirtualHost TLS con estas mismas reglas, APP_ENV=production
+y COOKIE_SECURE=true (predeterminado en production; false se rechaza). No cambies COOKIE_PATH a /api/auth en el backend con esta
 regla: el prefijo publico lo agrega Apache.
 
 El build incluye el working tree actual; los pendientes funcionales existentes
-no quedan validados por estas pruebas. La validacion real de Apache y de cookies
-en navegador requiere instalar y probar en el servidor.
+no quedan validados por estas pruebas. La validación en el servidor permanece pendiente hasta un deploy autorizado.
