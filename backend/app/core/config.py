@@ -1,7 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -61,21 +61,41 @@ class Settings(BaseSettings):
 
     cookie_name: str = Field(default="refresh_token")
     cookie_path: str = Field(default="/auth")
-    cookie_secure: bool = Field(default=False)
+    cookie_secure: bool | None = Field(default=None)
     cookie_samesite: str = Field(default="lax")
 
     @property
     def cors_origins_list(self) -> list[str]:
+        if self.app_env.lower() == "development":
+            return []  # DEV permits loopback only, irrespective of external env overrides.
         return [o.strip() for o in self.cors_allow_origins.split(",") if o.strip()]
 
     @property
     def effective_cors_origin_regex(self) -> str | None:
-        """Dev: localhost/127.0.0.1 on any port (Flutter Web hostname varies)."""
-        if self.cors_allow_origin_regex.strip():
-            return self.cors_allow_origin_regex.strip()
+        """DEV is loopback-only; QA/PROD need no CORS with Apache /api."""
         if self.app_env.lower() == "development":
-            return r"https?://(localhost|127\.0\.0\.1)(:\d+)?"
-        return None
+            return r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$"
+        return self.cors_allow_origin_regex.strip() or None
+
+    @field_validator("cookie_secure", mode="before")
+    @classmethod
+    def _empty_cookie_secure(cls, value):
+        return None if value == "" else value
+
+    @model_validator(mode="after")
+    def _validate_network_settings(self):
+        self.app_env = self.app_env.strip().lower()
+        if self.app_env not in {"development", "qa", "production"}:
+            raise ValueError("APP_ENV must be development, qa or production")
+        if self.cookie_secure is None:
+            self.cookie_secure = self.app_env == "production"
+        if self.app_env == "production" and not self.cookie_secure:
+            raise ValueError("Production requires HTTPS and COOKIE_SECURE=true")
+        if self.cookie_samesite == "none" and not self.cookie_secure:
+            raise ValueError("SameSite=None requires COOKIE_SECURE=true")
+        if self.cors_allow_credentials and "*" in self.cors_origins_list:
+            raise ValueError("Wildcard CORS origins cannot be used with credentials")
+        return self
 
     @property
     def max_attachment_size_bytes(self) -> int:

@@ -1,8 +1,8 @@
 from fastapi import Depends, FastAPI, status
-from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app.core.cors import configure_cors
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.error_middleware import SafeErrorMiddleware
@@ -38,21 +38,8 @@ app = FastAPI(
 
 app.add_middleware(SafeErrorMiddleware)
 
-origins = settings.cors_origins_list
-origin_regex = settings.effective_cors_origin_regex
-if origins or origin_regex:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=origins,
-        allow_origin_regex=origin_regex,
-        allow_credentials=settings.cors_allow_credentials,
-        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-        allow_headers=["*"] if settings.app_env.lower() == "development" else [
-            "Content-Type",
-            "Authorization",
-            "Accept",
-        ],
-    )
+# CORS remains outside SafeErrorMiddleware, including safe 500 responses.
+configure_cors(app, settings)
 
 app.include_router(insights_router)
 app.include_router(notifications_router)

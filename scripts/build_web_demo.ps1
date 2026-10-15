@@ -11,7 +11,7 @@ try {
         throw "flutter pub get fallo (codigo $LASTEXITCODE)."
     }
 
-    flutter build web --release --dart-define=API_BASE_URL=/api
+    flutter build web --release --dart-define=APP_ENV=qa
     if ($LASTEXITCODE -ne 0) {
         throw "flutter build web fallo (codigo $LASTEXITCODE)."
     }

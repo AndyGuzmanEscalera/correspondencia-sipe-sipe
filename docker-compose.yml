@@ -49,10 +49,11 @@ services:
       REFRESH_TOKEN_TTL_DAYS: ${REFRESH_TOKEN_TTL_DAYS:-7}
       COOKIE_NAME: ${COOKIE_NAME:-refresh_token}
       COOKIE_PATH: ${COOKIE_PATH:-/auth}
-      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      # Empty selects the environment default (production requires HTTPS).
+      COOKIE_SECURE: ${COOKIE_SECURE:-}
       COOKIE_SAMESITE: ${COOKIE_SAMESITE:-lax}
       APP_ENV: ${APP_ENV:-development}
-      CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS:-http://localhost:5000,http://127.0.0.1:5000}
+      CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS:-}
       CORS_ALLOW_ORIGIN_REGEX: ${CORS_ALLOW_ORIGIN_REGEX:-}
       CORS_ALLOW_CREDENTIALS: ${CORS_ALLOW_CREDENTIALS:-true}
       STORAGE_ROOT: /app/storage
