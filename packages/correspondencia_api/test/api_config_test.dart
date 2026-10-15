@@ -1,14 +1,19 @@
 import 'package:correspondencia_api/correspondencia_api.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-// Ejecutar sin define para desarrollo y con /api en Chrome para la demo.
-const _isDemo = String.fromEnvironment('API_BASE_URL') == '/api';
+import 'package:flutter/foundation.dart';
 
 void main() {
-  const expectedBaseUrl = _isDemo ? '/api' : 'http://localhost:8000';
+  const sameOrigin = kIsWeb &&
+      (!kDebugMode ||
+          ApiConfig.environment == 'qa' ||
+          ApiConfig.environment == 'production');
+  const expectedBaseUrl = sameOrigin
+      ? '/api'
+      : String.fromEnvironment('API_BASE_URL',
+          defaultValue: 'http://localhost:8000');
 
-  test('ApiConfig usa el default local o el define demo /api', () {
+  test('ApiConfig selecciona DEV configurable o web QA/PROD same-origin', () {
     expect(ApiConfig.baseUrl, expectedBaseUrl);
   });
 
@@ -33,17 +38,29 @@ void main() {
       expect(client.options.baseUrl, expectedBaseUrl);
       expect(client.options.extra['withCredentials'], isTrue);
       for (final path in [
-        '/auth/login',
-        '/auth/refresh',
-        '/auth/logout',
-        '/auth/me',
-        '/correspondences',
+        Endpoints.authLogin,
+        Endpoints.authRefresh,
+        Endpoints.authLogout,
+        Endpoints.authMe,
+        Endpoints.correspondences,
+        Endpoints.dashboard,
+        Endpoints.notifications,
+        Endpoints.notificationCount,
+        Endpoints.notificationsReadAll,
+        Endpoints.notificationRead('example'),
+        Endpoints.reports,
+        Endpoints.reportExport,
+        Endpoints.reportExportXlsx,
+        Endpoints.reportExportPdf,
+        Endpoints.correspondenceAttachments('example'),
+        Endpoints.correspondenceAttachmentDownload('example', 'file'),
       ]) {
         final request = Options().compose(
           client.options,
           path,
         );
         expect(request.uri.toString(), '$expectedBaseUrl$path');
+        expect(request.uri.path, isNot(contains('/api/api/')));
       }
     }
   });
