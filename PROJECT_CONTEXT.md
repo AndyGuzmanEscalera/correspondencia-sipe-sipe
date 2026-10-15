@@ -250,3 +250,12 @@ Sobre develop 300ede1, en el repo principal, sin tocar las ramas RRHH/Website. D
 Reportes conserva CSV y agrega exportaciones backend XLSX (openpyxl 3.1.5) y PDF (ReportLab existente). Rutas /reports/export.xlsx y /reports/export.pdf, mismo reports.view y filtros/visibilidad que la tabla. Metadatos institucionales, resumen y tabla sin UUID; XLSX con header congelado y strings seguros; PDF A4 horizontal multipágina con cabecera repetida y Página X de Y. Flutter ofrece los tres formatos con loading/Failure y filtros aplicados.
 
 Validación: backend 318, Flutter 498, API 26, repository 30, failures 4; analyzer 0 errors/0 warnings/98 infos; build web OK; Chrome 18/18 sin JS errors; archivos descargados abiertos y comparados (64 HR y filtro de una HR en los tres formatos; cero registros ajenos). PDF de 8 páginas renderizado y revisado. Alembic g2b3c4d5e6f7, sin migraciones nuevas. Más evidencia en docs/QA_CHECKLIST.md. Sin push ni deploy; pendiente revisión del usuario.
+
+
+### 15/10/2026 — Identidad oficial GAM Sipe Sipe
+
+Recursos oficiales aportados por el usuario integrados en assets/branding (procedencia en su README). Login/Dashboard: horizontal a color; compactos: escudo íntegro más texto; sidebar/drawer oscuro: horizontal blanco. Eliminados document-mark.svg, falsos logos account_balance de Login/Sidebar y gradiente de login. Favicon/PWA usan el escudo real. Verde oficial #08813A centralizado. Textos de gestión excluidos del runtime; originales y pubspec previo preservados con SHA256 en C:/dev/repo_backups/branding_originales_20261015.
+
+PDFs EDIE y Reportes usan PNG oficial empaquetado con backend, incluso en continuación; XLSX conserva texto institucional y alinea color. No cambian datos, filtros, seguridad, Cubits, API ni servicios. La identidad tipográfica/mark neutro documentada el 14/10 corresponde al estado anterior sin estos recursos y queda sustituida por la identidad oficial.
+
+Validación: Flutter 503, backend 321, afectados PDF 34; analyzer 0 errors/0 warnings/98 infos; build web OK; Chrome 13/13 sin errores JS; reportes PDF 9 páginas/64 HR y EDIE 1/2 páginas renderizados y revisados. Alembic g2b3c4d5e6f7 sin migración nueva. Sin push ni deploy; pendiente revisión del usuario.

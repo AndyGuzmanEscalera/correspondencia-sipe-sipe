@@ -177,3 +177,26 @@ Base: develop 300ede1, coincidente con origin/develop al iniciar. Trabajo en el 
 ### Revisión de QA pendiente
 
 Aceptación del usuario del diseño y validación con datos/perfiles del entorno QA cuando se autorice el deploy. Este lote no publica ni despliega. Se mantienen los 98 infos de estilo y las dos deprecaciones ya conocidas.
+
+
+## Identidad oficial GAM Sipe Sipe — 15/10/2026
+
+Base e7f50aa en develop. El usuario aportó ocho PNG oficiales y registró assets/images en pubspec; se preservaron esos originales y su pubspec previo en C:/dev/repo_backups/branding_originales_20261015 con SHA256. Se publican únicamente copias técnicas de identidad permanente en assets/branding. No hay gestión/autoridad fija en las imágenes productivas. Procedencia y variantes en assets/branding/README.md.
+
+- Retirado web/document-mark.svg y los iconos account_balance que actuaban como logos en Login/Sidebar. Los iconos funcionales de menú, campana, reportes, usuarios, etc. permanecen.
+- Login y Dashboard amplios: escudo oficial horizontal a color. Mobile: escudo compacto íntegro extraído de la variante vertical más nombre institucional y nombre del sistema. Sidebar/drawer: aplicación digital 02 blanca sobre fondo oscuro. Las variantes se muestran sin tint ni deformación; se comprobó transparencia sobre el fondo real. Se conservan también las variantes verticales y compacto blanco para futuras superficies justificadas.
+- Favicon/PWA: escudo oficial PNG a 32/192/512px. No se generan isotipos. Las imágenes de gestión quedan fuera de Flutter y backend. No se usan nombres/personas/gestión fijos como branding.
+- Verde #08813A extraído del wordmark oficial; blanco y neutros claros; estados siguen usando sus colores semánticos y etiquetas. Tokens centralizados en UiColors y branding.py. Se retira el gradiente de login, sin implementar dark mode ni rediseñar flujos. Botones, chips, formularios, dropdowns, tablas, AppDataGrid, paginación y diálogos heredan el mismo theme.
+- PDFs EDIE y Reportes: escudo oficial de alta calidad incluido dentro del paquete backend app/assets/branding; cabeceras también en páginas de continuación. Se elimina el recuadro genérico SIPE/SIPE del PDF documental y se usa el lema contenido en el recurso oficial. Se mantiene identificación institucional, tablas, datos, filtros, totales y paginación. XLSX conserva cabecera textual limpia y solo alinea el color. CSV no cambió.
+- Sin cambios a Cubits, permisos, visibilidad, ownership, métricas, notificaciones, flujo CREATED→DERIVED, rutas/API, servicios ni reglas de exportación. No nueva migración; head g2b3c4d5e6f7. Turnos/Website y scripts excluidos.
+
+### Validación final
+
+- **Flutter 503 PASS**, **backend 321 PASS**, cero fallos. Las pruebas backend afectadas (branding/EDIE/exportaciones) también pasaron: **34 PASS**. Dos deprecations backend conocidas de dependencias.
+- Analyzer **0 errors / 0 warnings / 98 infos** (exit 1 por infos). Build web local correcto. git diff --check correcto.
+- Nuevas pruebas verifican assets exactos, ausencia de tint, BoxFit.contain, semántica/alt y contraste AA; PDF con imagen en todas sus páginas y conservación de contenido. Se detectó y corrigió el prefijo hexadecimal requerido por ReportLab y se repitieron pruebas backend y smoke sobre la corrección.
+- Chrome/Playwright **13/13 PASS**, cero JS errors; solo usuarios y bases ficticios aislados. Capturas de Login desktop/mobile, Dashboard desktop/tablet/mobile, sidebar expandido, drawer cerrado y abierto, Reportes y Notificaciones. La aplicación no tiene rail plegable productivo: “colapsado” corresponde a sidebar oculto con botón Menú; no se agregó navegación nueva.
+- Reporte PDF descargado por la UI: **9 páginas**, **64 HR visibles**, sin registros privados; EDIE descargado por HTTP autenticado: 1 página; EDIE con ocho destinatarios: 2 páginas. Todos renderizados y revisados: escudo sin deformación/transparencia incorrecta, sin solapamientos ni cortes, cabeceras de continuación correctas. El mayor espacio de cabecera institucional modifica solo distribución de páginas, no datos.
+- Evidencia local no versionada: %TEMP%/codex-branding-qa-20261015. Credencial sintética privada no incluida en commits. Originales verificados por SHA256 después de la integración.
+
+No quedan logos provisionales en las superficies revisadas. Las variantes no usadas de identidad permanente están documentadas; los textos de gestión están solo en el respaldo externo. Pendiente aceptación visual del usuario. **No push ni deploy.**
