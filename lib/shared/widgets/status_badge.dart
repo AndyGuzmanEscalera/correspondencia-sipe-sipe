@@ -1,3 +1,4 @@
+import 'package:correspondencia_sipe_sipe/core/theme/ui_colors.dart';
 import 'package:correspondencia_sipe_sipe/core/theme/app_decorations.dart';
 import 'package:flutter/material.dart';
 
@@ -52,7 +53,7 @@ class StatusBadge extends StatelessWidget {
       return const _BadgeColors(Color(0xFFF1F5F9), Color(0xFF475569));
     }
     if (normalized.contains('envi')) {
-      return const _BadgeColors(Color(0xFFCCFBF1), Color(0xFF0F766E));
+      return const _BadgeColors(UiColors.primarySoft, UiColors.primary);
     }
     return const _BadgeColors(Color(0xFFD1FAE5), Color(0xFF047857));
   }

@@ -1,3 +1,4 @@
+import 'package:correspondencia_sipe_sipe/shared/widgets/official_logo.dart';
 import 'package:correspondencia_sipe_sipe/core/theme/app_decorations.dart';
 import 'package:correspondencia_sipe_sipe/core/theme/ui_colors.dart';
 import 'package:correspondencia_sipe_sipe/features/home/side_menu/cubit/side_menu_cubit.dart';
@@ -20,53 +21,17 @@ class SideMenuWidget extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 14),
-            child: Row(
-              children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: UiColors.primary.withOpacity(0.15),
-                    borderRadius: AppDecorations.borderRadiusMd,
-                    border:
-                        Border.all(color: UiColors.primary.withOpacity(0.35)),
-                  ),
-                  child: const Icon(
-                    Icons.account_balance_rounded,
-                    color: UiColors.primaryMuted,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'GAM SIPE SIPE',
-                        style:
-                            Theme.of(context).textTheme.titleSmall?.copyWith(
-                                  color: UiColors.textOnDark,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 0.3,
-                                ),
-                      ),
-                      const SizedBox(height: 2),
-                      const Text(
-                        'Correspondencia',
+          const Padding(
+              padding: EdgeInsets.fromLTRB(20, 20, 20, 14),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    OfficialLogo(white: true, width: 232),
+                    SizedBox(height: 10),
+                    Text('Correspondencia',
                         style: TextStyle(
-                          color: UiColors.textOnDarkMuted,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
+                            color: UiColors.textOnDark, fontSize: 12)),
+                  ])),
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
             child: Divider(color: Color(0xFF1E293B), height: 1),

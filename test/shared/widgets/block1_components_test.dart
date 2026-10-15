@@ -1,3 +1,4 @@
+import 'package:correspondencia_sipe_sipe/shared/widgets/official_logo.dart';
 import 'package:correspondencia_repository/correspondencia_repository.dart';
 import 'package:correspondencia_sipe_sipe/core/auth/permissions.dart';
 import 'package:correspondencia_sipe_sipe/core/presentation/widget/responsive_breakpoints.dart';
@@ -178,7 +179,7 @@ void main() {
         expect(find.byType(ListView), findsOneWidget);
 
         // Header branding
-        expect(find.text('GAM SIPE SIPE'), findsOneWidget);
+        expect(find.byType(OfficialLogo), findsOneWidget);
         expect(find.text('Correspondencia'), findsOneWidget);
 
         // Sections
@@ -256,7 +257,8 @@ void main() {
         // SectionHeader retains view-specific title and subtitle
         expect(find.text('Panel de control'), findsOneWidget);
         expect(
-          find.text('Visión general del flujo de correspondencia institucional'),
+          find.text(
+              'Visión general del flujo de correspondencia institucional'),
           findsOneWidget,
         );
       },

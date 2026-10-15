@@ -1,3 +1,4 @@
+import 'package:correspondencia_sipe_sipe/shared/widgets/official_logo.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/metric_tile.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/list_correspondence/cubit/correspondence_cubit.dart';
 import 'package:correspondencia_sipe_sipe/injection/injection_bloc.dart';
@@ -194,8 +195,7 @@ void main() {
           permissions: ['reports.view']);
       await cubit.init();
       await tester.pumpAndSettle();
-      expect(find.text('Gobierno Autónomo Municipal de Sipe Sipe'),
-          findsOneWidget);
+      expect(find.byType(OfficialLogo), findsOneWidget);
       expect(
           find.text('Sistema de Gestión de Correspondencia'), findsOneWidget);
       expect(find.text('Bienvenido/a, qa'), findsOneWidget);

@@ -1,3 +1,4 @@
+import 'package:correspondencia_sipe_sipe/shared/widgets/official_logo.dart';
 import 'package:correspondencia_sipe_sipe/core/auth/session_header_labels.dart';
 import 'package:correspondencia_repository/correspondencia_repository.dart'
     as repo;
@@ -50,30 +51,30 @@ class DashboardBody extends StatelessWidget {
         child: SingleChildScrollView(
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Container(
-          width: double.infinity,
-          padding: const EdgeInsets.only(left: 16, bottom: 4),
-          decoration: const BoxDecoration(
-              border:
-                  Border(left: BorderSide(color: UiColors.primary, width: 3))),
-          child:
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Gobierno Autónomo Municipal de Sipe Sipe',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleLarge
-                    ?.copyWith(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 4),
-            const Text('Sistema de Gestión de Correspondencia',
-                style: TextStyle(color: UiColors.textSecondary)),
-            const SizedBox(height: 12),
-            Text('Bienvenido/a, ${labels.primaryLine}',
-                style: const TextStyle(fontWeight: FontWeight.w600)),
-            if (labels.secondaryLine.isNotEmpty)
-              Text(labels.secondaryLine,
-                  style: const TextStyle(
-                      color: UiColors.textSecondary, fontSize: 13)),
-          ])),
+      LayoutBuilder(builder: (context, box) {
+        final compact = box.maxWidth < 680;
+        final information =
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          if (compact)
+            const Text(OfficialLogo.institution,
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+          Text(OfficialLogo.system,
+              style: TextStyle(
+                  fontSize: compact ? 13 : 17, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          Text('Bienvenido/a, ${labels.primaryLine}',
+              style: const TextStyle(fontSize: 13)),
+          if (labels.secondaryLine.isNotEmpty)
+            Text(labels.secondaryLine,
+                style: const TextStyle(
+                    color: UiColors.textSecondary, fontSize: 12)),
+        ]);
+        return Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+          OfficialLogo(compact: compact, width: compact ? 48 : 310),
+          SizedBox(width: compact ? 12 : 28),
+          Expanded(child: information),
+        ]);
+      }),
       const SizedBox(height: 20),
       Row(children: [
         Expanded(

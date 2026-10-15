@@ -73,14 +73,9 @@ class SignInBody extends StatelessWidget {
     final signInCubit = context.read<SignInCubit>();
 
     return AuthSplitLayout(
-      heroTitle: 'Gestión institucional\nmoderna y trazable',
+      heroTitle: 'Sistema de Gestión de Correspondencia',
       heroSubtitle:
-          'Panel administrativo para registrar, derivar y dar seguimiento a la correspondencia municipal.',
-      heroBullets: const [
-        'Bandejas operativas por funcionario',
-        'Historial completo de hoja de ruta',
-        'Reportes y control institucional',
-      ],
+          'Registro, derivación y seguimiento de la correspondencia municipal. Acceso para funcionarios autorizados.',
       form: AuthFormCard(
         title: 'Iniciar sesión',
         subtitle: 'Acceso reservado para funcionarios autorizados.',

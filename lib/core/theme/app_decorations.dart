@@ -40,18 +40,8 @@ class AppDecorations {
         ),
       ];
 
-  static BoxDecoration get heroBackground => const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            UiColors.heroStart,
-            UiColors.heroMid,
-            UiColors.heroEnd,
-          ],
-          stops: [0.0, 0.55, 1.0],
-        ),
-      );
+  static BoxDecoration get heroBackground =>
+      const BoxDecoration(color: UiColors.primarySoft);
 
   static BoxDecoration surfaceCard({bool elevated = true}) => BoxDecoration(
         color: UiColors.surface,
