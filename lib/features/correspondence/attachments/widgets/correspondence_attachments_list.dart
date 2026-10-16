@@ -3,7 +3,7 @@ import 'package:correspondencia_sipe_sipe/core/platform/format_file_size.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/attachments/cubit/correspondence_attachments_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart';
+import 'package:correspondencia_sipe_sipe/core/util/institutional_date.dart';
 
 class CorrespondenceAttachmentsList extends StatelessWidget {
   const CorrespondenceAttachmentsList({
@@ -25,8 +25,6 @@ class CorrespondenceAttachmentsList extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
-
     return LayoutBuilder(
       builder: (context, constraints) {
         final isCompact = constraints.maxWidth < 520;
@@ -41,7 +39,7 @@ class CorrespondenceAttachmentsList extends StatelessWidget {
             final meta = [
               if (sizeLabel.isNotEmpty) sizeLabel,
               mimeLabel,
-              dateFormat.format(attachment.createdAt),
+              institutionalDate(attachment.createdAt),
               if (attachment.createdByUsername != null)
                 attachment.createdByUsername,
             ].join(' · ');

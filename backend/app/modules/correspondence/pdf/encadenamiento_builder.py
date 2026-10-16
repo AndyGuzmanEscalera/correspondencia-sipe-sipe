@@ -44,6 +44,8 @@ def build_encadenamiento_context(
         referencia=referencia,
         issued_at=issued_at,
         generated_at=generated_at,
+        # No domain field stores the number of physical sheets/fojas.
+        # Keep the printed slot intentionally unknown; attachments are not sheets.
         page_count_label="—",
         is_urgent=correspondence.priority == PRIORITY_HIGH,
         movements=tuple(movement_rows),

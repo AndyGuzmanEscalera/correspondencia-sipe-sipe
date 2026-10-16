@@ -1,7 +1,9 @@
+import 'package:correspondencia_sipe_sipe/core/util/institutional_date.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/domain/entities/correspondence_entity.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/data_grid/app_data_grid_cell_type.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/data_grid/app_data_grid_column.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/status_badge.dart';
+
 List<AppDataGridColumn<CorrespondenceEntity>> correspondenceTableColumns() {
   return [
     AppDataGridColumn<CorrespondenceEntity>(
@@ -82,6 +84,8 @@ List<AppDataGridColumn<CorrespondenceEntity>> correspondenceTableColumns() {
       type: AppDataGridCellType.date,
       width: 120,
       value: (item) => item.registeredAt,
+      formatter: (value) =>
+          institutionalDate(value as DateTime, pattern: 'dd/MM/yyyy'),
       mobilePriority: 15,
     ),
   ];

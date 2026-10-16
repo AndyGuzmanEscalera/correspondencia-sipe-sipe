@@ -2,7 +2,7 @@
 import csv
 import io
 import uuid
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import date, datetime, time, timedelta
 from fastapi import HTTPException
 from sqlalchemy import select, func, or_, case, exists
 from sqlalchemy.orm import aliased, Session
@@ -14,7 +14,7 @@ from app.modules.organization.employee import Employee
 from app.modules.organization.organizational_unit import OrganizationalUnit
 from app.modules.identity.user import User
 
-BOLIVIA = timezone(timedelta(hours=-4))
+from app.core.institutional_time import BOLIVIA
 KINDS = {"registered", "received", "sent", "concluded"}
 
 class InsightsService:

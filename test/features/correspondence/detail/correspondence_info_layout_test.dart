@@ -46,6 +46,8 @@ void main() {
       expect(
           find.text('CITE'), findsNothing); // Equal to HR: no duplicate field.
       expect(find.text(sample.documentTypeName), findsOneWidget);
+      expect(find.text('11:51'), findsOneWidget);
+      expect(find.text('15:51'), findsNothing);
       final badge = tester.getRect(find.byType(StatusBadge));
       expect(badge.top, greaterThanOrEqualTo(0));
       expect(badge.bottom, lessThan(900));

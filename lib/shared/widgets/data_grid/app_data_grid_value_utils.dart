@@ -1,3 +1,4 @@
+import 'package:correspondencia_sipe_sipe/core/util/institutional_date.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/data_grid/app_data_grid_cell_type.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/data_grid/app_data_grid_column.dart';
 import 'package:flutter/material.dart';
@@ -26,7 +27,7 @@ class AppDataGridValueUtils {
       AppDataGridCellType.date when value is DateTime =>
         DateFormat('dd/MM/yyyy').format(value),
       AppDataGridCellType.dateTime when value is DateTime =>
-        DateFormat('dd/MM/yyyy HH:mm').format(value),
+        institutionalDate(value),
       AppDataGridCellType.boolean when value is bool => value ? 'Sí' : 'No',
       _ => value.toString(),
     };
@@ -63,11 +64,13 @@ class AppDataGridValueUtils {
       AppDataGridCellType.decimal ||
       AppDataGridCellType.currency =>
         _compareNum(left, right),
-      AppDataGridCellType.date || AppDataGridCellType.dateTime =>
+      AppDataGridCellType.date ||
+      AppDataGridCellType.dateTime =>
         (left as DateTime).compareTo(right as DateTime),
       AppDataGridCellType.boolean =>
         (left as bool).toString().compareTo((right as bool).toString()),
-      _ => left.toString().toLowerCase().compareTo(right.toString().toLowerCase()),
+      _ =>
+        left.toString().toLowerCase().compareTo(right.toString().toLowerCase()),
     };
   }
 

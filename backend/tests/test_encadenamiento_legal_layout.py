@@ -140,3 +140,19 @@ def test_unused_slots_do_not_create_empty_continuation_sheets():
     pdf = render(context(2, instruction="Revisar el texto original y todos los antecedentes. " * 200))
     assert len(pdf.pages) > 1
     assert "SEGUNDO DESTINATARIO" in pdf.pages[-1].extract_text()
+
+
+@pytest.mark.parametrize("issued,expected_date,expected_hour", [
+    (datetime(2026, 10, 15, 15, 32, tzinfo=timezone.utc), "15 / 10 / 2026", "11:32"),
+    (datetime(2026, 10, 16, 2, 5, tzinfo=timezone.utc), "15 / 10 / 2026", "22:05"),
+])
+def test_legal_pdf_prints_bolivia_date_without_inventing_sheet_count(issued, expected_date, expected_hour):
+    original = replace(context(6), issued_at=issued)
+    pdf = render(original)
+    value = text(pdf)
+    assert expected_date in value
+    assert "HORA: " + expected_hour in value
+    assert "N° HOJAS: —" in value
+    assert original.issued_at == issued
+    assert tuple(float(v) for v in pdf.pages[0].mediabox[2:]) == (612, 1008)
+    assert len(pdf.pages) > 1

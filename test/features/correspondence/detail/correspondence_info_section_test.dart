@@ -60,7 +60,8 @@ void main() {
       expect(find.text('Remitente'), findsNothing);
     });
 
-    testWidgets('renderiza fecha y hora desde registeredAt', (tester) async {
+    testWidgets('renderiza fecha y hora Bolivia desde registeredAt UTC',
+        (tester) async {
       await pumpSection(
         tester,
         CorrespondenceInfoSection(item: externalCorrespondence),
@@ -69,10 +70,11 @@ void main() {
       expect(find.text('Fecha de registro'), findsOneWidget);
       expect(find.text('15/01/2026'), findsOneWidget);
       expect(find.text('Hora'), findsOneWidget);
-      expect(find.text('14:30'), findsOneWidget);
+      expect(find.text('10:30'), findsOneWidget);
     });
 
-    testWidgets('renderiza responsable institucional y usuario', (tester) async {
+    testWidgets('renderiza responsable institucional y usuario',
+        (tester) async {
       await pumpSection(
         tester,
         CorrespondenceInfoSection(item: externalCorrespondence),

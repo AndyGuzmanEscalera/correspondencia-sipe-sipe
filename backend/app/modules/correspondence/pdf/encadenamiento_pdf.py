@@ -15,6 +15,7 @@ from reportlab.platypus import (
     BaseDocTemplate, Flowable, Frame, KeepTogether, PageTemplate, Paragraph, Spacer,
 )
 from app.core.branding import OFFICIAL_CREST
+from app.core.institutional_time import institutional_datetime
 
 MOVEMENT_TYPE_LABELS = {
     "CREATED": "Registro",
@@ -120,9 +121,10 @@ class _RuledField(Flowable):
 class _IssueDetails(Flowable):
     def __init__(self, context):
         super().__init__()
+        issued_at = institutional_datetime(context.issued_at)
         self.paragraphs = [
-            _field("FECHA DE EMISIÓN:", context.issued_at.strftime("%d / %m / %Y")),
-            _field("HORA:", context.issued_at.strftime("%H:%M")),
+            _field("FECHA DE EMISIÓN:", issued_at.strftime("%d / %m / %Y")),
+            _field("HORA:", issued_at.strftime("%H:%M")),
             _field("N° HOJAS:", context.page_count_label),
         ]
 

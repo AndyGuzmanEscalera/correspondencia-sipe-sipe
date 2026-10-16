@@ -4,7 +4,7 @@ import 'package:correspondencia_sipe_sipe/features/correspondence/detail/widgets
 import 'package:correspondencia_sipe_sipe/features/correspondence/domain/entities/correspondence_entity.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/status_badge.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:correspondencia_sipe_sipe/core/util/institutional_date.dart';
 
 class CorrespondenceInfoSection extends StatelessWidget {
   const CorrespondenceInfoSection(
@@ -47,12 +47,14 @@ class CorrespondenceInfoSection extends StatelessWidget {
           Expanded(
               child: CorrespondenceInfoTile(
                   label: 'Fecha de registro',
-                  value: DateFormat('dd/MM/yyyy').format(item.registeredAt))),
+                  value: institutionalDate(item.registeredAt,
+                      pattern: 'dd/MM/yyyy'))),
           const SizedBox(width: 12),
           Expanded(
               child: CorrespondenceInfoTile(
                   label: 'Hora',
-                  value: DateFormat('HH:mm').format(item.registeredAt))),
+                  value:
+                      institutionalDate(item.registeredAt, pattern: 'HH:mm'))),
         ]),
       ]),
     ];

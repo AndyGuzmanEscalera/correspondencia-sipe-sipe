@@ -253,7 +253,7 @@ void main() {
                 name: 'Typed',
                 count: 1234,
                 amount: 99.5,
-                when: DateTime(2026, 5, 10),
+                when: DateTime.utc(2026, 5, 10, 12),
                 active: true,
               ),
             ],
