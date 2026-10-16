@@ -12,11 +12,15 @@ class NotificationsState extends Equatable implements StatusState {
       {this.data,
       this.unread,
       this.busy = false,
+      this.incoming = const [],
+      this.alertVersion = 0,
       this.generalStatus = GeneralStatus.initial,
       this.dialogMessage = const DialogMessage.empty()});
   final repo.NotificationsPage? data;
   final int? unread;
   final bool busy;
+  final List<repo.InternalNotification> incoming;
+  final int alertVersion;
   @override
   final GeneralStatus generalStatus;
   @override
@@ -25,16 +29,28 @@ class NotificationsState extends Equatable implements StatusState {
           {repo.NotificationsPage? data,
           int? unread,
           bool? busy,
+          List<repo.InternalNotification>? incoming,
+          int? alertVersion,
           GeneralStatus? generalStatus,
           DialogMessage? dialogMessage}) =>
       NotificationsState(
           data: data ?? this.data,
           unread: unread ?? this.unread,
           busy: busy ?? this.busy,
+          incoming: incoming ?? this.incoming,
+          alertVersion: alertVersion ?? this.alertVersion,
           generalStatus: generalStatus ?? this.generalStatus,
           dialogMessage: dialogMessage ?? this.dialogMessage);
   @override
-  List<Object?> get props => [data, unread, busy, generalStatus, dialogMessage];
+  List<Object?> get props => [
+        data,
+        unread,
+        busy,
+        incoming,
+        alertVersion,
+        generalStatus,
+        dialogMessage
+      ];
 }
 
 class NotificationsCubit extends Cubit<NotificationsState> {
@@ -43,7 +59,58 @@ class NotificationsCubit extends Cubit<NotificationsState> {
   int _epoch = 0;
   int _listRequest = 0;
   int _countRequest = 0;
+  final _seenIds = <String>{};
+  bool _hasBaseline = false;
+  Object? _pollToken;
+  int _pollGeneration = 0;
+
+  /// Discard an in-flight background response without clearing the badge/list.
+  void cancelPoll() {
+    ++_pollGeneration;
+    _pollToken = null;
+  }
+
+  /// One silent request: actual IDs detect arrivals even when unread stays equal.
+  Future<void> poll() async {
+    if (isClosed || state.busy || _pollToken != null) return;
+    final token = Object();
+    _pollToken = token;
+    final epoch = _epoch, generation = _pollGeneration;
+    final countRequest = ++_countRequest;
+    try {
+      final result = await repository.list(page: 1);
+      if (isClosed || epoch != _epoch || generation != _pollGeneration) return;
+      result.when(
+          ok: (page) {
+            final incoming = _hasBaseline
+                ? page.items
+                    .where((n) => !n.isRead && !_seenIds.contains(n.id))
+                    .toList()
+                : <repo.InternalNotification>[];
+            _seenIds.addAll(page.items.map((n) => n.id));
+            _hasBaseline = true;
+            final canUpdateCount = countRequest == _countRequest;
+            if (canUpdateCount) ++_countRequest;
+            emit(state.copyWith(
+              unread: canUpdateCount ? page.unread : null,
+              data: state.data?.page == 1 ? page : null,
+              incoming: List.unmodifiable(incoming),
+              alertVersion: incoming.isEmpty
+                  ? state.alertVersion
+                  : state.alertVersion + 1,
+            ));
+          },
+          err:
+              (_) {}); // A background failure must not interrupt the current form.
+    } finally {
+      if (identical(_pollToken, token)) _pollToken = null;
+    }
+  }
+
   void reset() {
+    cancelPoll();
+    _seenIds.clear();
+    _hasBaseline = false;
     ++_epoch;
     ++_listRequest;
     ++_countRequest;
@@ -63,6 +130,7 @@ class NotificationsCubit extends Cubit<NotificationsState> {
   }
 
   Future<void> refresh({int? page}) async {
+    cancelPoll();
     final epoch = _epoch, request = ++_listRequest;
     emit(state.copyWith(
         generalStatus: GeneralStatus.loading,
@@ -71,6 +139,7 @@ class NotificationsCubit extends Cubit<NotificationsState> {
     if (isClosed || epoch != _epoch || request != _listRequest) return;
     result.when(
         ok: (value) {
+          _seenIds.addAll(value.items.map((n) => n.id));
           ++_countRequest;
           emit(state.copyWith(
               data: value,
@@ -90,6 +159,7 @@ class NotificationsCubit extends Cubit<NotificationsState> {
           showLoading: false)));
   Future<bool> markRead(String id) async {
     if (state.busy) return false;
+    cancelPoll();
     final epoch = _epoch;
     emit(state.copyWith(busy: true));
     final result = await repository.read(id);
@@ -108,6 +178,7 @@ class NotificationsCubit extends Cubit<NotificationsState> {
 
   Future<void> markAll() async {
     if (state.busy) return;
+    cancelPoll();
     final epoch = _epoch;
     emit(state.copyWith(busy: true));
     final result = await repository.readAll();

@@ -1,3 +1,8 @@
+import 'package:correspondencia_sipe_sipe/features/app/cubit/app_session_cubit.dart';
+import 'package:correspondencia_sipe_sipe/features/notifications/cubit/notifications_cubit.dart';
+import 'package:correspondencia_sipe_sipe/features/notifications/views/notifications_monitor.dart';
+import 'package:correspondencia_sipe_sipe/injection/injection_bloc.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:correspondencia_sipe_sipe/core/app/widgets/app_navigation_listener.dart';
 import 'package:correspondencia_sipe_sipe/core/router.dart';
 import 'package:correspondencia_sipe_sipe/core/theme/app_theme.dart';
@@ -7,11 +12,13 @@ import 'package:responsive_framework/responsive_framework.dart';
 /// Root [MaterialApp.router] — patrón Inventario (`MainAppBody`).
 class AppBody extends StatelessWidget {
   const AppBody({super.key});
+  static final _messengerKey = GlobalKey<ScaffoldMessengerState>();
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
       title: 'Correspondencia GAM Sipe Sipe',
+      scaffoldMessengerKey: _messengerKey,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       routerConfig: router,
@@ -25,7 +32,13 @@ class AppBody extends StatelessWidget {
             Breakpoint(start: 1441, end: 1920, name: 'DESKTOP'),
             Breakpoint(start: 1921, end: double.infinity, name: '4K'),
           ],
-          child: AppNavigationListener(router: router, child: child!),
+          child: NotificationsMonitor(
+            cubit: getIt<NotificationsCubit>(),
+            session: context.read<AppSessionCubit>(),
+            messengerKey: _messengerKey,
+            navigatorKey: router.routerDelegate.navigatorKey,
+            child: AppNavigationListener(router: router, child: child!),
+          ),
         );
       },
     );
