@@ -9,19 +9,27 @@ import 'package:flutter_test/flutter_test.dart';
 class _RecordingFileDownloadService implements FileDownloadService {
   List<int>? lastPdfBytes;
   String? lastPdfTitle;
+  List<int>? downloadedBytes;
+  String? downloadedFilename;
+  bool failOpening = false;
 
   @override
   Future<void> downloadBytes({
     required String filename,
     required List<int> bytes,
     String? mimeType,
-  }) async {}
+  }) async {
+    downloadedBytes = bytes;
+    downloadedFilename = filename;
+    expect(mimeType, 'application/pdf');
+  }
 
   @override
   Future<void> openPdfInNewTab({
     required List<int> bytes,
     String? title,
   }) async {
+    if (failOpening) throw StateError('preview blocked');
     lastPdfBytes = bytes;
     lastPdfTitle = title;
   }
@@ -36,11 +44,13 @@ class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
   final List<int> pdfBytes;
   final bool shouldFail;
   int downloadCalls = 0;
+  void Function()? onDownload;
 
   @override
   Future<Result<List<int>, Failure>> downloadChainingPdf(
     String correspondenceId,
   ) async {
+    onDownload?.call();
     downloadCalls++;
     if (shouldFail) {
       return const Err(ServerFailure('pdf failed'));
@@ -50,6 +60,25 @@ class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
 
   @override
   noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _PreparedPdfService extends _RecordingFileDownloadService
+    implements GeneratedPdfViewer {
+  bool prepared = false;
+  bool closed = false;
+  bool blocked = false;
+  @override
+  Future<void> openGeneratedPdf(
+      {required Future<List<int>?> Function() loadBytes}) async {
+    if (blocked) throw StateError('blocked by browser');
+    prepared = true;
+    final bytes = await loadBytes();
+    if (bytes == null) {
+      closed = true;
+    } else {
+      lastPdfBytes = bytes;
+    }
+  }
 }
 
 void main() {
@@ -69,6 +98,82 @@ void main() {
       expect(fileDownload.lastPdfBytes, [1, 2, 3, 4]);
       expect(fileDownload.lastPdfTitle, 'encadenamiento.pdf');
       expect(cubit.state.openingChainingPdf, isFalse);
+      await cubit.close();
+    });
+
+    test('descargar PDF usa bytes del servidor y no abre pestana', () async {
+      final repository = _FakeCorrespondenceRepository();
+      final files = _RecordingFileDownloadService();
+      final cubit = CorrespondenceDocumentActionsCubit(
+          repository: repository,
+          correspondenceId: 'corr-edie',
+          fileDownloadService: files);
+      await cubit.downloadChainingPdf();
+      expect(files.downloadedBytes, repository.pdfBytes);
+      expect(files.downloadedFilename, 'encadenamiento.pdf');
+      expect(files.lastPdfBytes, isNull);
+      expect(cubit.state.openingChainingPdf, isFalse);
+      await cubit.close();
+    });
+
+    test('error del visor permite recuperarse descargando PDF', () async {
+      final repository = _FakeCorrespondenceRepository();
+      final files = _RecordingFileDownloadService()..failOpening = true;
+      final cubit = CorrespondenceDocumentActionsCubit(
+          repository: repository,
+          correspondenceId: 'corr-edie',
+          fileDownloadService: files);
+      await cubit.openChainingPdf();
+      expect(cubit.state.openingChainingPdf, isFalse);
+      expect(cubit.state.dialogMessage.message, contains('Descargar PDF'));
+      await cubit.downloadChainingPdf();
+      expect(files.downloadedBytes, repository.pdfBytes);
+      await cubit.close();
+    });
+
+    test('prepara visor antes de solicitar PDF autenticado', () async {
+      final files = _PreparedPdfService();
+      final repository = _FakeCorrespondenceRepository()
+        ..onDownload = () => expect(files.prepared, isTrue);
+      final cubit = CorrespondenceDocumentActionsCubit(
+          repository: repository,
+          correspondenceId: 'corr-edie',
+          fileDownloadService: files);
+      await cubit.openChainingPdf();
+      expect(files.lastPdfBytes, repository.pdfBytes);
+      expect(repository.downloadCalls, 1);
+      expect(cubit.state.openingChainingPdf, isFalse);
+      await cubit.close();
+    });
+
+    test('error de API cierra visor vacio', () async {
+      final files = _PreparedPdfService();
+      final cubit = CorrespondenceDocumentActionsCubit(
+          repository: _FakeCorrespondenceRepository(shouldFail: true),
+          correspondenceId: 'corr-edie',
+          fileDownloadService: files);
+      await cubit.openChainingPdf();
+      expect(files.closed, isTrue);
+      expect(files.lastPdfBytes, isNull);
+      expect(cubit.state.openingChainingPdf, isFalse);
+      expect(cubit.state.dialogMessage.message, isNotEmpty);
+      await cubit.close();
+    });
+
+    test('visor bloqueado permite descarga sin repetir apertura', () async {
+      final files = _PreparedPdfService()..blocked = true;
+      final repository = _FakeCorrespondenceRepository();
+      final cubit = CorrespondenceDocumentActionsCubit(
+          repository: repository,
+          correspondenceId: 'corr-edie',
+          fileDownloadService: files);
+      await cubit.openChainingPdf();
+      expect(repository.downloadCalls, 0);
+      expect(cubit.state.openingChainingPdf, isFalse);
+      expect(cubit.state.dialogMessage.message, contains('Descargar PDF'));
+      await cubit.downloadChainingPdf();
+      expect(files.downloadedBytes, repository.pdfBytes);
+      expect(repository.downloadCalls, 1);
       await cubit.close();
     });
 

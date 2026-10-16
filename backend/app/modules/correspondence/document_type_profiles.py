@@ -12,13 +12,14 @@ class DocumentFormProfile(str, Enum):
     GENERIC = "GENERIC"
 
 
-# Códigos confirmados / esperados en catálogo. EDIE existe en DB operativa.
-# S fue reportado funcionalmente pero puede no existir aún.
-CHAINING_DOCUMENT_TYPE_CODES = frozenset({"S", "EDIE"})
+# Preserve full catalog codes already used by operational documents.
+CHAINING_DOCUMENT_TYPE_CODES = frozenset({
+    "S", "EDIE", "ENCADENAMIENTO DE DOCUMENTOS INTERNOS Y EXTERNOS",
+})
 TECHNICAL_REPORT_DOCUMENT_TYPE_CODES = frozenset({"INFORME"})
 INTERNAL_NOTE_DOCUMENT_TYPE_CODES = frozenset({"NOTA"})
 
-DEFAULT_CHAINING_DOCUMENT_TYPE_CODES = ("S", "EDIE")
+DEFAULT_CHAINING_DOCUMENT_TYPE_CODES = ("S", "EDIE", "ENCADENAMIENTO DE DOCUMENTOS INTERNOS Y EXTERNOS")
 
 
 def normalize_document_type_code(code: str) -> str:

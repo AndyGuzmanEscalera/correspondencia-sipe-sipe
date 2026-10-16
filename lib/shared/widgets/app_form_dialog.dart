@@ -11,7 +11,7 @@ import 'package:flutter/material.dart';
 /// - Contenido scrolleable protegido con [Scrollbar] y límite de altura.
 /// - Footer fijo con botones de acción ([cancelLabel] y [submitLabel]).
 /// - Comportamiento responsivo adaptable para mobile (390-430px), tablet y desktop.
-class AppFormDialog extends StatelessWidget {
+class AppFormDialog extends StatefulWidget {
   const AppFormDialog({
     required this.title,
     required this.child,
@@ -69,6 +69,19 @@ class AppFormDialog extends StatelessWidget {
   final Widget? customActions;
 
   @override
+  State<AppFormDialog> createState() => _AppFormDialogState();
+}
+
+class _AppFormDialogState extends State<AppFormDialog> {
+  final _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.sizeOf(context);
     final isMobile = screenSize.width < 500;
@@ -84,7 +97,7 @@ class AppFormDialog extends StatelessWidget {
       child: Center(
         child: ConstrainedBox(
           constraints: BoxConstraints(
-            maxWidth: maxWidth,
+            maxWidth: widget.maxWidth,
             maxHeight: maxDialogHeight,
           ),
           child: Container(
@@ -100,9 +113,9 @@ class AppFormDialog extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _Header(
-                  title: title,
-                  subtitle: subtitle,
-                  onClose: onClose ?? () => Navigator.of(context).pop(),
+                  title: widget.title,
+                  subtitle: widget.subtitle,
+                  onClose: widget.onClose ?? () => Navigator.of(context).pop(),
                   isMobile: isMobile,
                 ),
                 const Divider(
@@ -112,10 +125,13 @@ class AppFormDialog extends StatelessWidget {
                 ),
                 Flexible(
                   child: Scrollbar(
+                    controller: _scrollController,
                     child: SingleChildScrollView(
-                      padding: contentPadding ??
+                      controller: _scrollController,
+                      primary: false,
+                      padding: widget.contentPadding ??
                           const EdgeInsets.fromLTRB(24, 20, 24, 10),
-                      child: child,
+                      child: widget.child,
                     ),
                   ),
                 ),
@@ -125,13 +141,14 @@ class AppFormDialog extends StatelessWidget {
                   color: UiColors.borderLight,
                 ),
                 _Footer(
-                  customActions: customActions,
-                  onCancel: onCancel ?? () => Navigator.of(context).pop(),
-                  onSubmit: onSubmit,
-                  cancelLabel: cancelLabel,
-                  submitLabel: submitLabel,
-                  isLoading: isLoading,
-                  isSubmitDisabled: isSubmitDisabled,
+                  customActions: widget.customActions,
+                  onCancel:
+                      widget.onCancel ?? () => Navigator.of(context).pop(),
+                  onSubmit: widget.onSubmit,
+                  cancelLabel: widget.cancelLabel,
+                  submitLabel: widget.submitLabel,
+                  isLoading: widget.isLoading,
+                  isSubmitDisabled: widget.isSubmitDisabled,
                   isMobile: isMobile,
                 ),
               ],

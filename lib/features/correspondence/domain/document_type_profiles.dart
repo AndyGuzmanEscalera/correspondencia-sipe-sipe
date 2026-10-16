@@ -8,10 +8,19 @@ enum DocumentFormProfile {
   generic,
 }
 
-const chainingDocumentTypeCodes = {'S', 'EDIE'};
+// Preserve the full catalog code used by existing documents.
+const chainingDocumentTypeCodes = {
+  'S',
+  'EDIE',
+  'ENCADENAMIENTO DE DOCUMENTOS INTERNOS Y EXTERNOS'
+};
 const technicalReportDocumentTypeCodes = {'INFORME'};
 const internalNoteDocumentTypeCodes = {'NOTA'};
-const defaultChainingDocumentTypeCodes = ['S', 'EDIE'];
+const defaultChainingDocumentTypeCodes = [
+  'S',
+  'EDIE',
+  'ENCADENAMIENTO DE DOCUMENTOS INTERNOS Y EXTERNOS'
+];
 
 String normalizeDocumentTypeCode(String code) => code.trim().toUpperCase();
 

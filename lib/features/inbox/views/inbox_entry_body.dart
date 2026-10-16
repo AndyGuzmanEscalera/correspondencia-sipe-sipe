@@ -152,13 +152,13 @@ class _InboxScopeTabs extends StatelessWidget {
       child: SegmentedButton<repo.InboxScope>(
         segments: [
           ButtonSegment(
-            value: repo.InboxScope.mine,
-            label: Text('Asignados a mí (${counts.mine})'),
-          ),
-          ButtonSegment(
             value: repo.InboxScope.unit,
             label: Text('De mi unidad (${counts.unit})'),
             enabled: counts.canViewUnitCorrespondence,
+          ),
+          ButtonSegment(
+            value: repo.InboxScope.mine,
+            label: Text('Asignados a mí (${counts.mine})'),
           ),
         ],
         selected: {scope},
@@ -167,9 +167,22 @@ class _InboxScopeTabs extends StatelessWidget {
         },
         style: ButtonStyle(
           visualDensity: VisualDensity.compact,
+          backgroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.disabled)) {
+              return UiColors.background;
+            }
+            return states.contains(WidgetState.selected)
+                ? UiColors.primary
+                : UiColors.surface;
+          }),
+          side:
+              const WidgetStatePropertyAll(BorderSide(color: UiColors.border)),
           foregroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.disabled)) {
+              return UiColors.textMuted;
+            }
             if (states.contains(WidgetState.selected)) {
-              return UiColors.primary;
+              return Colors.white;
             }
             return UiColors.textSecondary;
           }),

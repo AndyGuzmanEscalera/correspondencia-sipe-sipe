@@ -21,12 +21,20 @@ class InboxEntryCubit extends Cubit<InboxEntryState> {
   int _requestVersion = 0;
 
   Future<void> init({repo.InboxScope? scope}) async {
-    if (scope != null && scope != state.scope) {
+    await _loadCounts();
+    if (isClosed) return;
+    final initialScope = state.counts.canViewUnitCorrespondence
+        ? (scope ?? repo.InboxScope.unit)
+        : repo.InboxScope.mine;
+    if (initialScope != state.scope) {
       emit(state.copyWith(
-          scope: scope, page: 1, items: const [], total: 0, totalPages: 0));
+          scope: initialScope,
+          page: 1,
+          items: const [],
+          total: 0,
+          totalPages: 0));
     }
 
-    await _loadCounts();
     await _loadInbox(
       scope: state.scope,
       search: state.query,

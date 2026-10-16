@@ -1,32 +1,20 @@
-"""Generador PDF — Encadenamiento de documentos internos y externos (GAM Sipe Sipe)."""
-
+"""Physical EDIE form, Legal portrait; rendering never changes routing data."""
 from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
-from app.core.branding import OFFICIAL_CREST
+from xml.sax.saxutils import escape
 
 from reportlab.lib import colors
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.units import inch
-from reportlab.pdfgen import canvas
-
-MONTHS_ES = (
-    "ENERO",
-    "FEBRERO",
-    "MARZO",
-    "ABRIL",
-    "MAYO",
-    "JUNIO",
-    "JULIO",
-    "AGOSTO",
-    "SEPTIEMBRE",
-    "OCTUBRE",
-    "NOVIEMBRE",
-    "DICIEMBRE",
+from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.pagesizes import legal
+from reportlab.lib.styles import ParagraphStyle
+from reportlab.platypus import (
+    BaseDocTemplate, Flowable, Frame, KeepTogether, PageTemplate, Paragraph, Spacer,
 )
+from app.core.branding import OFFICIAL_CREST
 
 MOVEMENT_TYPE_LABELS = {
     "CREATED": "Registro",
@@ -38,9 +26,6 @@ MOVEMENT_TYPE_LABELS = {
     "CANCELLED": "Cancelación",
     "ANNULLED": "Anulación",
 }
-
-RECIPIENTS_ON_FIRST_PAGE = 4
-RECIPIENTS_ON_CONTINUATION_PAGE = 4
 
 RECIPIENT_ORDINALS = (
     "Primer",
@@ -88,441 +73,300 @@ class EncadenamientoPdfContext:
     logo_path: Path | None = None
 
 
-def generate_encadenamiento_pdf(context: EncadenamientoPdfContext) -> bytes:
-    buffer = BytesIO()
-    page_width, page_height = letter
-    margin = 0.45 * inch
-    inner_left = margin
-    inner_right = page_width - margin
-    inner_bottom = margin
-    inner_top = page_height - margin
-    inner_width = inner_right - inner_left
-
-    c = canvas.Canvas(buffer, pagesize=letter)
-    recipients = [
-        movement
-        for movement in context.movements
-        if movement.movement_type == "DERIVED"
-    ]
-
-    if not recipients:
-        _draw_page_frame(c, inner_left, inner_bottom, inner_width, inner_top - inner_bottom)
-        y = _draw_header(c, context, inner_left, inner_top, inner_width, inner_right)
-        y = _draw_general_section(c, context, inner_left, inner_width, y)
-        y -= 0.15 * inch
-        c.setFont("Helvetica-Oblique", 9)
-        c.drawString(inner_left + 0.12 * inch, y, "Sin destinatarios registrados.")
-        _draw_footer(c, context, inner_left, inner_right, inner_bottom + 0.12 * inch)
-        c.showPage()
-        c.save()
-        return buffer.getvalue()
-
-    first_chunk = recipients[:RECIPIENTS_ON_FIRST_PAGE]
-    remaining = recipients[RECIPIENTS_ON_FIRST_PAGE:]
-    recipient_offset = 0
-
-    _draw_page_frame(c, inner_left, inner_bottom, inner_width, inner_top - inner_bottom)
-    y = _draw_header(c, context, inner_left, inner_top, inner_width, inner_right)
-    y = _draw_general_section(c, context, inner_left, inner_width, y)
-    _draw_recipient_blocks(
-        c,
-        inner_left,
-        inner_right,
-        y - 0.08 * inch,
-        first_chunk,
-        start_index=recipient_offset,
-    )
-    _draw_footer(c, context, inner_left, inner_right, inner_bottom + 0.12 * inch)
-    c.showPage()
-    recipient_offset += len(first_chunk)
-
-    while remaining:
-        chunk = remaining[:RECIPIENTS_ON_CONTINUATION_PAGE]
-        remaining = remaining[RECIPIENTS_ON_CONTINUATION_PAGE:]
-
-        _draw_page_frame(c, inner_left, inner_bottom, inner_width, inner_top - inner_bottom)
-        y = _draw_continuation_header(
-            c,
-            context,
-            inner_left,
-            inner_top,
-            inner_width,
-            inner_right,
-        )
-        _draw_recipient_blocks(
-            c,
-            inner_left,
-            inner_right,
-            y - 0.08 * inch,
-            chunk,
-            start_index=recipient_offset,
-            continuation=True,
-        )
-        _draw_footer(c, context, inner_left, inner_right, inner_bottom + 0.12 * inch)
-        c.showPage()
-        recipient_offset += len(chunk)
-
-    c.save()
-    return buffer.getvalue()
+# Measurements are points (72 per inch). No text is truncated or shrunk to fit.
+PAGE_WIDTH, PAGE_HEIGHT = legal
+MARGIN = 30
+CONTENT_WIDTH = PAGE_WIDTH - 2 * MARGIN
+HEADER_HEIGHT = 106
+FOOTER_HEIGHT = 22
+TEXT = ParagraphStyle("form", fontName="Helvetica", fontSize=9, leading=12)
+TITLE = ParagraphStyle("section", parent=TEXT, fontName="Helvetica-Bold", alignment=TA_CENTER)
 
 
-def _draw_page_frame(
-    c: canvas.Canvas,
-    left: float,
-    bottom: float,
-    width: float,
-    height: float,
-) -> None:
-    c.setLineWidth(1)
-    c.rect(left, bottom, width, height)
+def _paragraph(text: str, *, bold: bool = False) -> Paragraph:
+    # User data must remain plain text, including <, >, &, and newlines.
+    value = escape(text or "").replace("\n", "<br/>")
+    return Paragraph(value or " ", TITLE if bold else TEXT)
 
 
-def _draw_header(
-    c: canvas.Canvas,
-    context: EncadenamientoPdfContext,
-    inner_left: float,
-    inner_top: float,
-    inner_width: float,
-    inner_right: float,
-) -> float:
-    y = inner_top - 0.15 * inch
-
-    logo_size = 0.85 * inch
-    logo_x = inner_left + 0.12 * inch
-    logo_y = y - logo_size
-    logo_path = context.logo_path if context.logo_path and context.logo_path.is_file() else OFFICIAL_CREST
-    if logo_path.is_file():
-        c.drawImage(
-            str(logo_path),
-            logo_x,
-            logo_y,
-            width=logo_size,
-            height=logo_size,
-            preserveAspectRatio=True,
-            mask="auto",
-        )
-
-    header_center_x = inner_left + inner_width / 2
-    c.setFont("Helvetica-Bold", 11)
-    c.drawCentredString(header_center_x, y - 0.12 * inch, "GOBIERNO AUTÓNOMO MUNICIPAL DE SIPE SIPE")
-    c.setFont("Helvetica", 9)
-    c.drawCentredString(
-        header_center_x,
-        y - 0.28 * inch,
-        "SEGUNDA SECCIÓN DE LA PROVINCIA QUILLACOLLO",
-    )
-    c.setFont("Helvetica-Oblique", 8.5)
-    c.drawCentredString(
-        header_center_x,
-        y - 0.42 * inch,
-        '"Trabajo · Justicia · Progreso"',
-    )
-
-    number_box_w = 0.95 * inch
-    number_box_h = 0.45 * inch
-    number_box_x = inner_right - number_box_w - 0.1 * inch
-    number_box_y = y - 0.05 * inch - number_box_h
-    c.setLineWidth(0.75)
-    c.rect(number_box_x, number_box_y, number_box_w, number_box_h)
-    c.setFont("Helvetica-Bold", 9)
-    c.drawString(number_box_x + 6, number_box_y + number_box_h - 14, "Nº:")
-    c.setFillColor(colors.red)
-    c.setFont("Helvetica-Bold", 11)
-    c.drawString(number_box_x + 28, number_box_y + 6, context.document_number or "—")
-    c.setFillColor(colors.black)
-
-    y -= 0.95 * inch
-    title_h = 0.32 * inch
-    title_x = inner_left + 0.35 * inch
-    title_w = inner_width - 0.7 * inch
-    c.roundRect(title_x, y - title_h, title_w, title_h, 8)
-    c.setFont("Helvetica-Bold", 9.5)
-    c.drawCentredString(
-        inner_left + inner_width / 2,
-        y - title_h / 2 - 3,
-        "ENCADENAMIENTO DE DOCUMENTOS INTERNOS Y EXTERNOS",
-    )
-    return y - title_h - 0.18 * inch
-
-
-def _draw_continuation_header(
-    c: canvas.Canvas,
-    context: EncadenamientoPdfContext,
-    inner_left: float,
-    inner_top: float,
-    inner_width: float,
-    inner_right: float,
-) -> float:
-    y = inner_top - 0.2 * inch
-    if OFFICIAL_CREST.is_file():
-        c.drawImage(str(OFFICIAL_CREST), inner_left + 8, y - 22, width=25, height=30, preserveAspectRatio=True, mask="auto")
-    c.setFont("Helvetica-Bold", 8)
-    c.drawString(inner_left + 42, y, "GOBIERNO AUTÓNOMO MUNICIPAL DE SIPE SIPE")
-    c.setFont("Helvetica", 8)
-    c.drawString(inner_left + 42, y - 12, f"HR: {context.route_number}")
-    c.setFont("Helvetica", 8.5)
-    c.drawRightString(
-        inner_right - 0.12 * inch,
-        y,
-        "EDIE — continuación",
-    )
-    y -= 0.38 * inch
-    _draw_horizontal_rule(c, inner_left + 0.08 * inch, inner_right - 0.08 * inch, y)
-    return y - 0.12 * inch
-
-
-def _draw_general_section(
-    c: canvas.Canvas,
-    context: EncadenamientoPdfContext,
-    inner_left: float,
-    inner_width: float,
-    y: float,
-) -> float:
-    c.setFont("Helvetica", 9)
-    y = _draw_labeled_line(
-        c, inner_left + 0.12 * inch, y, inner_width - 0.24 * inch, "PARA:", context.para
-    )
-    y = _draw_labeled_line(
-        c, inner_left + 0.12 * inch, y, inner_width - 0.24 * inch, "DE:", context.de
-    )
-    y = _draw_labeled_line(
-        c,
-        inner_left + 0.12 * inch,
-        y,
-        inner_width - 0.24 * inch,
-        "REFERENCIA:",
-        context.referencia,
-    )
-
-    day = context.issued_at.day
-    month = MONTHS_ES[context.issued_at.month - 1]
-    year = context.issued_at.year
-    hour = context.issued_at.strftime("%H:%M")
-    fecha_text = f"{day:02d} DE {month} {year}"
-    y -= 0.04 * inch
-    c.setFont("Helvetica-Bold", 9)
-    c.drawString(inner_left + 0.12 * inch, y, "FECHA DE EMISIÓN:")
-    c.setFont("Helvetica", 9)
-    c.drawString(inner_left + 1.35 * inch, y, fecha_text)
-    c.setFont("Helvetica-Bold", 9)
-    c.drawString(inner_left + 4.2 * inch, y, "HORA:")
-    c.setFont("Helvetica", 9)
-    c.drawString(inner_left + 4.75 * inch, y, hour)
-    c.setFont("Helvetica-Bold", 9)
-    c.drawString(inner_left + 5.55 * inch, y, "Nº DE HOJAS:")
-    c.setFont("Helvetica", 9)
-    c.drawString(inner_left + 6.45 * inch, y, context.page_count_label)
-
-    y -= 0.18 * inch
-    c.setFont("Helvetica-Bold", 9)
-    c.drawString(inner_left + 0.12 * inch, y, "URGENTE:")
-    c.setFont("Helvetica-Bold", 9)
-    if context.is_urgent:
-        c.drawString(inner_left + 0.85 * inch, y, "SÍ")
-    else:
-        c.drawString(inner_left + 0.85 * inch, y, "NO")
-
-    c.setFont("Helvetica-Bold", 9)
-    c.drawString(inner_left + 2.2 * inch, y, "HOJA DE RUTA:")
-    c.setFont("Helvetica", 9)
-    c.drawString(inner_left + 3.35 * inch, y, context.route_number)
-
-    y -= 0.12 * inch
-    return y
+def _field(label: str, value: str | None) -> Paragraph:
+    return Paragraph(f"<b>{escape(label)}</b> {escape(value or '').replace(chr(10), '<br/>')}", TEXT)
 
 
 def _recipient_label(index: int, *, continuation: bool = False) -> str:
     if index < len(RECIPIENT_ORDINALS):
-        return f"{RECIPIENT_ORDINALS[index]} destinatario"
-    if continuation:
-        return f"Destinatario {index + 1}"
-    return f"Destinatario {index + 1}"
+        return f"{RECIPIENT_ORDINALS[index]} destinatario".upper()
+    return f"DESTINATARIO {index + 1}"
 
 
-def _draw_recipient_blocks(
-    c: canvas.Canvas,
-    inner_left: float,
-    inner_right: float,
-    y: float,
-    movements: list[EncadenamientoMovementRow],
-    *,
-    start_index: int,
-    continuation: bool = False,
-) -> float:
-    block_width = inner_right - inner_left - 0.2 * inch
-    block_x = inner_left + 0.1 * inch
+class _RuledField(Flowable):
+    """Wrapped printed value above a writing rule, measured using actual glyphs."""
+    def __init__(self, label: str, value: str | None):
+        super().__init__()
+        self.paragraph = _field(label, value)
 
-    for offset, movement in enumerate(movements):
-        label = _recipient_label(start_index + offset, continuation=continuation)
-        block_h = 0.95 * inch
-        y -= block_h + 0.08 * inch
+    def wrap(self, availWidth, availHeight):
+        self.width = availWidth
+        self.height = self.paragraph.wrap(availWidth - 16, availHeight)[1] + 8
+        return self.width, self.height
 
-        c.setLineWidth(0.75)
-        c.rect(block_x, y, block_width, block_h)
-        c.setFont("Helvetica-Bold", 8.5)
-        c.drawString(block_x + 6, y + block_h - 12, label.upper())
-
-        text_y = y + block_h - 28
-        c.setFont("Helvetica", 8)
-        c.drawString(block_x + 8, text_y, f"Unidad: {_truncate(movement.to_unit or '—', 70)}")
-        text_y -= 12
-        c.drawString(block_x + 8, text_y, f"Funcionario: {_truncate(movement.to_user or '—', 70)}")
-        text_y -= 12
-        c.drawString(
-            block_x + 8,
-            text_y,
-            f"Instructivo / Proveído: {_truncate(movement.instruction or '—', 70)}",
-        )
-        text_y -= 12
-        c.drawString(
-            block_x + 8,
-            text_y,
-            f"Fecha: {_format_datetime(movement.created_at)}   Estado: {_movement_status(movement)}",
-        )
-        if movement.is_cancelled and movement.cancellation_reason:
-            text_y -= 12
-            c.setFont("Helvetica-Oblique", 7.5)
-            c.drawString(
-                block_x + 8,
-                text_y,
-                f"Motivo cancelación: {_truncate(movement.cancellation_reason, 80)}",
-            )
-
-        sig_y = y + 8
-        c.setFont("Helvetica", 7)
-        c.drawString(block_x + block_width * 0.55, sig_y + 18, "Firma:")
-        c.line(block_x + block_width * 0.55, sig_y + 12, inner_right - 0.18 * inch, sig_y + 12)
-
-    return y
+    def draw(self):
+        self.canv.setStrokeColor(colors.black)
+        self.canv.setLineWidth(0.35)
+        self.canv.line(8, 4, self.width - 8, 4)
+        self.paragraph.drawOn(self.canv, 8, 8)
 
 
-def _draw_movements_table(
-    c: canvas.Canvas,
-    inner_left: float,
-    inner_right: float,
-    y: float,
-    movements: list[EncadenamientoMovementRow],
-    *,
-    title: str,
-) -> float:
-    c.setFont("Helvetica-Bold", 9)
-    c.drawString(inner_left + 0.12 * inch, y, title)
-    y -= 0.16 * inch
-
-    columns = [
-        ("Sec.", 0.35 * inch),
-        ("Tipo", 0.75 * inch),
-        ("Desde", 1.35 * inch),
-        ("Hacia", 1.35 * inch),
-        ("Instrucción", 1.45 * inch),
-        ("Fecha", 0.85 * inch),
-        ("Estado", 0.65 * inch),
-    ]
-    x = inner_left + 0.1 * inch
-    c.setFont("Helvetica-Bold", 7.5)
-    for label, width in columns:
-        c.drawString(x + 2, y, label)
-        x += width
-    y -= 0.06 * inch
-    _draw_horizontal_rule(c, inner_left + 0.08 * inch, inner_right - 0.08 * inch, y)
-    y -= 0.14 * inch
-
-    row_height = 0.34 * inch
-    c.setFont("Helvetica", 7.2)
-    for movement in movements:
-        x = inner_left + 0.1 * inch
-        values = [
-            str(movement.sequence_number),
-            movement.movement_type_label,
-            _format_route(movement.from_unit, movement.from_user),
-            _format_route(movement.to_unit, movement.to_user),
-            _truncate(movement.instruction or "—", 42),
-            _format_datetime(movement.created_at),
-            _movement_status(movement),
+class _IssueDetails(Flowable):
+    def __init__(self, context):
+        super().__init__()
+        self.paragraphs = [
+            _field("FECHA DE EMISIÓN:", context.issued_at.strftime("%d / %m / %Y")),
+            _field("HORA:", context.issued_at.strftime("%H:%M")),
+            _field("N° HOJAS:", context.page_count_label),
         ]
-        for value, (_, width) in zip(values, columns, strict=True):
-            c.drawString(x + 2, y, value)
-            x += width
-        if movement.is_cancelled and movement.cancellation_reason:
-            c.setFont("Helvetica-Oblique", 6.8)
-            c.drawString(
-                inner_left + 0.12 * inch,
-                y - 0.11 * inch,
-                f"Motivo: {_truncate(movement.cancellation_reason, 90)}",
-            )
-            c.setFont("Helvetica", 7.2)
-            y -= 0.11 * inch
-        y -= row_height
 
-    return y
+    def wrap(self, availWidth, availHeight):
+        self.width = availWidth
+        self.widths = [(availWidth - 16) * ratio for ratio in (0.51, 0.22, 0.27)]
+        self.height = max(p.wrap(w - 8, availHeight)[1]
+                          for p, w in zip(self.paragraphs, self.widths)) + 8
+        return self.width, self.height
+
+    def draw(self):
+        c, x = self.canv, 8
+        c.setLineWidth(0.35)
+        for p, w in zip(self.paragraphs, self.widths):
+            p.drawOn(c, x, self.height - p.height)
+            c.line(x, 4, x + w - 8, 4)
+            x += w
 
 
-def _draw_footer(
-    c: canvas.Canvas,
-    context: EncadenamientoPdfContext,
-    inner_left: float,
-    inner_right: float,
-    y: float,
-) -> None:
-    generated = context.generated_at.strftime("%d/%m/%Y %H:%M")
+class _RecipientBlock(Flowable):
+    """A complete physical form block, split only when its text exceeds a page.
+
+    A split block repeats the same recipient ordinal; it never invents a new
+    derivation. Signature/stamp spaces are retained on its final fragment.
+    """
+    def __init__(self, index, movement, urgent=False, *, instruction=None, continued=False, full_page_height=None):
+        super().__init__()
+        self.index, self.movement, self.urgent = index, movement, urgent
+        self.continued = continued
+        self.full_page_height = full_page_height or PAGE_HEIGHT - 2 * MARGIN - HEADER_HEIGHT - FOOTER_HEIGHT
+        self.instruction = instruction if instruction is not None else _paragraph(
+            movement.instruction or "" if movement else ""
+        )
+        self.final = True
+
+    def wrap(self, availWidth, availHeight):
+        self.width = availWidth
+        m = self.movement
+        # A checkbox marks the actual initial recipient, not a hardcoded unit list.
+        if self.index == 0:
+            self.fields = [
+                _field("RECEPTOR INSTITUCIONAL:", m.to_unit if m else ""),
+                _field("FUNCIONARIO:", m.to_user if m else ""),
+            ]
+            field_width = availWidth - 202
+        else:
+            self.fields = [
+                _field("DESTINO:", (m.to_user or m.to_unit) if m else ""),
+                _field("UNIDAD:", m.to_unit if m else ""),
+                _field("FUNCIONARIO:", m.to_user if m else ""),
+            ]
+            field_width = availWidth - 24
+        self.field_heights = [max(14, p.wrap(field_width, 10000)[1] + 2) for p in self.fields]
+        self.instruction_width = availWidth - (202 if self.index == 0 else 24)
+        self.instruction_height = self.instruction.wrap(self.instruction_width, 1000000)[1]
+        self.status = None
+        if m and m.is_cancelled:
+            self.status = _field("CANCELADO - MOTIVO:", m.cancellation_reason or "Sin motivo registrado")
+        self.status_height = self.status.wrap(availWidth - (202 if self.index == 0 else 24), 1000000)[1] + 5 if self.status else 0
+        self.before_instruction = 24 + sum(self.field_heights) + self.status_height
+        if self.index == 1:
+            self.before_instruction += 18  # Urgency is explicit in second-recipient form.
+        if self.index != 0:
+            self.before_instruction += 17  # Instructivo / proveído label.
+        self.after_instruction = (118 if self.index == 1 else 76) if self.final else 8
+        if self.index == 0:
+            self.after_instruction = 12
+        self.height = max(
+            (116 if self.index == 0 else (240 if self.index == 1 else 182)) if self.final else 0,
+            self.before_instruction + self.instruction_height + 8 + self.after_instruction,
+        )
+        # Unused writing slots complete the physical form only if they fit.
+        # They must never create a continuation sheet with no real movement.
+        self.skip_blank = self.movement is None and self.height > availHeight
+        if self.skip_blank:
+            self.height = 0
+        return self.width, self.height
+
+    def split(self, availWidth, availHeight):
+        self.wrap(availWidth, availHeight)
+        # Move the block intact to the next page unless it cannot fit a full page.
+        full_page = self.full_page_height
+        if self.height <= full_page:
+            return []
+        room = availHeight - self.before_instruction - 20
+        if room < TEXT.leading * 2:
+            return []
+        pieces = self.instruction.split(self.instruction_width, room)
+        if len(pieces) < 2:
+            return []
+        first = _RecipientBlock(self.index, self.movement, self.urgent,
+                                instruction=pieces[0], continued=self.continued, full_page_height=self.full_page_height)
+        first.final = False
+        rest = _RecipientBlock(self.index, self.movement, self.urgent,
+                               instruction=pieces[1], continued=True, full_page_height=self.full_page_height)
+        first.wrap(availWidth, availHeight)
+        return [first, Spacer(1, 4), rest]
+
+    def draw(self):
+        if self.skip_blank:
+            return
+        c, w, h = self.canv, self.width, self.height
+        c.setStrokeColor(colors.black)
+        c.setFillColor(colors.black)
+        c.setLineWidth(0.5)
+        c.roundRect(0, 0, w, h, 3, stroke=1, fill=0)
+        c.line(0, h - 19, w, h - 19)
+        c.setFont("Helvetica-Bold", 9)
+        title = _recipient_label(self.index) + (" (CONTINUACIÓN)" if self.continued else "")
+        c.drawCentredString(w / 2, h - 13, title)
+        y = h - 24
+        x = 12
+        if self.index == 0:
+            c.rect(12, y - 10, 8, 8)
+            if self.movement:
+                c.setFont("Helvetica", 8)
+                c.drawCentredString(16, y - 8, "X")
+            x = 26
+        for p, height in zip(self.fields, self.field_heights):
+            ph = p.height
+            p.drawOn(c, x, y - ph)
+            c.setLineWidth(0.3)
+            c.line(x, y - height + 2, w - (178 if self.index == 0 else 12), y - height + 2)
+            y -= height
+        if self.status:
+            self.status.drawOn(c, x, y - self.status_height + 5)
+            y -= self.status_height
+        if self.index == 1:
+            c.setFont("Helvetica-Bold", 9)
+            c.drawString(12, y - 10, "URGENTE:")
+            c.setFont("Helvetica", 9)
+            c.drawString(72, y - 10, ("SÍ" if self.urgent else "NO") if self.movement else "")
+            c.line(72, y - 13, w - 12, y - 13)
+            y -= 18
+        if self.index != 0:
+            c.setFont("Helvetica-Bold", 9)
+            c.drawString(12, y - 11, "INSTRUCTIVO / PROVEÍDO:")
+            y -= 17
+        # The normal form keeps writing lines even when no instruction exists.
+        self.instruction.drawOn(c, x if self.index == 0 else 12, y - self.instruction_height)
+        y -= self.instruction_height + 3
+        if self.index != 0 and self.final:
+            c.setLineWidth(0.3)
+            for line in range(3 if self.index == 1 else 2):
+                c.line(12, y - line * 12, w - 12, y - line * 12)
+        if not self.final:
+            c.setFont("Helvetica-Oblique", 7)
+            c.drawRightString(w - 12, 5, "Proveído continúa en la siguiente hoja")
+            return
+        if self.index == 0:
+            _stamp(c, w - 164, 12, 150, max(66, h - 40), "SELLO DE RECEPCIÓN")
+            return
+        # Lower right stamp and signature/date fields remain blank for handwriting.
+        if self.index == 1:
+            sx, sw, sh = w - 230, 216, 52
+            _stamp(c, sx, 10, sw, sh, "ESPACIO PARA SELLO")
+            c.setFont("Helvetica", 8)
+            c.drawString(sx, 88, "FIRMA:")
+            c.line(sx + 38, 86, w - 14, 86)
+            c.drawString(sx, 72, "FECHA: ____ / ____ / ______")
+        else:
+            _stamp(c, 14, 10, 130, 44, "SELLO")
+            c.setFont("Helvetica", 8)
+            c.drawString(164, 42, "FIRMA:")
+            c.line(202, 40, w - 14, 40)
+            c.drawString(164, 22, "FECHA: ____ / ____ / ______")
+
+
+
+def _stamp(c, x, y, width, height, label):
+    c.setLineWidth(0.4)
+    c.roundRect(x, y, width, height, 2, stroke=1, fill=0)
     c.setFont("Helvetica", 7)
-    c.drawString(
-        inner_left + 0.12 * inch,
-        y,
-        f"Generado: {generated} UTC",
-    )
-    c.drawRightString(
-        inner_right - 0.12 * inch,
-        y,
-        f"HR {context.route_number}",
-    )
+    c.drawCentredString(x + width / 2, y + height / 2 - 2, label)
 
 
-def _format_route(unit: str | None, user: str | None) -> str:
-    unit = (unit or "").strip()
-    user = (user or "").strip()
-    if unit and user:
-        return _truncate(f"{unit} / {user}", 28)
-    return _truncate(unit or user or "—", 28)
+def _header_height(context):
+    number = _paragraph(context.document_number or "")
+    return max(HEADER_HEIGHT, number.wrap(62, 1000000)[1] + 78)
 
 
-def _format_datetime(value: datetime) -> str:
-    return value.strftime("%d/%m/%Y %H:%M")
-
-
-def _movement_status(movement: EncadenamientoMovementRow) -> str:
-    if movement.is_cancelled:
-        return "CANCELADO"
-    return "VIGENTE"
-
-
-def _truncate(value: str, max_len: int) -> str:
-    text = value.strip()
-    if len(text) <= max_len:
-        return text
-    return text[: max_len - 1] + "…"
-
-
-def _draw_labeled_line(
-    c: canvas.Canvas,
-    x: float,
-    y: float,
-    width: float,
-    label: str,
-    value: str,
-) -> float:
+def _draw_page(c, doc, context):
+    left, right, top = MARGIN, PAGE_WIDTH - MARGIN, PAGE_HEIGHT - MARGIN
+    header_height = _header_height(context)
+    c.saveState()
+    c.setStrokeColor(colors.black)
+    c.setFillColor(colors.black)
+    c.setLineWidth(0.5)
+    c.roundRect(left, MARGIN, CONTENT_WIDTH, PAGE_HEIGHT - 2 * MARGIN, 3)
+    if OFFICIAL_CREST.is_file():
+        c.drawImage(str(OFFICIAL_CREST), left + 10, top - 72, width=52, height=64,
+                    preserveAspectRatio=True, anchor="c", mask="auto")
+    header_x, header_width = left + 72, CONTENT_WIDTH - 160
+    style = ParagraphStyle("institution", fontName="Helvetica-Bold", fontSize=10,
+                           leading=13, alignment=TA_CENTER)
+    p = Paragraph("GOBIERNO AUTÓNOMO MUNICIPAL DE SIPE SIPE", style)
+    ph = p.wrap(header_width, 100)[1]
+    p.drawOn(c, header_x, top - 18 - ph)
+    p = Paragraph("SEGUNDA SECCIÓN DE LA PROVINCIA QUILLACOLLO",
+                  ParagraphStyle("province", parent=style, fontName="Helvetica", fontSize=8, leading=11))
+    ph = p.wrap(header_width, 100)[1]
+    p.drawOn(c, header_x, top - 38 - ph)
+    c.setFont("Helvetica-Bold", 8)
+    c.drawString(right - 70, top - 18, "N°")
+    p = _paragraph(context.document_number or "")
+    ph = p.wrap(62, 1000000)[1]
+    p.drawOn(c, right - 70, top - 24 - ph)
+    c.setLineWidth(0.35)
+    c.line(right - 70, top - header_height + 46, right - 8, top - header_height + 46)
+    c.line(left, top - header_height + 30, right, top - header_height + 30)
     c.setFont("Helvetica-Bold", 9)
-    c.drawString(x, y, label)
-    label_width = c.stringWidth(label, "Helvetica-Bold", 9)
-    line_start = x + label_width + 4
-    c.setFont("Helvetica", 9)
-    if value.strip():
-        c.drawString(line_start, y, value.strip())
-    else:
-        c.line(line_start, y - 2, x + width, y - 2)
-    return y - 0.2 * inch
+    c.drawCentredString(PAGE_WIDTH / 2, top - header_height + 16,
+                       "ENCADENAMIENTO DE DOCUMENTOS INTERNOS Y EXTERNOS")
+    c.line(left, top - header_height + 6, right, top - header_height + 6)
+    c.setFont("Helvetica", 7)
+    c.drawString(left + 8, MARGIN + 8, "HR: " + context.route_number)
+    c.drawRightString(right - 8, MARGIN + 8, f"HOJA {doc.page}")
+    c.restoreState()
 
 
-def _draw_horizontal_rule(c: canvas.Canvas, left: float, right: float, y: float) -> None:
-    c.setLineWidth(0.75)
-    c.line(left, y, right, y)
+def generate_encadenamiento_pdf(context: EncadenamientoPdfContext) -> bytes:
+    buffer = BytesIO()
+    # Reserve the institutional header on every Legal page, including continuations.
+    header_height = _header_height(context)
+    content_top = PAGE_HEIGHT - MARGIN - header_height
+    bottom = MARGIN + FOOTER_HEIGHT
+    doc = BaseDocTemplate(buffer, pagesize=legal, leftMargin=MARGIN, rightMargin=MARGIN,
+                          topMargin=MARGIN + header_height, bottomMargin=bottom,
+                          title="Encadenamiento de documentos internos y externos",
+                          author="Gobierno Autónomo Municipal de Sipe Sipe")
+    frame = Frame(MARGIN + 6, bottom, CONTENT_WIDTH - 12, content_top - bottom,
+                  leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0)
+    doc.addPageTemplates(PageTemplate(id="oficio", frames=frame,
+                                     onPage=lambda c, d: _draw_page(c, d, context)))
+    story = [KeepTogether([
+        _RuledField("PARA:", context.para),
+        _RuledField("DE:", context.de),
+        _RuledField("REFERENCIA:", context.referencia),
+        _IssueDetails(context),
+    ]), Spacer(1, 4)]
+    recipients = sorted((m for m in context.movements if m.movement_type == "DERIVED"),
+                        key=lambda m: m.sequence_number)
+    for index in range(max(4, len(recipients))):
+        movement = recipients[index] if index < len(recipients) else None
+        story.extend([_RecipientBlock(index, movement, context.is_urgent, full_page_height=content_top - bottom), Spacer(1, 3)])
+    doc.build(story)
+    return buffer.getvalue()

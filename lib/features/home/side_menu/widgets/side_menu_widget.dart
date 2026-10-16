@@ -5,13 +5,26 @@ import 'package:correspondencia_sipe_sipe/features/home/side_menu/cubit/side_men
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-class SideMenuWidget extends StatelessWidget {
+class SideMenuWidget extends StatefulWidget {
   const SideMenuWidget({
     this.onItemSelected,
     super.key,
   });
 
   final VoidCallback? onItemSelected;
+
+  @override
+  State<SideMenuWidget> createState() => _SideMenuWidgetState();
+}
+
+class _SideMenuWidgetState extends State<SideMenuWidget> {
+  final _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +53,10 @@ class SideMenuWidget extends StatelessWidget {
             child: BlocBuilder<SideMenuCubit, SideMenuState>(
               builder: (context, state) {
                 return Scrollbar(
+                  controller: _scrollController,
                   child: ListView(
+                    controller: _scrollController,
+                    primary: false,
                     padding: const EdgeInsets.fromLTRB(10, 8, 10, 16),
                     children: state.menus.map((item) {
                       if (item.isSection) {
@@ -66,7 +82,7 @@ class SideMenuWidget extends StatelessWidget {
                           child: InkWell(
                             onTap: () {
                               context.read<SideMenuCubit>().select(item);
-                              onItemSelected?.call();
+                              widget.onItemSelected?.call();
                             },
                             borderRadius: AppDecorations.borderRadiusSm,
                             hoverColor: UiColors.sidebarHover,

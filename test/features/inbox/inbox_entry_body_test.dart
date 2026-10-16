@@ -3,6 +3,7 @@ import 'package:correspondencia_repository/correspondencia_repository.dart'
     as repo;
 import 'package:correspondencia_sipe_sipe/core/presentation/widget/responsive_breakpoints.dart';
 import 'package:correspondencia_sipe_sipe/core/theme/app_theme.dart';
+import 'package:correspondencia_sipe_sipe/core/theme/ui_colors.dart';
 import 'package:correspondencia_sipe_sipe/core/util/enums.dart';
 import 'package:correspondencia_sipe_sipe/features/app/cubit/app_session_cubit.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/domain/entities/correspondence_entity.dart';
@@ -169,8 +170,8 @@ void main() {
       await tester.pumpWidget(_buildSubject(cubit: cubit));
       final tabs = tester.widget<SegmentedButton<repo.InboxScope>>(
           find.byType(SegmentedButton<repo.InboxScope>));
-      expect(tabs.segments.first.enabled, isTrue);
-      expect(tabs.segments.last.enabled, isFalse);
+      expect(tabs.segments.first.enabled, isFalse);
+      expect(tabs.segments.last.enabled, isTrue);
       await tester.tap(find.text('De mi unidad (0)'));
       await tester.pumpAndSettle();
       expect(cubit.state.scope, repo.InboxScope.mine);
@@ -204,6 +205,18 @@ void main() {
 
       expect(find.text('HR-2026-000002'), findsWidgets);
       expect(find.byType(SegmentedButton<repo.InboxScope>), findsOneWidget);
+      final tabs = tester.widget<SegmentedButton<repo.InboxScope>>(
+          find.byType(SegmentedButton<repo.InboxScope>));
+      expect(tabs.segments.first.value, repo.InboxScope.unit);
+      expect(tabs.selected, {repo.InboxScope.unit});
+      expect(tabs.style!.backgroundColor!.resolve({WidgetState.selected}),
+          UiColors.primary);
+      expect(tabs.style!.foregroundColor!.resolve({WidgetState.selected}),
+          Colors.white);
+      await tester.tap(find.text('Asignados a mí (4)'));
+      await tester.pumpAndSettle();
+      expect(cubit.state.scope, repo.InboxScope.mine);
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('empty mine', (tester) async {

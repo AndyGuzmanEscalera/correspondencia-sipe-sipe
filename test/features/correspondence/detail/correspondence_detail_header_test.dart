@@ -3,6 +3,8 @@ import 'package:correspondencia_repository/correspondencia_repository.dart'
 import 'package:correspondencia_sipe_sipe/core/presentation/widget/responsive_breakpoints.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/detail/cubit/correspondence_document_actions_cubit.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/detail/widgets/correspondence_detail_header.dart';
+import 'package:correspondencia_sipe_sipe/features/correspondence/domain/entities/correspondence_entity.dart';
+import 'package:correspondencia_sipe_sipe/core/util/enums.dart';
 import 'package:failures/failures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -43,7 +45,7 @@ void main() {
       );
     }
 
-    testWidgets('EDIE muestra acción Ver encadenamiento', (tester) async {
+    testWidgets('EDIE muestra acción Ver PDF', (tester) async {
       await pumpHeader(
         tester,
         BlocProvider(
@@ -61,6 +63,36 @@ void main() {
       expect(find.byIcon(Icons.picture_as_pdf_outlined), findsOneWidget);
     });
 
+    testWidgets('codigo completo real muestra Ver PDF y Descargar PDF',
+        (tester) async {
+      const code = 'ENCADENAMIENTO DE DOCUMENTOS INTERNOS Y EXTERNOS';
+      final document = CorrespondenceEntity(
+          id: 'real',
+          uniqueNumber: 1,
+          year: 2026,
+          cite: '',
+          routeNumber: 'HR-2026-000001',
+          type: CorrespondenceTypeCode.ce,
+          priority: 'Media',
+          subject: 'test',
+          registeredAt: DateTime(2026, 10, 15),
+          status: 'ACTIVE',
+          statusLabel: 'Activa',
+          documentTypeCode: code,
+          documentTypeName: code);
+      await pumpHeader(
+          tester,
+          BlocProvider(
+              create: (_) => CorrespondenceDocumentActionsCubit(
+                  repository: _FakeCorrespondenceRepository(),
+                  correspondenceId: document.id),
+              child:
+                  CorrespondenceDetailHeader(item: document, onBack: () {})));
+      expect(find.text('Ver PDF').hitTestable(), findsOneWidget);
+      expect(find.text('Descargar PDF').hitTestable(), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('INFORME oculta acción de encadenamiento', (tester) async {
       await pumpHeader(
         tester,
@@ -76,7 +108,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Ver encadenamiento'), findsNothing);
+      expect(find.text('Ver PDF'), findsNothing);
     });
 
     testWidgets('NOTA oculta acción de encadenamiento', (tester) async {
@@ -94,7 +126,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Ver encadenamiento'), findsNothing);
+      expect(find.text('Ver PDF'), findsNothing);
     });
 
     testWidgets('click EDIE solicita PDF al cubit', (tester) async {

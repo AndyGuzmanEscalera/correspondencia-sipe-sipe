@@ -235,10 +235,10 @@ void main() {
       expect(find.byType(CorrespondenceInfoSection), findsOneWidget);
       expect(find.text('Adjuntos'), findsOneWidget);
       expect(find.text('Agregar archivos'), findsOneWidget);
-      expect(find.text('Ver encadenamiento'), findsOneWidget);
+      expect(find.text('Ver PDF'), findsOneWidget);
       expect(find.text('Hoja de Ruta'), findsOneWidget);
       expect(find.byType(CorrespondenceMovementsSection), findsOneWidget);
-      expect(find.byType(DeriveCorrespondencePage), findsOneWidget);
+      expect(find.byType(DeriveCorrespondencePage), findsNothing);
       expect(find.text('Derivar trámite'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
@@ -248,10 +248,44 @@ void main() {
     ) async {
       await pumpBody(tester);
 
+      expect(find.byType(DeriveCorrespondenceInherited), findsNothing);
+      await tester.tap(find.text('Derivar trámite'));
+      await tester.pumpAndSettle();
       expect(find.byType(DeriveCorrespondenceInherited), findsOneWidget);
       expect(find.text('Unidad destino'), findsOneWidget);
       expect(tester.takeException(), isNull);
+      await tester.tap(find.byTooltip('Cerrar'));
+      await tester.pumpAndSettle();
+      expect(find.byType(DeriveCorrespondenceInherited), findsNothing);
+      expect(tester.takeException(), isNull);
     });
+
+    for (final size in [const Size(1366, 600), const Size(390, 700)]) {
+      testWidgets(
+          'detalle usa espacio completo y acciones superiores visibles $size',
+          (tester) async {
+        await pumpBody(tester, size: size);
+        expect(find.text('Ver PDF').hitTestable(), findsOneWidget);
+        expect(find.text('Descargar PDF').hitTestable(), findsOneWidget);
+        expect(find.text('Derivar trámite').hitTestable(), findsOneWidget);
+        final viewport = find.byKey(CorrespondenceDetailBody.contentScrollKey);
+        expect(tester.getSize(viewport).height, greaterThan(size.height * 0.5));
+        await tester.drag(viewport, const Offset(0, -1800));
+        await tester.pumpAndSettle();
+        expect(find.text('Concluir').hitTestable(), findsOneWidget);
+        expect(find.text('Derivar trámite').hitTestable(), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      });
+      testWidgets('derivacion abre formulario amplio sin overflow $size',
+          (tester) async {
+        await pumpBody(tester, size: size);
+        await tester.tap(find.text('Derivar trámite'));
+        await tester.pumpAndSettle();
+        expect(find.byType(DeriveCorrespondencePage), findsOneWidget);
+        expect(find.text('Unidad destino'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      });
+    }
 
     testWidgets('loading cuando correspondence es null', (tester) async {
       cubit.emit(const CorrespondenceDetailState());
@@ -299,7 +333,7 @@ void main() {
           findsOneWidget,
         );
         expect(find.byIcon(Icons.picture_as_pdf_outlined), findsOneWidget);
-        expect(find.text('Unidad destino'), findsOneWidget);
+        expect(find.text('Unidad destino'), findsNothing);
 
         await tester.drag(
           find.byKey(CorrespondenceDetailBody.contentScrollKey),
@@ -317,7 +351,7 @@ void main() {
           find.byKey(CorrespondenceDetailBody.contentScrollKey),
           findsOneWidget,
         );
-        expect(find.text('Unidad destino'), findsOneWidget);
+        expect(find.text('Unidad destino'), findsNothing);
       });
 
       testWidgets('768x1024 sin overflow layout desktop', (tester) async {
@@ -326,37 +360,37 @@ void main() {
           find.byKey(CorrespondenceDetailBody.contentScrollKey),
           findsOneWidget,
         );
-        expect(find.text('Unidad destino'), findsOneWidget);
+        expect(find.text('Unidad destino'), findsNothing);
       });
 
       testWidgets('1024x768 sin overflow layout desktop', (tester) async {
         await expectDetailWithoutOverflow(tester, const Size(1024, 768));
-        expect(find.text('Ver encadenamiento'), findsOneWidget);
+        expect(find.text('Ver PDF'), findsOneWidget);
         expect(
           find.byKey(CorrespondenceDetailBody.contentScrollKey),
           findsOneWidget,
         );
-        expect(find.text('Unidad destino'), findsOneWidget);
+        expect(find.text('Unidad destino'), findsNothing);
       });
 
       testWidgets('1366x768 sin overflow layout desktop', (tester) async {
         await expectDetailWithoutOverflow(tester, const Size(1366, 768));
-        expect(find.text('Ver encadenamiento'), findsOneWidget);
+        expect(find.text('Ver PDF'), findsOneWidget);
         expect(
           find.byKey(CorrespondenceDetailBody.contentScrollKey),
           findsOneWidget,
         );
-        expect(find.text('Unidad destino'), findsOneWidget);
+        expect(find.text('Unidad destino'), findsNothing);
       });
 
       testWidgets('1366x900 sin overflow layout desktop', (tester) async {
         await expectDetailWithoutOverflow(tester, const Size(1366, 900));
-        expect(find.text('Ver encadenamiento'), findsOneWidget);
+        expect(find.text('Ver PDF'), findsOneWidget);
         expect(
           find.byKey(CorrespondenceDetailBody.contentScrollKey),
           findsOneWidget,
         );
-        expect(find.text('Unidad destino'), findsOneWidget);
+        expect(find.text('Unidad destino'), findsNothing);
       });
     });
   });

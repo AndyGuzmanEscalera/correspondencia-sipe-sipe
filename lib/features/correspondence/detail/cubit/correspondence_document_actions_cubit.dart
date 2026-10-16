@@ -26,39 +26,58 @@ class CorrespondenceDocumentActionsCubit
   final String _correspondenceId;
   final FileDownloadService _fileDownloadService;
 
-  Future<void> openChainingPdf() async {
-    if (state.openingChainingPdf) {
-      return;
-    }
+  Future<void> openChainingPdf() => _loadPdf(download: false);
+  Future<void> downloadChainingPdf() => _loadPdf(download: true);
 
+  Future<void> _loadPdf({required bool download}) async {
+    if (state.openingChainingPdf) return;
     emit(state.copyWith(openingChainingPdf: true));
+    try {
+      final files = _fileDownloadService;
+      if (!download && files is GeneratedPdfViewer) {
+        await (files as GeneratedPdfViewer)
+            .openGeneratedPdf(loadBytes: _fetchPdf);
+      } else {
+        final bytes = await _fetchPdf();
+        if (bytes == null) return;
+        if (download) {
+          await files.downloadBytes(
+              bytes: bytes,
+              filename: 'encadenamiento.pdf',
+              mimeType: 'application/pdf');
+        } else {
+          await files.openPdfInNewTab(
+              bytes: bytes, title: 'encadenamiento.pdf');
+        }
+      }
+    } catch (_) {
+      if (!isClosed) {
+        _showError(download
+            ? 'No se pudo descargar el PDF. Intente nuevamente.'
+            : 'No se pudo abrir el PDF. Puede usar Descargar PDF.');
+      }
+    } finally {
+      if (!isClosed) emit(state.copyWith(openingChainingPdf: false));
+    }
+  }
 
+  Future<List<int>?> _fetchPdf() async {
     final result = await _repository.downloadChainingPdf(_correspondenceId);
-
-    await result.when(
-      ok: (bytes) async {
-        await _fileDownloadService.openPdfInNewTab(
-          bytes: bytes,
-          title: 'encadenamiento.pdf',
-        );
-        emit(state.copyWith(openingChainingPdf: false));
-      },
-      err: (failure) async {
-        emit(
-          state.copyWith(
-            openingChainingPdf: false,
-            generalStatus: GeneralStatus.error,
-            dialogMessage: DialogMessage(
-              message: FailureGeneric.message(
-                failure: failure,
-                messageResult: 'No se pudo abrir el encadenamiento',
-              ),
-              showLoading: false,
-            ),
-          ),
-        );
-        emit(state.copyWith(generalStatus: GeneralStatus.initial));
+    if (isClosed) return null;
+    return result.when(
+      ok: (bytes) => bytes,
+      err: (failure) {
+        _showError(FailureGeneric.message(
+            failure: failure, messageResult: 'No se pudo obtener el PDF'));
+        return null;
       },
     );
+  }
+
+  void _showError(String message) {
+    emit(state.copyWith(
+        generalStatus: GeneralStatus.error,
+        dialogMessage: DialogMessage(message: message, showLoading: false)));
+    emit(state.copyWith(generalStatus: GeneralStatus.initial));
   }
 }

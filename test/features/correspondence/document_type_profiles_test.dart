@@ -21,6 +21,21 @@ void main() {
       );
     });
 
+    test('codigo completo del catalogo reconoce encadenamiento y PDF', () {
+      const code = 'ENCADENAMIENTO DE DOCUMENTOS INTERNOS Y EXTERNOS';
+      expect(resolveDocumentFormProfile(code.toLowerCase()),
+          DocumentFormProfile.chaining);
+      expect(supportsEncadenamientoPdf('  $code  '), isTrue);
+      expect(supportsEncadenamientoPdf('NOTA DE COMPRA'), isFalse);
+      expect(
+          resolveDefaultChainingDocumentType(const [
+            DocumentType(
+                id: 'otro', code: 'NOTA DE COMPRA', name: 'Nota de compra'),
+            DocumentType(id: 'enc', code: code, name: code),
+          ])?.id,
+          'enc');
+    });
+
     test('resolveDefaultChainingDocumentType prioriza S luego EDIE', () {
       const types = [
         DocumentType(id: '1', code: 'NOTA', name: 'Nota'),

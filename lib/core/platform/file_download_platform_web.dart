@@ -32,3 +32,33 @@ Future<void> platformOpenPdfInNewTab({
     html.Url.revokeObjectUrl(url);
   });
 }
+
+Future<void> platformOpenGeneratedPdf({
+  required Future<List<int>?> Function() loadBytes,
+}) async {
+  // Keep window.open inside the user's click, before the network await.
+  final preview = html.window.open('about:blank', '_blank');
+  String? url;
+  try {
+    if (preview.closed == true) throw StateError('PDF preview blocked');
+    final bytes = await loadBytes();
+    if (bytes == null) {
+      preview.close();
+      return;
+    }
+    if (preview.closed == true) return;
+    url = html.Url.createObjectUrlFromBlob(
+        html.Blob([Uint8List.fromList(bytes)], 'application/pdf'));
+    preview.location.href = url;
+  } catch (_) {
+    preview.close();
+    rethrow;
+  } finally {
+    final loadedUrl = url;
+    if (loadedUrl != null) {
+      Future<void>.delayed(const Duration(minutes: 1), () {
+        html.Url.revokeObjectUrl(loadedUrl);
+      });
+    }
+  }
+}

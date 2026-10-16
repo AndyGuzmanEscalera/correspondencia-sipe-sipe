@@ -25,6 +25,7 @@ class DeriveCorrespondenceCubit extends Cubit<DeriveCorrespondenceState> {
 
   Future<void> init() async {
     final unitsResult = await _organizationRepository.listActiveUnits();
+    if (isClosed) return;
 
     if (unitsResult case Err(:final failure)) {
       emit(
@@ -66,6 +67,7 @@ class DeriveCorrespondenceCubit extends Cubit<DeriveCorrespondenceState> {
     );
 
     final result = await _organizationRepository.listUsersByUnit(unitId);
+    if (isClosed) return;
 
     result.when(
       ok: (users) {
@@ -85,7 +87,8 @@ class DeriveCorrespondenceCubit extends Cubit<DeriveCorrespondenceState> {
               title: 'Error',
               message: FailureGeneric.message(
                 failure: failure,
-                messageResult: 'No se pudieron cargar los usuarios de la unidad',
+                messageResult:
+                    'No se pudieron cargar los usuarios de la unidad',
               ),
             ),
           ),
@@ -123,6 +126,7 @@ class DeriveCorrespondenceCubit extends Cubit<DeriveCorrespondenceState> {
       ),
     );
 
+    if (isClosed) return;
     result.when(
       ok: (_) {
         emit(

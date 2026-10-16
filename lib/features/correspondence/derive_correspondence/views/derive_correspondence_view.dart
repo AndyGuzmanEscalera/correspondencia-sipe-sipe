@@ -15,11 +15,13 @@ class DeriveCorrespondencePage extends StatelessWidget {
   const DeriveCorrespondencePage({
     required this.correspondenceId,
     this.scrollable = true,
+    this.onCompleted,
     super.key,
   });
 
   final String correspondenceId;
   final bool scrollable;
+  final VoidCallback? onCompleted;
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +30,8 @@ class DeriveCorrespondencePage extends StatelessWidget {
         create: (_) => getIt<DeriveCorrespondenceCubit>(
           param1: correspondenceId,
         ),
-        child: DeriveCorrespondenceView(scrollable: scrollable),
+        child: DeriveCorrespondenceView(
+            scrollable: scrollable, onCompleted: onCompleted),
       ),
     );
   }
@@ -37,10 +40,12 @@ class DeriveCorrespondencePage extends StatelessWidget {
 class DeriveCorrespondenceView extends StatelessWidget {
   const DeriveCorrespondenceView({
     this.scrollable = true,
+    this.onCompleted,
     super.key,
   });
 
   final bool scrollable;
+  final VoidCallback? onCompleted;
 
   @override
   Widget build(BuildContext context) {
@@ -52,6 +57,7 @@ class DeriveCorrespondenceView extends StatelessWidget {
             .listen(
           onPressedSuccess: () {
             DeriveCorrespondenceInherited.of(context).clear();
+            onCompleted?.call();
           },
         ),
         ListenerPro<DeriveCorrespondenceCubit, DeriveCorrespondenceState>()

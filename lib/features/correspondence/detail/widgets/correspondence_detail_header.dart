@@ -8,23 +8,24 @@ class CorrespondenceDetailHeader extends StatelessWidget {
   const CorrespondenceDetailHeader({
     required this.item,
     required this.onBack,
+    this.onDerive,
     super.key,
   });
 
   final CorrespondenceEntity item;
   final VoidCallback onBack;
+  final VoidCallback? onDerive;
 
   static const _compactMaxWidth = 767.0;
 
   @override
   Widget build(BuildContext context) {
-    final showChainingPdf =
-        supportsEncadenamientoPdf(item.documentTypeCode);
+    final showChainingPdf = supportsEncadenamientoPdf(item.documentTypeCode);
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final isCompact = constraints.maxWidth <= _compactMaxWidth;
-        final chainingLabel = isCompact ? 'Encadenamiento' : 'Ver encadenamiento';
+        const chainingLabel = 'Ver PDF';
         final subtitle = item.cite.isNotEmpty ? item.cite : item.routeNumber;
 
         final titleBlock = Column(
@@ -33,6 +34,7 @@ class CorrespondenceDetailHeader extends StatelessWidget {
             Text(
               'Detalle de correspondencia',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontSize: isCompact ? 20 : 24,
                     fontWeight: FontWeight.w800,
                     letterSpacing: -0.3,
                   ),
@@ -67,38 +69,59 @@ class CorrespondenceDetailHeader extends StatelessWidget {
               )
             : null;
 
-        if (isCompact) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _BackButton(onBack: onBack),
-                  const SizedBox(width: 12),
-                  Expanded(child: titleBlock),
-                ],
+        final actions = Wrap(spacing: 8, runSpacing: 8, children: [
+          if (chainingButton != null) chainingButton,
+          if (showChainingPdf)
+            BlocBuilder<CorrespondenceDocumentActionsCubit,
+                CorrespondenceDocumentActionsState>(
+              builder: (context, state) => OutlinedButton.icon(
+                onPressed: state.openingChainingPdf
+                    ? null
+                    : () => context
+                        .read<CorrespondenceDocumentActionsCubit>()
+                        .downloadChainingPdf(),
+                icon: const Icon(Icons.download_outlined),
+                label: const Text('Descargar PDF'),
               ),
-              if (chainingButton != null) ...[
-                const SizedBox(height: 12),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: chainingButton,
-                ),
-              ],
-            ],
-          );
-        }
-
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+            ),
+          if (onDerive != null)
+            FilledButton.icon(
+                onPressed: onDerive,
+                icon: const Icon(Icons.forward_rounded),
+                label: const Text('Derivar trámite')),
+        ]);
+        if (constraints.maxWidth >= 1100) {
+          return Row(children: [
             _BackButton(onBack: onBack),
             const SizedBox(width: 16),
             Expanded(child: titleBlock),
-            if (chainingButton != null) chainingButton,
-          ],
-        );
+            const SizedBox(width: 16),
+            actions,
+          ]);
+        }
+        return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                if (isCompact)
+                  IconButton(
+                      tooltip: 'Volver',
+                      onPressed: onBack,
+                      icon: const Icon(Icons.arrow_back_rounded))
+                else
+                  _BackButton(onBack: onBack),
+                SizedBox(width: isCompact ? 12 : 16),
+                Expanded(child: titleBlock),
+              ]),
+              if (showChainingPdf || onDerive != null) ...[
+                const SizedBox(height: 12),
+                Align(
+                    alignment: isCompact
+                        ? Alignment.centerLeft
+                        : Alignment.centerRight,
+                    child: actions),
+              ],
+            ]);
       },
     );
   }

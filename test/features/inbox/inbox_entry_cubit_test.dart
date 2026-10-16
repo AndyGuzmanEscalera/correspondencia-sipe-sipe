@@ -75,7 +75,7 @@ repo.Correspondence _sampleCorrespondence() {
 
 void main() {
   group('InboxEntryCubit', () {
-    test('init carga mine y counts', () async {
+    test('init carga unidad por defecto y counts', () async {
       final repository = _FakeCorrespondenceRepository(
         inboxResult: Ok(
           repo.CorrespondencePage(
@@ -93,7 +93,7 @@ void main() {
 
       await cubit.init();
 
-      expect(repository.lastInboxScope, repo.InboxScope.mine);
+      expect(repository.lastInboxScope, repo.InboxScope.unit);
       expect(cubit.state.items.single.routeNumber, 'HR-2026-000001');
       expect(cubit.state.counts.mine, 4);
       expect(cubit.state.counts.unit, 12);
@@ -105,12 +105,23 @@ void main() {
       final repository = _FakeCorrespondenceRepository();
       final cubit = InboxEntryCubit(repository);
 
-      await cubit.init();
+      await cubit.init(scope: repo.InboxScope.mine);
       await cubit.changeScope(repo.InboxScope.unit);
 
       expect(repository.lastInboxScope, repo.InboxScope.unit);
       expect(cubit.state.scope, repo.InboxScope.unit);
       expect(cubit.state.page, 1);
+      await cubit.close();
+    });
+
+    test('init sin alcance de unidad abre asignados a mi', () async {
+      final repository = _FakeCorrespondenceRepository(
+        countsResult: const Ok(repo.InboxCounts(mine: 1, unit: 0)),
+      );
+      final cubit = InboxEntryCubit(repository);
+      await cubit.init();
+      expect(cubit.state.scope, repo.InboxScope.mine);
+      expect(repository.lastInboxScope, repo.InboxScope.mine);
       await cubit.close();
     });
 
@@ -204,11 +215,11 @@ void main() {
       await cubit.close();
     });
 
-    test('init sin scope pendiente usa mine por default', () async {
+    test('init explicito mine respeta acceso desde dashboard', () async {
       final repository = _FakeCorrespondenceRepository();
       final cubit = InboxEntryCubit(repository);
 
-      await cubit.init();
+      await cubit.init(scope: repo.InboxScope.mine);
 
       expect(cubit.state.scope, repo.InboxScope.mine);
       expect(repository.lastInboxScope, repo.InboxScope.mine);
@@ -220,11 +231,11 @@ void main() {
       final cubit = InboxEntryCubit(repository);
 
       await cubit.init();
-      await cubit.changeScope(repo.InboxScope.unit);
+      await cubit.changeScope(repo.InboxScope.mine);
       await cubit.refresh();
 
-      expect(repository.lastInboxScope, repo.InboxScope.unit);
-      expect(cubit.state.scope, repo.InboxScope.unit);
+      expect(repository.lastInboxScope, repo.InboxScope.mine);
+      expect(cubit.state.scope, repo.InboxScope.mine);
       await cubit.close();
     });
 
