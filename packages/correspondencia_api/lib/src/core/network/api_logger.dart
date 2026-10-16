@@ -3,6 +3,7 @@ import 'dart:developer';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:failures/failures.dart';
 
 /// Logging helpers for [ApiMethod].
 ///
@@ -12,19 +13,10 @@ import 'package:flutter/foundation.dart';
 class ApiLogger {
   ApiLogger._();
 
-  static const _secretKeys = {
-    'password',
-    'contrasena',
-    'token',
-    'access_token',
-    'refresh_token',
-    'authorization',
-    'cookie',
-  };
-
   static void logSave(String message) {
     if (kDebugMode) {
-      log('ApiMethod: $message', name: 'ApiMethod');
+      log('ApiMethod: ${AppLogger.sanitizeMessage(message)}',
+          name: 'ApiMethod');
     }
   }
 
@@ -42,24 +34,11 @@ class ApiLogger {
       final decoded = jsonDecode(value);
       return jsonEncode(redact(decoded));
     } catch (_) {
-      return value;
+      return AppLogger.sanitizeMessage(value);
     }
   }
 
-  static dynamic redact(dynamic value) {
-    if (value is Map) {
-      return value.map((key, v) {
-        if (_secretKeys.contains(key.toString().toLowerCase())) {
-          return MapEntry(key, '***');
-        }
-        return MapEntry(key, redact(v));
-      });
-    }
-    if (value is List) {
-      return value.map(redact).toList();
-    }
-    return value;
-  }
+  static dynamic redact(dynamic value) => AppLogger.sanitize(value);
 
   static String encodeResponse(dynamic data) {
     if (data == null) return '';

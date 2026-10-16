@@ -49,6 +49,13 @@ class AppLogger {
 
   static const _secretKeys = {
     'password',
+    'initial_password',
+    'new_password',
+    'current_password',
+    'confirm_password',
+    'password_confirmation',
+    'client_secret',
+    'api_key',
     'contrasena',
     'token',
     'access_token',
@@ -59,6 +66,13 @@ class AppLogger {
     'jwt',
     'secret',
   };
+
+  static bool isSensitiveKey(Object? key) {
+    String normalize(String value) =>
+        value.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+    return _secretKeys
+        .any((name) => normalize(name) == normalize(key.toString()));
+  }
 
   static String generateErrorId() {
     final now = DateTime.now().microsecondsSinceEpoch.toString();
@@ -76,7 +90,7 @@ class AppLogger {
   static dynamic sanitize(dynamic value) {
     if (value is Map) {
       return value.map((key, v) {
-        if (_secretKeys.contains(key.toString().toLowerCase())) {
+        if (isSensitiveKey(key)) {
           return MapEntry(key, '***');
         }
         return MapEntry(key, sanitize(v));
@@ -92,15 +106,35 @@ class AppLogger {
   }
 
   static String _sanitizeString(String value) {
-    var result = value;
-    for (final key in _secretKeys) {
-      final pattern = RegExp(
-        '$key=([^;\\s,]+)',
-        caseSensitive: false,
-      );
-      result = result.replaceAllMapped(pattern, (m) => '$key=***');
+    try {
+      final parsed = jsonDecode(value);
+      if (parsed is Map || parsed is List) {
+        return jsonEncode(sanitize(parsed));
+      }
+    } catch (_) {}
+    // ApiMethod prefixes JSON with an operation label. Keep non-sensitive JSON
+    // fields visible there too, while using the same recursive sanitization.
+    final jsonStart = value.indexOf(RegExp(r'[\{\[]'));
+    if (jsonStart > 0) {
+      try {
+        final parsed = jsonDecode(value.substring(jsonStart));
+        if (parsed is Map || parsed is List) {
+          return '${_sanitizeString(value.substring(0, jsonStart))}'
+              '${jsonEncode(sanitize(parsed))}';
+        }
+      } catch (_) {}
     }
-    return result;
+    final keys = _secretKeys
+        .map((key) =>
+            key.split(RegExp(r'[_-]')).map(RegExp.escape).join(r'[_-]?'))
+        .join('|');
+    // JSON keeps useful fields above. For unstructured text redact the rest of
+    // the line, including escaped/unterminated quotes, to avoid partial leaks.
+    final pattern = RegExp(
+      "([\"']?\\b(?:$keys)[\"']?\\s*[:=]\\s*)[^\\r\\n]+",
+      caseSensitive: false,
+    );
+    return value.replaceAllMapped(pattern, (match) => '${match[1]}***');
   }
 
   static String sanitizeMessage(String? message) {
