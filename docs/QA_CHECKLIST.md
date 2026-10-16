@@ -215,3 +215,14 @@ No quedan logos provisionales en las superficies revisadas. Las variantes no usa
 - Chrome QA: **6/6 PASS**, release servido por **Apache 2.4 real temporal**, backend APP_ENV=qa sin CORS externo, cookie pública Path=/api/auth, refresh/me y F5 correctos, logout elimina cookie; sin errores JS ni prefijo duplicado. Apache httpd -t: **Syntax OK**; /api/health JSON correcto. Reglas versionadas usadas en el harness, cambiando solo upstream interno a host.docker.internal:55450 por aislamiento.
 - Los puertos habituales 5000 y 8000 estaban ocupados. No se ejecutó literalmente flutter run -d chrome --web-port 5000 contra localhost:8000. Se sirvió DEV con flutter run -d web-server en localhost:5001 y override DEV localhost:55450; Playwright controló Chrome instalado. QA usó 127.0.0.1:55451 con Apache. Usuarios, BD y almacenamiento ficticios aislados. No se alteraron los servicios habituales ni sus datos.
 - No se probó TLS real del servidor: Secure production cubierto por tests de settings y Set-Cookie. No acceso Debian, push ni deploy. Evidencia local temporal: codex-network-qa-20261015 (logs, screenshots, resultados smoke y scan del build); credenciales ficticias fuera del repositorio.
+
+
+## Cierre previo a publicación — 16/10/2026
+
+- Inventario de 25 modified y 6 untracked conservado y consolidado; clasificación y evidencia en [QA_CLOSURE_20261016.md](QA_CLOSURE_20261016.md).
+- Presentación de Correspondencia/EDIE en America/La_Paz (UTC−04:00), sin alterar almacenamiento UTC. N.º HOJAS permanece intencionalmente «—»: no existe dato de dominio.
+- Logger compartido oculta initial_password y demás credenciales; backend bloquea autobaja y baja del último administrador operativo por permisos críticos. UI oculta la baja propia.
+- Backend **396**, Flutter **540**, API **41**, Repository **31**, Failures **6**, todos aprobados. Analyzer **0 errors / 0 warnings / 98 infos** previos. Diff check correcto. Una head **g2b3c4d5e6f7**.
+- Base nueva sin Turnos: upgrade, backend real, health/database, login/me y Funcionarios **OK**. No se repitió smoke Chrome en este lote.
+- **P0 si se reutiliza la base habitual:** revisión legacy a3b4c5d6e7f8 con 11 turnos y 14 segmentos; no modificada. [Plan de reconciliación](DB_RECONCILIATION_PLAN.md) propuesto, sin migration bridge ni ejecución. Requiere decisión y ensayo sobre copia.
+- Sin push, deploy, SMTP, cambios de Website o cambios de Turnos/RR.HH.
