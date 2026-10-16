@@ -15,6 +15,7 @@ from app.modules.identity.admin_schemas import (
     UserAdminResponse,
 )
 from app.modules.identity.rbac_service import RbacService
+from app.modules.identity.administrative_continuity import protect_deactivation, protect_role_change
 from app.modules.identity.role import Role
 from app.modules.identity.user import User
 from app.modules.identity.user_role import UserRole
@@ -123,6 +124,7 @@ class UserAdminService:
             self._assert_can_assign_roles(actor)
             if body.role_ids:
                 self._rbac.validate_active_role_ids(body.role_ids)
+            protect_role_change(self._db, row, body.role_ids, employee.id)
 
         row.username = username
         row.email = email
@@ -145,6 +147,8 @@ class UserAdminService:
         is_active: bool,
     ) -> UserAdminResponse:
         row = self._get_or_404(user_id)
+        if not is_active:
+            protect_deactivation(self._db, actor, row)
         if not is_active and row.is_active:
             validate_deletion(self._db, 'users', row)
         if is_active and not row.is_active and row.employee_id is not None:

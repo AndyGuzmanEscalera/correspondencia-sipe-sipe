@@ -103,7 +103,8 @@ class UsersBody extends StatelessWidget {
                           AppDataGridAction<UserAdmin>(
                             icon: Icons.delete_outline,
                             tooltip: 'Eliminar',
-                            visibleWhen: (item) => item.isActive,
+                            visibleWhen: (item) =>
+                                item.isActive && item.id != session?.id,
                             onPressed: (item) async {
                               final confirmed = await confirmAdminLogicalDelete(
                                 context,
