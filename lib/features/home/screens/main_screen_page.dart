@@ -45,6 +45,9 @@ class MainScreenBody extends StatefulWidget {
 
 class _MainScreenBodyState extends State<MainScreenBody> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
+  // Reparent the same content subtree when switching between sidebar and drawer.
+  // Page providers and form drafts must survive responsive layout changes.
+  final _contentKey = GlobalKey();
 
   @override
   Widget build(BuildContext context) {
@@ -52,9 +55,12 @@ class _MainScreenBodyState extends State<MainScreenBody> {
       builder: (device, longitude) {
         final showSidebar = longitude == DeviceLongitude.long;
         final content = Column(
+          key: _contentKey,
           children: [
             AdminAppBar(
-              onMenuTap: showSidebar ? null : () => _scaffoldKey.currentState?.openDrawer(),
+              onMenuTap: showSidebar
+                  ? null
+                  : () => _scaffoldKey.currentState?.openDrawer(),
             ),
             BlocSelector<SideMenuCubit, SideMenuState, MenuEnum>(
               selector: (state) => state.selected.menu,
