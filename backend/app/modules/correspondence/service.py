@@ -391,13 +391,8 @@ class CorrespondenceService:
             )
 
         self._validate_destination(body.to_unit_id, body.to_user_id)
-        doc_type = self._document_type(correspondence.document_type_id)
-        if resolve_document_form_profile(doc_type.code) == DocumentFormProfile.CHAINING:
-            if body.to_user_id is None:
-                raise HTTPException(
-                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    detail="Seleccione un funcionario destino específico.",
-                )
+        # Subsequent routing is independent of the document profile. Intake
+        # restrictions belong exclusively to create_correspondence.
         self._assert_derivation_changes_assignment(correspondence, body)
 
         next_sequence = self._next_movement_sequence(correspondence.id)

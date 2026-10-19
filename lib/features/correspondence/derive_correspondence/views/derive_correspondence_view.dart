@@ -1,7 +1,6 @@
 import 'package:correspondencia_sipe_sipe/core/helpers/full_widget_generics.dart';
 import 'package:correspondencia_sipe_sipe/core/helpers/listener/listener_generic.dart';
 import 'package:correspondencia_sipe_sipe/core/util/enums.dart';
-import 'package:correspondencia_sipe_sipe/features/correspondence/domain/document_type_profiles.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/derive_correspondence/cubit/derive_correspondence_cubit.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/derive_correspondence/helpers/derive_correspondence_inherited.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/derive_correspondence/widgets/derive_correspondence_form_section.dart';
@@ -93,10 +92,6 @@ class DeriveCorrespondenceBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final inherited = DeriveCorrespondenceInherited.of(context);
-    final documentTypeCode = context.select((CorrespondenceDetailCubit cubit) =>
-        cubit.state.correspondence?.documentTypeCode ?? '');
-    final requireSpecificUser = resolveDocumentFormProfile(documentTypeCode) ==
-        DocumentFormProfile.chaining;
     final deriveCubit = context.read<DeriveCorrespondenceCubit>();
 
     return BlocBuilder<DeriveCorrespondenceCubit, DeriveCorrespondenceState>(
@@ -129,7 +124,6 @@ class DeriveCorrespondenceBody extends StatelessWidget {
                 organizationalUnits: state.organizationalUnits,
                 unitUsers: state.unitUsers,
                 unitUsersLoading: state.unitUsersLoading,
-                requireSpecificUser: requireSpecificUser,
               ),
               Align(
                 alignment: Alignment.centerRight,

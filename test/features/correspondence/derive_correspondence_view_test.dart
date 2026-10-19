@@ -36,6 +36,7 @@ class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
   Result<repo.Correspondence, Failure>? deriveResult;
   Completer<void>? deriveGate;
   int deriveCallCount = 0;
+  repo.DeriveCorrespondenceInput? lastInput;
 
   @override
   Future<Result<repo.Correspondence, Failure>> deriveCorrespondence(
@@ -43,6 +44,7 @@ class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
     repo.DeriveCorrespondenceInput input,
   ) async {
     deriveCallCount++;
+    lastInput = input;
     if (deriveGate != null) {
       await deriveGate!.future;
     }
@@ -184,36 +186,51 @@ void main() {
       expect(find.byIcon(Icons.search_rounded), findsNWidgets(2));
     });
 
-    testWidgets(
-        'EDIE exige funcionario; un documento genérico permite destino de unidad',
-        (tester) async {
-      detailCubit.emit(detailCubit.state.copyWith(
-          correspondence: repo.Correspondence(
-                  id: 'corr-1',
-                  routeNumber: 'HR-2026-000001',
-                  routeYear: 2026,
-                  routeSequence: 1,
-                  correspondenceType: 'INTERNAL',
-                  documentTypeCode: 'EDIE',
-                  documentTypeName: 'Encadenamiento',
-                  subject: 'Asunto',
-                  priority: 'MEDIUM',
-                  status: 'ACTIVE',
-                  registeredAt: DateTime.utc(2026))
-              .toUiEntity()));
-      await pumpDeriveForm(tester);
-      await _selectStringDropdown(tester, optionText: 'Sistemas');
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Derivar'));
-      await tester.pumpAndSettle();
-      expect(correspondenceRepository.deriveCallCount, 0);
-      expect(find.text('Seleccione un funcionario destino'), findsOneWidget);
-      await selectAppDropdownOption(tester,
-          dropdownIndex: 1, optionText: 'Usuario Destino');
-      await tester.tap(find.text('Derivar'));
-      await tester.pumpAndSettle();
-      expect(correspondenceRepository.deriveCallCount, 1);
-    });
+    for (final code in [
+      'EDIE',
+      'S',
+      'ENCADENAMIENTO DE DOCUMENTOS INTERNOS Y EXTERNOS'
+    ]) {
+      for (final assignUser in [false, true]) {
+        testWidgets(
+            '$code deriva con funcionario opcional (asignado=$assignUser)',
+            (tester) async {
+          detailCubit.emit(detailCubit.state.copyWith(
+              correspondence: repo.Correspondence(
+                      id: 'corr-1',
+                      routeNumber: 'HR-2026-000001',
+                      routeYear: 2026,
+                      routeSequence: 1,
+                      correspondenceType: 'INTERNAL',
+                      documentTypeCode: code,
+                      documentTypeName: 'Encadenamiento',
+                      subject: 'Asunto',
+                      priority: 'MEDIUM',
+                      status: 'ACTIVE',
+                      registeredAt: DateTime.utc(2026))
+                  .toUiEntity()));
+          await pumpDeriveForm(tester);
+          await tester.tap(find.text('Derivar'));
+          await tester.pumpAndSettle();
+          expect(correspondenceRepository.deriveCallCount, 0);
+          expect(find.text('Seleccione una unidad'), findsOneWidget);
+          await _selectStringDropdown(tester, optionText: 'Sistemas');
+          await tester.pumpAndSettle();
+          expect(find.text('Usuario destino (opcional)'), findsOneWidget);
+          if (assignUser) {
+            await selectAppDropdownOption(tester,
+                dropdownIndex: 1, optionText: 'Usuario Destino');
+          }
+          await tester.tap(find.text('Derivar'));
+          await tester.pumpAndSettle();
+          expect(correspondenceRepository.deriveCallCount, 1);
+          expect(correspondenceRepository.lastInput!.toUnitId, 'unit-1');
+          expect(correspondenceRepository.lastInput!.toUserId,
+              assignUser ? 'user-1' : null);
+          expect(find.text('Seleccione un funcionario destino'), findsNothing);
+        });
+      }
+    }
 
     testWidgets('error mantiene formulario abierto', (tester) async {
       correspondenceRepository.deriveResult =

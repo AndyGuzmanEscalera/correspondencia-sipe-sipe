@@ -226,3 +226,19 @@ No quedan logos provisionales en las superficies revisadas. Las variantes no usa
 - Base nueva sin Turnos: upgrade, backend real, health/database, login/me y Funcionarios **OK**. No se repitió smoke Chrome en este lote.
 - **P0 si se reutiliza la base habitual:** revisión legacy a3b4c5d6e7f8 con 11 turnos y 14 segmentos; no modificada. [Plan de reconciliación](DB_RECONCILIATION_PLAN.md) propuesto, sin migration bridge ni ejecución. Requiere decisión y ensayo sobre copia.
 - Sin push, deploy, SMTP, cambios de Website o cambios de Turnos/RR.HH.
+
+
+## Cierre EDIE unit-only y responsive — 19/10/2026
+
+- **QA READY respecto a la matriz funcional local.** Sin push ni deploy. No se modificaron la base habitual, Turnos/RR.HH. ni Website.
+- Causa del 422: `derive_correspondence` y Flutter exigían funcionario para CHAINING. Las derivaciones posteriores admiten unidad sola o unidad + funcionario para EDIE, conservando autorización, validación del destino y un solo DERIVED por acción.
+- CREATE desde Ventanilla mantiene `institutional.intake_unit_id`, receptor inicial configurado obligatorio, rechazo de destinos arbitrarios y exactamente CREATED → DERIVED. Política de creación intacta.
+- Unit-only conserva ownership de unidad, acceso/derivación por alcance y notificación exclusiva a lectores activos habilitados, sin duplicados. La asignación a usuario conserva las validaciones de usuario, funcionario, cargo y unidad activos y pertenencia a la unidad.
+- Backend **409 passed**, incluidos 13 casos nuevos EDIE; 2 deprecations de dependencias. Se corrigió únicamente la codificación de «última cuenta» en una aserción preexistente, sin cambiar el comportamiento administrativo. Ejecución final sobre base temporal nueva migrada, evitando datos persistidos por pruebas anteriores.
+- Flutter **546 passed**. API **41**, Repository **31**, Failures **6**, todos aprobados. Analyzer **0 errors / 0 warnings / 98 infos** preexistentes (exit 1 por infos). `git diff --check` correcto. Una sola head **g2b3c4d5e6f7**, sin migraciones nuevas.
+- E2E **10/10** comprobaciones aprobadas mediante Chrome real y HTTP autenticado contra backend/base aislados y actores ficticios. Incluye EDIE posterior unit-only desde formulario (200, un DERIVED, nueva unidad, usuario null), EDIE unidad + funcionario, Ventanilla, INFORME/NOTA unit-only, alcance true/false, notificaciones, PDF y resize Reportes.
+- PDF con ocho derivaciones sucesivas unit-only: **3 páginas Legal (612 × 1008 pt)** renderizadas y revisadas. Unidades reales, funcionario vacío cuando no está asignado, sello/firma/proveído conservados.
+- Fix responsive existente conservado mediante GlobalKey del subárbol de contenido, sin reimplementarlo. Test verifica una sola creación de ReportsCubit, ausencia de consultas nuevas y conservación de filtro aplicado y borrador. Chrome verifica 1440 → 900 → 390 → 1440 con resultado y borrador conservados.
+- Evidencia local: `%TEMP%/codex-edie-unit-closure-20261019/report.html`, logs, capturas y PDF. La matriz combina acciones UI con comprobaciones HTTP; no representa una repetición de toda la E2E anterior.
+- Observación baja: «A VideoFrame was garbage collected without being closed», sin pageerror, HTTP 500, CORS ni fallo funcional asociado. No bloquea este lote ni motivó cambios del motor.
+- La clasificación local no autoriza migrar la base habitual o desplegar Debian; sus controles siguen pendientes según el plan de reconciliación existente.

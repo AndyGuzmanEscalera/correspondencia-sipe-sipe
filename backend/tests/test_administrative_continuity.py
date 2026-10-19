@@ -64,7 +64,7 @@ def test_last_operative_administrator_cannot_be_disabled(admin_db):
     with pytest.raises(HTTPException) as error:
         UserAdminService(admin_db).set_active(actor(admin_db), admin.id, is_active=False)
     assert error.value.status_code == 409
-    assert "Ãºltima cuenta" in error.value.detail
+    assert "última cuenta" in error.value.detail
     assert admin_db.get(User, admin.id).is_active
 
 
