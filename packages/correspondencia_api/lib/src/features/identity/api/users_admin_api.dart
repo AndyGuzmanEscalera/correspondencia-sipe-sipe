@@ -9,6 +9,12 @@ class UsersAdminApi {
 
   final ApiMethod _mainApi;
 
+  Future<List<PermissionOptionResponse>> listPermissions() async {
+    final items = await _mainApi.getList('/admin/permissions',
+        operation: 'admin.permissions.list');
+    return items.map(PermissionOptionResponse.fromJson).toList();
+  }
+
   Future<PaginatedResponse<UserAdminResponse>> list({
     int page = 1,
     int pageSize = 50,

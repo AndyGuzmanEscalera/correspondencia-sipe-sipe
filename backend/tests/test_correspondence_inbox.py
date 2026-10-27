@@ -1,3 +1,8 @@
+from tests.visibility_helpers import (
+    set_position_scope,
+    set_unit_scope,
+    grant_operational_permissions,
+)
 import pytest
 import uuid
 
@@ -19,18 +24,17 @@ def _create_payload(
     *,
     unit_id: uuid.UUID,
     user_id: uuid.UUID | None = None,
-    correspondence_type: str = "EXTERNAL",
+    correspondence_type: str = "INTERNAL",
     **extra: object,
 ) -> dict:
     payload: dict = {
         "correspondence_type": correspondence_type,
         "document_type_id": str(document_type.id),
         "subject": subject,
+        "description": subject,
         "priority": "LOW",
         "initial_to_unit_id": str(unit_id),
     }
-    if correspondence_type == "EXTERNAL":
-        payload["sender_name"] = "Remitente"
     if user_id is not None:
         payload["initial_to_user_id"] = str(user_id)
     payload.update(extra)
@@ -279,7 +283,9 @@ def test_inbox_unit_includes_inactive_current_user(
         params={"scope": "unit"},
     )
     assert response.status_code == 200, response.text
-    listed = next(item for item in response.json()["items"] if item["id"] == created["id"])
+    listed = next(
+        item for item in response.json()["items"] if item["id"] == created["id"]
+    )
     assert listed["current_user_is_active"] is False
     assert listed["current_user_name"] is not None
 
@@ -369,7 +375,11 @@ def test_inbox_user_without_employee_returns_empty(
 
     counts = client.get("/correspondences/inbox/counts", headers=headers)
     assert counts.status_code == 200
-    assert counts.json() == {"mine": 0, "unit": 0, "can_view_unit_correspondence": False}
+    assert counts.json() == {
+        "mine": 0,
+        "unit": 0,
+        "can_view_unit_correspondence": False,
+    }
 
 
 def test_inbox_pagination_and_search(
@@ -472,6 +482,7 @@ def test_inbox_invalid_scope_rejected(
 
 
 @pytest.fixture(autouse=True)
-def unit_scope_for_existing_unit_reader_tests(db, position):
+def unit_scope_for_existing_unit_reader_tests(db, position, user):
     position.can_view_unit_correspondence = True
+    set_position_scope(db, position, True)
     db.commit()

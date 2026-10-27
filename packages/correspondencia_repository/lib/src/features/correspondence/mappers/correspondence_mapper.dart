@@ -10,7 +10,14 @@ import '../entities/inbox_counts.dart';
 import '../entities/sent_count.dart';
 
 extension DocumentTypeResponseMapper on DocumentTypeResponse {
-  DocumentType toEntity() => DocumentType(id: id, code: code, name: name);
+  DocumentType toEntity() => DocumentType(
+      id: id,
+      code: code,
+      name: name,
+      profile: profile,
+      isOperational: isOperational,
+      creationPermission: creationPermission,
+      minimumHierarchyId: minimumHierarchyId);
 }
 
 extension EmployeeOptionResponseMapper on EmployeeOptionResponse {
@@ -27,8 +34,12 @@ extension EmployeeOptionResponseMapper on EmployeeOptionResponse {
 extension CorrespondenceResponseMapper on CorrespondenceResponse {
   Correspondence toEntity() => Correspondence(
         id: id,
+        hasDocumentPdf: hasDocumentPdf,
         canOperate: canOperate,
         canDerive: canDerive,
+        canConclude: canConclude,
+        canReopen: canReopen,
+        canManageAttachments: canManageAttachments,
         routeNumber: routeNumber,
         routeYear: routeYear,
         routeSequence: routeSequence,

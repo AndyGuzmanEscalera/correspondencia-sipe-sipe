@@ -3,6 +3,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, status
 from pydantic import BaseModel
+from app.modules.identity.rbac_service import RbacService
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -18,13 +19,26 @@ from app.modules.identity.role import Role
 from app.modules.identity.user import User
 from app.modules.identity.user_admin_service import UserAdminService
 
+from app.modules.identity.permission_admin import router as permission_router
+
 router = APIRouter(prefix="/admin", tags=["admin-users"])
+router.include_router(permission_router)
+
+
+def _can_assign_role(db, actor, role_id):
+    from fastapi import HTTPException
+    try:
+        RbacService(db).assert_can_assign_roles(actor, [role_id])
+        return True
+    except HTTPException:
+        return False
 
 
 class RoleOptionResponse(BaseModel):
     id: uuid.UUID
     code: str
     name: str
+    can_assign: bool = True
 
 
 def _users(db: Annotated[Session, Depends(get_db)]) -> UserAdminService:
@@ -42,7 +56,8 @@ def list_roles_for_admin(
         .order_by(Role.name)
     ).all()
     return [
-        RoleOptionResponse(id=row.id, code=row.code, name=row.name) for row in rows
+        RoleOptionResponse(id=row.id, code=row.code, name=row.name,
+            can_assign=_can_assign_role(db, _user, row.id)) for row in rows
     ]
 
 

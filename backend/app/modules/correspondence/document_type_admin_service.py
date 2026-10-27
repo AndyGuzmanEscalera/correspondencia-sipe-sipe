@@ -38,9 +38,7 @@ class DocumentTypeAdminService:
             query = query.where(
                 DocumentType.name.ilike(term) | DocumentType.code.ilike(term)
             )
-        total = self._db.scalar(
-            select(func.count()).select_from(query.subquery())
-        ) or 0
+        total = self._db.scalar(select(func.count()).select_from(query.subquery())) or 0
         offset = (page - 1) * page_size
         rows = self._db.scalars(
             query.order_by(DocumentType.name).offset(offset).limit(page_size)
@@ -48,7 +46,9 @@ class DocumentTypeAdminService:
         items = [self._to_response(row) for row in rows]
         return paginate(items=items, total=total, page=page, page_size=page_size)
 
-    def get_document_type(self, document_type_id: uuid.UUID) -> DocumentTypeAdminResponse:
+    def get_document_type(
+        self, document_type_id: uuid.UUID
+    ) -> DocumentTypeAdminResponse:
         return self._to_response(self._get_or_404(document_type_id))
 
     def create_document_type(
@@ -91,7 +91,7 @@ class DocumentTypeAdminService:
     ) -> DocumentTypeAdminResponse:
         row = self._get_or_404(document_type_id)
         if not is_active and row.is_active:
-            validate_deletion(self._db, 'document_types', row)
+            validate_deletion(self._db, "document_types", row)
         row.is_active = is_active
         apply_audit(row, actor.id)
         self._db.commit()
@@ -122,7 +122,19 @@ class DocumentTypeAdminService:
         return row
 
     def _to_response(self, row: DocumentType) -> DocumentTypeAdminResponse:
+        from app.modules.organization.position_hierarchy import PositionHierarchy
+
+        minimum = (
+            self._db.get(PositionHierarchy, row.minimum_hierarchy_id)
+            if row.minimum_hierarchy_id
+            else None
+        )
         return DocumentTypeAdminResponse(
+            profile=row.profile,
+            is_operational=row.is_operational,
+            creation_permission=row.creation_permission,
+            minimum_hierarchy_id=row.minimum_hierarchy_id,
+            minimum_hierarchy_name=minimum.name if minimum else None,
             id=row.id,
             code=row.code,
             name=row.name,

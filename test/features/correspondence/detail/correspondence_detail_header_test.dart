@@ -45,6 +45,32 @@ void main() {
       );
     }
 
+    testWidgets('new document snapshot exposes PDF actions', (tester) async {
+      final item = CorrespondenceEntity(
+          id: 'circular',
+          hasDocumentPdf: true,
+          uniqueNumber: 1,
+          year: 2026,
+          cite: '',
+          routeNumber: 'HR-2026-1',
+          type: CorrespondenceTypeCode.ci,
+          priority: 'Media',
+          subject: 'Asunto',
+          registeredAt: DateTime.utc(2026),
+          status: 'ACTIVE',
+          statusLabel: 'Activa',
+          documentTypeCode: 'CIRCULAR',
+          documentTypeName: 'Circular');
+      await pumpHeader(
+          tester,
+          BlocProvider(
+              create: (_) => CorrespondenceDocumentActionsCubit(
+                  repository: _FakeCorrespondenceRepository(),
+                  correspondenceId: item.id),
+              child: CorrespondenceDetailHeader(item: item, onBack: () {})));
+      expect(find.text('Ver PDF'), findsOneWidget);
+      expect(find.text('Descargar PDF'), findsOneWidget);
+    });
     testWidgets('EDIE muestra acción Ver PDF', (tester) async {
       await pumpHeader(
         tester,

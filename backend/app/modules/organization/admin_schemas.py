@@ -33,6 +33,9 @@ class UpdateOrganizationalUnitRequest(BaseModel):
 
 
 class PositionAdminResponse(BaseModel):
+    hierarchy_id: uuid.UUID | None = None
+    hierarchy_code: str | None = None
+    hierarchy_name: str | None = None
     id: uuid.UUID
     code: str | None
     name: str
@@ -46,6 +49,7 @@ class PositionAdminResponse(BaseModel):
 
 
 class CreatePositionRequest(BaseModel):
+    hierarchy_id: uuid.UUID | None = None
     code: str = Field(min_length=1, max_length=50)
     name: str = Field(min_length=1, max_length=200)
     description: str | None = Field(default=None, max_length=255)
@@ -53,6 +57,7 @@ class CreatePositionRequest(BaseModel):
 
 
 class UpdatePositionRequest(BaseModel):
+    hierarchy_id: uuid.UUID | None = None
     code: str = Field(min_length=1, max_length=50)
     name: str = Field(min_length=1, max_length=200)
     description: str | None = Field(default=None, max_length=255)

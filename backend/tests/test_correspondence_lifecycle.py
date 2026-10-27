@@ -1,3 +1,8 @@
+from tests.visibility_helpers import (
+    set_position_scope,
+    set_unit_scope,
+    grant_operational_permissions,
+)
 import pytest
 import uuid
 
@@ -22,11 +27,11 @@ def _create_payload(
     user_id: uuid.UUID | None = None,
 ) -> dict:
     payload: dict = {
-        "correspondence_type": "EXTERNAL",
+        "correspondence_type": "INTERNAL",
         "document_type_id": str(document_type.id),
         "subject": subject,
+        "description": subject,
         "priority": "LOW",
-        "sender_name": "Remitente",
         "initial_to_unit_id": str(unit_id),
     }
     if user_id is not None:
@@ -49,7 +54,10 @@ def _create_active_correspondence(
 ) -> dict:
     if user_id is None:
         from app.core.security import decode_access_token
-        user_id=uuid.UUID(decode_access_token(headers['Authorization'].split(' ',1)[1])['sub'])
+
+        user_id = uuid.UUID(
+            decode_access_token(headers["Authorization"].split(" ", 1)[1])["sub"]
+        )
     response = client.post(
         "/correspondences",
         headers=headers,
@@ -163,7 +171,8 @@ def test_conclude_allowed_when_current_user_inactive(
     second_user: User,
     position: Position,
 ) -> None:
-    position.can_view_unit_correspondence=True
+    position.can_view_unit_correspondence = True
+    set_position_scope(db, position, True)
     db.commit()
     inactive_employee = Employee(
         id=uuid.uuid4(),
@@ -393,6 +402,7 @@ def test_conclude_inactive_correspondence(
 
 
 @pytest.fixture(autouse=True)
-def unit_scope_for_existing_unit_reader_tests(db, position):
+def unit_scope_for_existing_unit_reader_tests(db, position, user):
     position.can_view_unit_correspondence = True
+    set_position_scope(db, position, True)
     db.commit()

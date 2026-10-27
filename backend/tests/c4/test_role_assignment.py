@@ -18,6 +18,8 @@ from app.modules.identity.role import Role
 from app.modules.identity.role_permission import RolePermission
 from app.modules.identity.user import User
 from app.modules.identity.user_role import UserRole
+from app.modules.identity.user_permission import UserPermission
+from app.modules.organization.position_hierarchy import PositionHierarchy
 from app.modules.organization.employee import Employee
 from app.modules.organization.organizational_unit import OrganizationalUnit
 from app.modules.organization.position import Position
@@ -31,7 +33,7 @@ def db():
     engine = create_engine("sqlite://", connect_args={"check_same_thread": False},
                            poolclass=StaticPool)
     models = [User, Employee, OrganizationalUnit, Position, Role, Permission,
-              RolePermission, UserRole]
+              RolePermission, UserRole, UserPermission, PositionHierarchy]
     Base.metadata.create_all(engine, tables=[model.__table__ for model in models])
     with Session(engine) as session:
         yield session

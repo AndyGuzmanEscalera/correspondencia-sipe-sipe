@@ -20,6 +20,14 @@ List<AppDataGridColumn<DocumentTypeAdmin>> documentTypesTableColumns() {
       mobilePriority: 1,
     ),
     AppDataGridColumn<DocumentTypeAdmin>(
+      key: 'usage',
+      label: 'Uso / jerarquía',
+      width: 190,
+      value: (item) => item.isOperational
+          ? 'Operativo · ${item.minimumHierarchyName ?? "Sin mínimo superior"}'
+          : 'Histórico',
+    ),
+    AppDataGridColumn<DocumentTypeAdmin>(
       key: 'active',
       label: 'Estado',
       type: AppDataGridCellType.status,

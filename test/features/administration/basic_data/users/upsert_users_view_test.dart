@@ -101,6 +101,23 @@ void main() {
       await tester.pumpAndSettle();
     }
 
+    testWidgets('edita y guarda permisos directos sin cambiar roles',
+        (tester) async {
+      await pumpUpsertDialog(tester,
+          typeOperation: TypeOperation.update, selected: _entity);
+      await tester.ensureVisible(find.text('Reportes'));
+      await tester.tap(find.text('Reportes'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Ver reportes'));
+      await tester.tap(find.text('Ver reportes'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Guardar'));
+      await tester.tap(find.text('Guardar'));
+      await tester.pumpAndSettle();
+      expect(usersRepository.lastUpdateInput!.directPermissionIds, ['p-1']);
+      expect(usersRepository.lastUpdateInput!.roleIds, isNull);
+    });
+
     testWidgets('C4 roles históricos solo lectura sin permiso', (tester) async {
       await pumpUpsertDialog(tester,
           typeOperation: TypeOperation.update,
@@ -409,6 +426,12 @@ class _FakeListRepository implements UsersAdminRepository {
 }
 
 class _FakeUsersAdminRepository implements UsersAdminRepository {
+  @override
+  Future<Result<List<PermissionOption>, Failure>> listPermissions() async =>
+      const Ok([
+        PermissionOption(
+            id: 'p-1', code: 'reports.view', description: 'Ver reportes')
+      ]);
   @override
   Future<Result<UserAdmin, Failure>> update(
       String id, UserUpdateInput input) async {

@@ -3,8 +3,12 @@ import 'package:equatable/equatable.dart';
 class Correspondence extends Equatable {
   const Correspondence({
     required this.id,
+    this.hasDocumentPdf = false,
     this.canOperate = false,
     this.canDerive = false,
+    this.canConclude = false,
+    this.canReopen = false,
+    this.canManageAttachments = false,
     required this.routeNumber,
     required this.routeYear,
     required this.routeSequence,
@@ -39,8 +43,12 @@ class Correspondence extends Equatable {
   });
 
   final String id;
+  final bool hasDocumentPdf;
   final bool canOperate;
   final bool canDerive;
+  final bool canConclude;
+  final bool canReopen;
+  final bool canManageAttachments;
   final String routeNumber;
   final int routeYear;
   final int routeSequence;
@@ -78,8 +86,12 @@ class Correspondence extends Equatable {
   @override
   List<Object?> get props => [
         id,
+        hasDocumentPdf,
         canOperate,
         canDerive,
+        canConclude,
+        canReopen,
+        canManageAttachments,
         routeNumber,
         routeYear,
         routeSequence,

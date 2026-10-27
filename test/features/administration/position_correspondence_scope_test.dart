@@ -48,7 +48,8 @@ void main() {
     await cubit.close();
   });
   for (final edit in [false, true]) {
-    testWidgets('formulario Cargo edit=$edit muestra y permite guardar alcance',
+    testWidgets(
+        'formulario Cargo edit=$edit conserva campo legado de solo lectura',
         (tester) async {
       final repository = Repository();
       final list = PositionsCubit(repository)..changeSelected(position(true));
@@ -73,11 +74,12 @@ void main() {
           findsOneWidget);
       expect(tester.widget<SwitchListTile>(find.byType(SwitchListTile)).value,
           edit);
-      await tester.tap(find.byType(SwitchListTile));
-      await tester.pump();
+      expect(
+          tester.widget<SwitchListTile>(find.byType(SwitchListTile)).onChanged,
+          isNull);
       await tester.tap(find.text(edit ? 'Guardar' : 'Registrar'));
       await tester.pumpAndSettle();
-      expect(repository.saved!.canViewUnitCorrespondence, !edit);
+      expect(repository.saved!.canViewUnitCorrespondence, edit);
     });
   }
 }

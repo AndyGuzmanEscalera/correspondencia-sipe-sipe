@@ -25,3 +25,12 @@ bool hasPermission(UserSession? session, String code) {
   if (session == null) return false;
   return session.permissions.contains(code);
 }
+
+const correspondenceCreationPermissions = {
+  'correspondence.create.internal_communication',
+  'correspondence.create.report',
+  'correspondence.create.memorandum',
+  'correspondence.create.circular',
+};
+bool canCreateCorrespondence(Iterable<String> permissions) =>
+    permissions.any(correspondenceCreationPermissions.contains);

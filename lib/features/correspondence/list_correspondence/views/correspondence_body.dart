@@ -1,3 +1,4 @@
+import 'package:correspondencia_sipe_sipe/core/auth/permissions.dart';
 import 'package:correspondencia_sipe_sipe/features/app/cubit/app_session_cubit.dart';
 import 'package:correspondencia_sipe_sipe/core/util/enums.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/detail/views/correspondence_detail_page.dart';
@@ -19,7 +20,7 @@ class CorrespondenceBody extends StatelessWidget {
     final cubit = context.read<CorrespondenceCubit>();
     final session = context.watch<AppSessionCubit>().state.userSession;
     final canCreate = session?.employeeId != null &&
-        (session?.permissions.contains('correspondence.create') ?? false);
+        canCreateCorrespondence(session?.permissions ?? const []);
 
     return AdminContent(
       child: Column(

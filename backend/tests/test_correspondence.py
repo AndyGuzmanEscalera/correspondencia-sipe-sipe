@@ -19,13 +19,20 @@ def _create_payload(
     *,
     unit_id: uuid.UUID,
     user_id: uuid.UUID | None = None,
-    correspondence_type: str = "EXTERNAL",
+    correspondence_type: str | None = None,
     **extra: object,
 ) -> dict:
+    legacy = document_type.code in {
+        "EDIE",
+        "S",
+        "ENCADENAMIENTO DE DOCUMENTOS INTERNOS Y EXTERNOS",
+    }
+    correspondence_type = correspondence_type or ("EXTERNAL" if legacy else "INTERNAL")
     payload: dict = {
         "correspondence_type": correspondence_type,
         "document_type_id": str(document_type.id),
         "subject": subject,
+        "description": subject or "Contenido de prueba",
         "priority": "LOW",
         "initial_to_unit_id": str(unit_id),
     }
@@ -33,15 +40,19 @@ def _create_payload(
         payload["sender_name"] = "Remitente"
     if user_id is not None:
         payload["initial_to_user_id"] = str(user_id)
-    if document_type.code in {"EDIE", "S"} and hasattr(document_type, "edie_first_employee_id"):
-        payload["first_recipient_employee_id"] = str(document_type.edie_first_employee_id)
-        payload.pop("initial_to_unit_id",None)
-        payload.pop("initial_to_user_id",None)
+    if document_type.code in {"EDIE", "S"} and hasattr(
+        document_type, "edie_first_employee_id"
+    ):
+        payload["first_recipient_employee_id"] = str(
+            document_type.edie_first_employee_id
+        )
+        payload.pop("initial_to_unit_id", None)
+        payload.pop("initial_to_user_id", None)
     payload.update(extra)
     return payload
 
 
-def test_create_external_to_unit_only(
+def test_create_operational_internal_to_unit_only(
     client: TestClient,
     auth_headers: dict[str, str],
     document_type: DocumentType,
@@ -52,21 +63,21 @@ def test_create_external_to_unit_only(
         headers=auth_headers,
         json=_create_payload(
             document_type,
-            "Solicitud externa a unidad",
+            "Comunicado interno a unidad",
             unit_id=second_org_unit.id,
         ),
     )
     assert response.status_code == 201, response.text
     body = response.json()
-    assert body["correspondence_type"] == "EXTERNAL"
-    assert body["origin_unit_id"] is None
+    assert body["correspondence_type"] == "INTERNAL"
+    assert body["origin_unit_id"] is not None
     assert body["origin_user_id"] is None
     assert body["current_unit_id"] == str(second_org_unit.id)
     assert body["current_user_id"] is None
     assert body["route_number"].startswith("HR-")
 
 
-def test_create_external_to_unit_and_user(
+def test_create_operational_internal_to_unit_and_user(
     client: TestClient,
     auth_headers: dict[str, str],
     document_type: DocumentType,
@@ -78,13 +89,10 @@ def test_create_external_to_unit_and_user(
         headers=auth_headers,
         json=_create_payload(
             document_type,
-            "Solicitud externa a usuario",
+            "Comunicado interno a usuario",
             unit_id=second_org_unit.id,
             user_id=second_user.id,
             priority="HIGH",
-            sender_name="Ciudadano Prueba",
-            sender_document="1234567",
-            sender_contact="70000000",
         ),
     )
     assert response.status_code == 201, response.text
@@ -138,7 +146,8 @@ def test_create_internal_without_employee_fails(
     db.add(user)
     db.commit()
     from tests.visibility_helpers import grant_creation_permission
-    grant_creation_permission(db,user)
+
+    grant_creation_permission(db, user)
     token, _ = create_access_token(user.id)
     headers = {"Authorization": f"Bearer {token}"}
 
@@ -223,9 +232,13 @@ def test_correspondence_with_inactive_current_user_still_listed(
     second_user.is_active = False
     db.commit()
 
-    response = client.get("/correspondences", headers=unit_reader_headers(db, second_org_unit.id))
+    response = client.get(
+        "/correspondences", headers=unit_reader_headers(db, second_org_unit.id)
+    )
     assert response.status_code == 200
-    listed = next(item for item in response.json()["items"] if item["id"] == created["id"])
+    listed = next(
+        item for item in response.json()["items"] if item["id"] == created["id"]
+    )
     assert listed["current_unit_id"] == str(second_org_unit.id)
     assert listed["current_user_id"] == str(second_user.id)
     assert listed["current_user_is_active"] is False
@@ -374,7 +387,9 @@ def test_list_correspondences(
             reference="REF-LIST-001",
         ),
     ).json()
-    response = client.get("/correspondences", headers=unit_reader_headers(db, second_org_unit.id))
+    response = client.get(
+        "/correspondences", headers=unit_reader_headers(db, second_org_unit.id)
+    )
     assert response.status_code == 200
     body = response.json()
     assert body["total"] >= 1
@@ -388,7 +403,7 @@ def test_list_correspondences(
     assert listed["current_user_is_active"] is True
     assert listed["reference"] == "REF-LIST-001"
     assert listed["document_type_name"] == document_type.name
-    assert listed["correspondence_type"] == "EXTERNAL"
+    assert listed["correspondence_type"] == "INTERNAL"
 
 
 def test_inactive_correspondence_excluded_from_operational_list(
@@ -401,7 +416,9 @@ def test_inactive_correspondence_excluded_from_operational_list(
     created = client.post(
         "/correspondences",
         headers=auth_headers,
-        json=_create_payload(document_type, "Trámite anulado", unit_id=second_org_unit.id),
+        json=_create_payload(
+            document_type, "Trámite anulado", unit_id=second_org_unit.id
+        ),
     ).json()
 
     correspondence = db.get(Correspondence, uuid.UUID(created["id"]))
@@ -508,7 +525,9 @@ def test_route_number_unique_sequential(
         response = client.post(
             "/correspondences",
             headers=auth_headers,
-            json=_create_payload(document_type, f"Secuencial {i}", unit_id=second_org_unit.id),
+            json=_create_payload(
+                document_type, f"Secuencial {i}", unit_id=second_org_unit.id
+            ),
         )
         assert response.status_code == 201
         numbers.append(response.json()["route_number"])
@@ -604,7 +623,9 @@ def test_derive_concurrent_movement_sequences(
         .order_by(CorrespondenceMovement.sequence_number)
     ).all()
 
-    derived = [movement for movement in movements if movement.movement_type == "DERIVED"]
+    derived = [
+        movement for movement in movements if movement.movement_type == "DERIVED"
+    ]
     sequences = [movement.sequence_number for movement in derived]
     assert len(sequences) == 2
     assert len(set(sequences)) == 2

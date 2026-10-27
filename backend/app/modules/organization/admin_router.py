@@ -29,6 +29,8 @@ units_router = APIRouter(
 )
 positions_router = APIRouter(prefix="/admin/positions", tags=["admin-positions"])
 employees_router = APIRouter(prefix="/admin/employees", tags=["admin-employees"])
+from app.modules.organization.hierarchy_admin import router as hierarchies_router
+positions_router.include_router(hierarchies_router)
 
 
 def _units(db: Annotated[Session, Depends(get_db)]) -> UnitAdminService:

@@ -1,3 +1,8 @@
+from tests.visibility_helpers import (
+    set_position_scope,
+    set_unit_scope,
+    grant_operational_permissions,
+)
 import pytest
 import time
 import uuid
@@ -20,15 +25,15 @@ def _create_payload(
     *,
     unit_id: uuid.UUID,
     user_id: uuid.UUID | None = None,
-    correspondence_type: str = "EXTERNAL",
+    correspondence_type: str = "INTERNAL",
 ) -> dict:
     payload: dict = {
         "correspondence_type": correspondence_type,
         "document_type_id": str(document_type.id),
         "subject": subject,
+        "description": subject,
         "priority": "LOW",
         "initial_to_unit_id": str(unit_id),
-        "sender_name": "Remitente",
     }
     if user_id is not None:
         payload["initial_to_user_id"] = str(user_id)
@@ -139,7 +144,8 @@ def test_sent_includes_derived_by_me(
     db.commit()
 
     from tests.visibility_helpers import grant_creation_permission
-    grant_creation_permission(db,colleague_user)
+
+    grant_creation_permission(db, colleague_user)
     colleague_headers = {
         "Authorization": f"Bearer {create_access_token(colleague_user.id)[0]}"
     }
@@ -151,7 +157,13 @@ def test_sent_includes_derived_by_me(
         unit_id=org_unit.id,
         user_id=colleague_user.id,
     )
-    _derive(client,colleague_headers,created["id"],to_unit_id=org_unit.id,to_user_id=user.id)
+    _derive(
+        client,
+        colleague_headers,
+        created["id"],
+        to_unit_id=org_unit.id,
+        to_user_id=user.id,
+    )
     _derive(
         client,
         auth_headers,
@@ -223,10 +235,9 @@ def test_sent_excludes_created_by_other_without_my_derivation(
     db.add(other_user)
     db.commit()
     from tests.visibility_helpers import grant_creation_permission
-    grant_creation_permission(db,other_user)
-    other_headers = {
-        "Authorization": f"Bearer {create_access_token(other_user.id)[0]}"
-    }
+
+    grant_creation_permission(db, other_user)
+    other_headers = {"Authorization": f"Bearer {create_access_token(other_user.id)[0]}"}
 
     created = _create_correspondence(
         client,
@@ -291,10 +302,9 @@ def test_sent_excludes_when_neither_created_nor_derived_by_me(
     db.add(bystander_user)
     db.commit()
     from tests.visibility_helpers import grant_creation_permission
-    grant_creation_permission(db,other_user)
-    other_headers = {
-        "Authorization": f"Bearer {create_access_token(other_user.id)[0]}"
-    }
+
+    grant_creation_permission(db, other_user)
+    other_headers = {"Authorization": f"Bearer {create_access_token(other_user.id)[0]}"}
     bystander_headers = {
         "Authorization": f"Bearer {create_access_token(bystander_user.id)[0]}"
     }
@@ -622,10 +632,9 @@ def test_sent_ignores_client_user_id_param(
     db.add(other_user)
     db.commit()
     from tests.visibility_helpers import grant_creation_permission
-    grant_creation_permission(db,other_user)
-    other_headers = {
-        "Authorization": f"Bearer {create_access_token(other_user.id)[0]}"
-    }
+
+    grant_creation_permission(db, other_user)
+    other_headers = {"Authorization": f"Bearer {create_access_token(other_user.id)[0]}"}
 
     other_created = _create_correspondence(
         client,
@@ -650,6 +659,7 @@ def test_sent_ignores_client_user_id_param(
 
 
 @pytest.fixture(autouse=True)
-def unit_scope_for_existing_unit_reader_tests(db, position):
+def unit_scope_for_existing_unit_reader_tests(db, position, user):
     position.can_view_unit_correspondence = True
+    set_position_scope(db, position, True)
     db.commit()

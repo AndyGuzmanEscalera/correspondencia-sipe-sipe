@@ -1,0 +1,188 @@
+{
+  "date": "2026-10-27",
+  "head": "59c19192e1b27520c4d7269a42793ad834848801",
+  "all_unchanged": true,
+  "file_count": 30,
+  "files": [
+    {
+      "path": "backend/.env.biometric.example",
+      "sha256_before": "d6bffb20d72145c96562d362fda47c09fe668da9b72e456e81a469914f518289",
+      "sha256_after": "d6bffb20d72145c96562d362fda47c09fe668da9b72e456e81a469914f518289",
+      "unchanged": true
+    },
+    {
+      "path": "backend/Dockerfile",
+      "sha256_before": "9ca8ff4b51ccb203e92a5fd00e4405c7fef34868b1cb8f1cdf2e2a6742eb3107",
+      "sha256_after": "9ca8ff4b51ccb203e92a5fd00e4405c7fef34868b1cb8f1cdf2e2a6742eb3107",
+      "unchanged": true
+    },
+    {
+      "path": "backend/README_BIOMETRIC.md",
+      "sha256_before": "8c5effe2a58862bc463c851dc4e5aa4299d117ef137d1167bfcebdef6267be97",
+      "sha256_after": "8c5effe2a58862bc463c851dc4e5aa4299d117ef137d1167bfcebdef6267be97",
+      "unchanged": true
+    },
+    {
+      "path": "backend/VERIFICACION_BIOMETRIC.md",
+      "sha256_before": "00493dc6856bb1834a08f07b9c344545701523bea612dd0ef10dc5ca6bbefea1",
+      "sha256_after": "00493dc6856bb1834a08f07b9c344545701523bea612dd0ef10dc5ca6bbefea1",
+      "unchanged": true
+    },
+    {
+      "path": "backend/alembic/env.py",
+      "sha256_before": "50989f21e7ef1ba0c9aacfdbfedd91473b33a89b88549dcfc00167867580fb3f",
+      "sha256_after": "50989f21e7ef1ba0c9aacfdbfedd91473b33a89b88549dcfc00167867580fb3f",
+      "unchanged": true
+    },
+    {
+      "path": "backend/alembic/versions/h1b2c3d4e5f6_rrhh_biometric.py",
+      "sha256_before": "ad643881f6cf86a57d7bdcb513fe8a00282eaa0e58268f1f27913b1e718e89d9",
+      "sha256_after": "ad643881f6cf86a57d7bdcb513fe8a00282eaa0e58268f1f27913b1e718e89d9",
+      "unchanged": true
+    },
+    {
+      "path": "backend/app/main.py",
+      "sha256_before": "f7de47e0172aa11339b2f73afef8f3a5700a479d87d7f57e87887e81a277fafc",
+      "sha256_after": "f7de47e0172aa11339b2f73afef8f3a5700a479d87d7f57e87887e81a277fafc",
+      "unchanged": true
+    },
+    {
+      "path": "backend/app/modules/rrhh/__init__.py",
+      "sha256_before": "bf470221eb745110b7298ba9ea7e8009318b05049bcae9baf3ded624224b215b",
+      "sha256_after": "bf470221eb745110b7298ba9ea7e8009318b05049bcae9baf3ded624224b215b",
+      "unchanged": true
+    },
+    {
+      "path": "backend/app/modules/rrhh/biometric_service.py",
+      "sha256_before": "d7e11d52fb55fda935e71fd0712c0d171051860afbdf3a911264cd8df890bfea",
+      "sha256_after": "d7e11d52fb55fda935e71fd0712c0d171051860afbdf3a911264cd8df890bfea",
+      "unchanged": true
+    },
+    {
+      "path": "backend/app/modules/rrhh/errors.py",
+      "sha256_before": "5236d77472f40e107fa927d756fad58aff42fe764effddd73f48346fdcfdb264",
+      "sha256_after": "5236d77472f40e107fa927d756fad58aff42fe764effddd73f48346fdcfdb264",
+      "unchanged": true
+    },
+    {
+      "path": "backend/app/modules/rrhh/models.py",
+      "sha256_before": "8f9d5177effda4c35a4083a98a65a0b09fc4df9705e4c2c9af86c58da401925d",
+      "sha256_after": "8f9d5177effda4c35a4083a98a65a0b09fc4df9705e4c2c9af86c58da401925d",
+      "unchanged": true
+    },
+    {
+      "path": "backend/app/modules/rrhh/periods.py",
+      "sha256_before": "513be232587bfedf4b733eaaa5947e20412776a39b00e7ce8dfacfe0d16044ca",
+      "sha256_after": "513be232587bfedf4b733eaaa5947e20412776a39b00e7ce8dfacfe0d16044ca",
+      "unchanged": true
+    },
+    {
+      "path": "backend/app/modules/rrhh/reader/__init__.py",
+      "sha256_before": "2ed56a7bf1f28fc00339507708d9cee99121e592caf4dd439b185c5608751815",
+      "sha256_after": "2ed56a7bf1f28fc00339507708d9cee99121e592caf4dd439b185c5608751815",
+      "unchanged": true
+    },
+    {
+      "path": "backend/app/modules/rrhh/reader/config.py",
+      "sha256_before": "a53ab4953fbf405a138256d4a7e049efbb2b0045f0f3bc2503d2615d74ac1f0b",
+      "sha256_after": "a53ab4953fbf405a138256d4a7e049efbb2b0045f0f3bc2503d2615d74ac1f0b",
+      "unchanged": true
+    },
+    {
+      "path": "backend/app/modules/rrhh/reader/connection.py",
+      "sha256_before": "9176776288f3af6f452b21aa8804512acca531d08c88c890c2473012b8fe6ea8",
+      "sha256_after": "9176776288f3af6f452b21aa8804512acca531d08c88c890c2473012b8fe6ea8",
+      "unchanged": true
+    },
+    {
+      "path": "backend/app/modules/rrhh/reader/monitor.py",
+      "sha256_before": "8535d7d2b028c68d2bc50cc18d245254f81c504c7211c0e04dadd20c990e77f1",
+      "sha256_after": "8535d7d2b028c68d2bc50cc18d245254f81c504c7211c0e04dadd20c990e77f1",
+      "unchanged": true
+    },
+    {
+      "path": "backend/app/modules/rrhh/reader/records.py",
+      "sha256_before": "df986609b40ecdf82d30cc78f483b4903c209400f309f7417fab5dbe3f6cd7c1",
+      "sha256_after": "df986609b40ecdf82d30cc78f483b4903c209400f309f7417fab5dbe3f6cd7c1",
+      "unchanged": true
+    },
+    {
+      "path": "backend/app/modules/rrhh/reader/storage.py",
+      "sha256_before": "ef9aa307c3baa3155898af3488c9921d22f6f055c0a810b4480bc2202c2fa201",
+      "sha256_after": "ef9aa307c3baa3155898af3488c9921d22f6f055c0a810b4480bc2202c2fa201",
+      "unchanged": true
+    },
+    {
+      "path": "backend/app/modules/rrhh/router.py",
+      "sha256_before": "57a0bbb583150961214aadf300faf4109827804db4fc68b5a21a5453f82865ee",
+      "sha256_after": "57a0bbb583150961214aadf300faf4109827804db4fc68b5a21a5453f82865ee",
+      "unchanged": true
+    },
+    {
+      "path": "backend/app/modules/rrhh/schemas.py",
+      "sha256_before": "4c9096c20dc961432f1299cd09e0f76685f030dd0d6b272a34cc9f3d0b21f305",
+      "sha256_after": "4c9096c20dc961432f1299cd09e0f76685f030dd0d6b272a34cc9f3d0b21f305",
+      "unchanged": true
+    },
+    {
+      "path": "backend/app/modules/rrhh/storage.py",
+      "sha256_before": "8511624578fdc0c763889146a77d4f35af827c7c1d9ddb376290f79f78591c99",
+      "sha256_after": "8511624578fdc0c763889146a77d4f35af827c7c1d9ddb376290f79f78591c99",
+      "unchanged": true
+    },
+    {
+      "path": "backend/app/modules/rrhh/worker.py",
+      "sha256_before": "5810e826ab923e3f5faa7dc101ad73c57877864701ca33fb9695ef340cea571a",
+      "sha256_after": "5810e826ab923e3f5faa7dc101ad73c57877864701ca33fb9695ef340cea571a",
+      "unchanged": true
+    },
+    {
+      "path": "backend/requirements-biometric.txt",
+      "sha256_before": "51740b6dfec76d2c5a03b79b21cf9573ac7527b926252ace9f7b71df6ae6e45d",
+      "sha256_after": "51740b6dfec76d2c5a03b79b21cf9573ac7527b926252ace9f7b71df6ae6e45d",
+      "unchanged": true
+    },
+    {
+      "path": "backend/requirements.txt",
+      "sha256_before": "763b6c6bd3d2bae0a990ea9db212d025dcc1760e0410778630bf47e3f305f76f",
+      "sha256_after": "763b6c6bd3d2bae0a990ea9db212d025dcc1760e0410778630bf47e3f305f76f",
+      "unchanged": true
+    },
+    {
+      "path": "backend/tests_rrhh/__init__.py",
+      "sha256_before": "f510cc5ef5c623fa3eebed5994a53fd0bfbfae75a2a21b198a3e458d20c971f8",
+      "sha256_after": "f510cc5ef5c623fa3eebed5994a53fd0bfbfae75a2a21b198a3e458d20c971f8",
+      "unchanged": true
+    },
+    {
+      "path": "backend/tests_rrhh/conftest.py",
+      "sha256_before": "8c14bd8e5e1a1339ebbd2964a8b0c966e1d2a69018f84605ece20107456babbe",
+      "sha256_after": "8c14bd8e5e1a1339ebbd2964a8b0c966e1d2a69018f84605ece20107456babbe",
+      "unchanged": true
+    },
+    {
+      "path": "backend/tests_rrhh/test_integration.py",
+      "sha256_before": "24cb26b4a201bd8a5b2ef388ce9b861b16a00eead850e853b785a56c66b1cffe",
+      "sha256_after": "24cb26b4a201bd8a5b2ef388ce9b861b16a00eead850e853b785a56c66b1cffe",
+      "unchanged": true
+    },
+    {
+      "path": "backend/tests_rrhh/test_migration.py",
+      "sha256_before": "ac01b77c59b04bb7c1d79a0ed4848e74e5bd450737d69bcac4ae81ef78f080f0",
+      "sha256_after": "ac01b77c59b04bb7c1d79a0ed4848e74e5bd450737d69bcac4ae81ef78f080f0",
+      "unchanged": true
+    },
+    {
+      "path": "backend/tests_rrhh/test_reader.py",
+      "sha256_before": "c682a325d7177edc9ca4dd6d5fcf51d193815da65e1bef086e2b210625892ef4",
+      "sha256_after": "c682a325d7177edc9ca4dd6d5fcf51d193815da65e1bef086e2b210625892ef4",
+      "unchanged": true
+    },
+    {
+      "path": "backend/tests_startup/test_optional_biometric_dependency.py",
+      "sha256_before": "f57c3b984dbb9de6ccb85641d9064af66a0424f4ef9a46a98ee8200afedca14b",
+      "sha256_after": "f57c3b984dbb9de6ccb85641d9064af66a0424f4ef9a46a98ee8200afedca14b",
+      "unchanged": true
+    }
+  ]
+}

@@ -10,6 +10,11 @@ class InstitutionalContext extends Equatable {
     this.positionName,
     this.unitId,
     this.unitName,
+    this.hierarchyId,
+    this.hierarchyCode,
+    this.hierarchyName,
+    this.hierarchyRank,
+    this.hierarchyIsActive,
   });
 
   final String employeeId;
@@ -19,6 +24,11 @@ class InstitutionalContext extends Equatable {
   final String? positionName;
   final String? unitId;
   final String? unitName;
+  final String? hierarchyId;
+  final String? hierarchyCode;
+  final String? hierarchyName;
+  final int? hierarchyRank;
+  final bool? hierarchyIsActive;
 
   String? get desktopSubtitle {
     final parts = <String>[
@@ -46,5 +56,10 @@ class InstitutionalContext extends Equatable {
         positionName,
         unitId,
         unitName,
+        hierarchyId,
+        hierarchyCode,
+        hierarchyName,
+        hierarchyRank,
+        hierarchyIsActive,
       ];
 }

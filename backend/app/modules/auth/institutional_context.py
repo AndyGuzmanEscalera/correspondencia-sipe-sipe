@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.modules.auth.schemas import (
     MeEmployeeContext,
+    MeInstitutionalHierarchy,
     MeInstitutionalPosition,
     MeInstitutionalUnit,
 )
@@ -42,15 +43,36 @@ def resolve_me_employee_context(
         id=str(employee.id),
         full_name=full_name,
         document_number=employee.document_number,
-        position=_position_ref(position),
+        position=_position_ref(position, db),
         unit=_unit_ref(unit),
     )
 
 
-def _position_ref(position: Position | None) -> MeInstitutionalPosition | None:
+def _position_ref(position: Position | None, db) -> MeInstitutionalPosition | None:
     if position is None:
         return None
-    return MeInstitutionalPosition(id=str(position.id), name=position.name)
+    from app.modules.organization.position_hierarchy import PositionHierarchy
+
+    hierarchy = (
+        db.get(PositionHierarchy, position.hierarchy_id)
+        if position.hierarchy_id
+        else None
+    )
+    return MeInstitutionalPosition(
+        id=str(position.id),
+        name=position.name,
+        hierarchy=(
+            MeInstitutionalHierarchy(
+                id=str(hierarchy.id),
+                code=hierarchy.code,
+                name=hierarchy.name,
+                rank=hierarchy.rank,
+                is_active=hierarchy.is_active,
+            )
+            if hierarchy
+            else None
+        ),
+    )
 
 
 def _unit_ref(unit: OrganizationalUnit | None) -> MeInstitutionalUnit | None:

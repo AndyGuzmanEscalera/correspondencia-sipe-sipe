@@ -6,6 +6,11 @@ class DocumentTypeAdmin extends Equatable {
     required this.code,
     required this.name,
     required this.isActive,
+    this.profile = 'GENERIC',
+    this.isOperational = false,
+    this.creationPermission,
+    this.minimumHierarchyId,
+    this.minimumHierarchyName,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -14,12 +19,28 @@ class DocumentTypeAdmin extends Equatable {
   final String code;
   final String name;
   final bool isActive;
+  final String profile;
+  final bool isOperational;
+  final String? creationPermission;
+  final String? minimumHierarchyId;
+  final String? minimumHierarchyName;
   final DateTime createdAt;
   final DateTime updatedAt;
 
   @override
-  List<Object?> get props =>
-      [id, code, name, isActive, createdAt, updatedAt];
+  List<Object?> get props => [
+        id,
+        code,
+        name,
+        isActive,
+        createdAt,
+        updatedAt,
+        profile,
+        isOperational,
+        creationPermission,
+        minimumHierarchyId,
+        minimumHierarchyName
+      ];
 }
 
 class DocumentTypeInput extends Equatable {

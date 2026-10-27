@@ -39,10 +39,13 @@ extension OrganizationalUnitInputMapper on OrganizationalUnitInput {
 
 extension PositionAdminResponseMapper on PositionAdminResponse {
   PositionAdmin toEntity() => PositionAdmin(
+        hierarchyCode: hierarchyCode,
+        hierarchyName: hierarchyName,
         id: id,
         code: code,
         name: name,
         canViewUnitCorrespondence: canViewUnitCorrespondence,
+        hierarchyId: hierarchyId,
         description: description,
         isActive: isActive,
         createdAt: createdAt,
@@ -55,6 +58,7 @@ extension PositionInputMapper on PositionInput {
         code: code,
         name: name,
         canViewUnitCorrespondence: canViewUnitCorrespondence,
+        hierarchyId: hierarchyId,
         description: description,
       );
 
@@ -62,6 +66,7 @@ extension PositionInputMapper on PositionInput {
         code: code,
         name: name,
         canViewUnitCorrespondence: canViewUnitCorrespondence,
+        hierarchyId: hierarchyId,
         description: description,
       );
 }

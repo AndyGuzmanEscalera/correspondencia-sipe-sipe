@@ -20,7 +20,8 @@ class CorrespondenceDetailHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final showChainingPdf = supportsEncadenamientoPdf(item.documentTypeCode);
+    final showChainingPdf =
+        item.hasDocumentPdf || supportsEncadenamientoPdf(item.documentTypeCode);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -53,7 +54,7 @@ class CorrespondenceDetailHeader extends StatelessWidget {
                         ? null
                         : () => context
                             .read<CorrespondenceDocumentActionsCubit>()
-                            .openChainingPdf(),
+                            .openChainingPdf(operational: item.hasDocumentPdf),
                     icon: state.openingChainingPdf
                         ? const SizedBox(
                             width: 16,
@@ -79,7 +80,7 @@ class CorrespondenceDetailHeader extends StatelessWidget {
                     ? null
                     : () => context
                         .read<CorrespondenceDocumentActionsCubit>()
-                        .downloadChainingPdf(),
+                        .downloadChainingPdf(operational: item.hasDocumentPdf),
                 icon: const Icon(Icons.download_outlined),
                 label: const Text('Descargar PDF'),
               ),

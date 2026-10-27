@@ -16,6 +16,9 @@ class Position(Base):
         primary_key=True,
         default=uuid.uuid4,
     )
+    hierarchy_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("position_hierarchies.id", ondelete="RESTRICT"), nullable=True,
+    )
     code: Mapped[str | None] = mapped_column(
         String(50),
         nullable=True,

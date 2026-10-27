@@ -12,6 +12,9 @@ extension UserAdminResponseMapper on UserAdminResponse {
         unitName: unitName,
         isActive: isActive,
         roleCodes: roleCodes,
+        directPermissionIds: directPermissionIds,
+        directPermissions: directPermissions,
+        effectivePermissions: effectivePermissions,
         createdAt: createdAt,
         updatedAt: updatedAt,
       );
@@ -24,6 +27,7 @@ extension UserCreateInputMapper on UserCreateInput {
         employeeId: employeeId,
         initialPassword: initialPassword,
         roleIds: roleIds,
+        directPermissionIds: directPermissionIds,
       );
 }
 
@@ -33,9 +37,11 @@ extension UserUpdateInputMapper on UserUpdateInput {
         email: email,
         employeeId: employeeId,
         roleIds: roleIds,
+        directPermissionIds: directPermissionIds,
       );
 }
 
 extension RoleOptionResponseMapper on RoleOptionResponse {
-  RoleOption toEntity() => RoleOption(id: id, code: code, name: name);
+  RoleOption toEntity() =>
+      RoleOption(id: id, code: code, name: name, canAssign: canAssign);
 }

@@ -8,7 +8,9 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.modules.auth.dependencies import get_current_user, require_permission
-from app.modules.correspondence.attachment_service import CorrespondenceAttachmentService
+from app.modules.correspondence.attachment_service import (
+    CorrespondenceAttachmentService,
+)
 from app.modules.correspondence.schemas import (
     CorrespondenceAttachmentResponse,
     CorrespondenceDetail,
@@ -58,6 +60,16 @@ def list_document_types(
     return service.list_document_types()
 
 
+@catalog_router.get(
+    "/document-types/available-for-create", response_model=list[DocumentTypeResponse]
+)
+def available_document_types(
+    user: Annotated[User, Depends(get_current_user)],
+    service: Annotated[CorrespondenceService, Depends(_service)],
+):
+    return service.list_available_document_types(user)
+
+
 @catalog_router.get("/employees", response_model=list[EmployeeOptionResponse])
 def list_active_employees(
     service: Annotated[CorrespondenceService, Depends(_service)],
@@ -77,7 +89,9 @@ def get_institutional_mayor(
     return service.get_institutional_mayor()
 
 
-@catalog_router.get("/edie-first-recipients", response_model=list[InstitutionalMayorResponse])
+@catalog_router.get(
+    "/edie-first-recipients", response_model=list[InstitutionalMayorResponse]
+)
 def list_edie_first_recipients(
     service: Annotated[CorrespondenceService, Depends(_service)],
     _user: Annotated[User, Depends(get_current_user)],
@@ -87,10 +101,13 @@ def list_edie_first_recipients(
 
 @catalog_router.get("/correspondence-creation-policy")
 def get_creation_policy(
-    user: Annotated[User, Depends(require_permission("correspondence.create"))],
+    user: Annotated[User, Depends(get_current_user)],
     service: Annotated[CorrespondenceService, Depends(_service)],
 ) -> dict:
     from app.modules.correspondence.creation_policy import require_intake_unit
+    from app.modules.correspondence.creation_policy import require_create_permission
+
+    require_create_permission(service._db, user)
     responsible = service._resolve_institutional_responsible(user)
     intake = require_intake_unit(service._db)
     return {"is_intake": responsible.unit_id == intake.id}
@@ -103,7 +120,7 @@ def get_creation_policy(
 )
 def create_correspondence(
     body: CreateCorrespondenceRequest,
-    user: Annotated[User, Depends(require_permission("correspondence.create"))],
+    user: Annotated[User, Depends(get_current_user)],
     service: Annotated[CorrespondenceService, Depends(_service)],
 ) -> CorrespondenceDetail:
     return service.create_correspondence(user, body)
@@ -188,7 +205,7 @@ def get_correspondence(
     user: Annotated[User, Depends(_visible_user)],
     service: Annotated[CorrespondenceService, Depends(_service)],
 ) -> CorrespondenceDetail:
-    return service.get_correspondence(correspondence_id, active_only=True,user=user)
+    return service.get_correspondence(correspondence_id, active_only=True, user=user)
 
 
 @router.post("/{correspondence_id}/derive", response_model=CorrespondenceDetail)
@@ -219,6 +236,34 @@ def reopen_correspondence(
     service: Annotated[CorrespondenceService, Depends(_service)],
 ) -> CorrespondenceDetail:
     return service.reopen_correspondence(user, correspondence_id, body)
+
+
+@router.get("/{correspondence_id}/document.pdf")
+def download_operational_pdf(
+    correspondence_id: uuid.UUID,
+    user: Annotated[User, Depends(_visible_user)],
+    service: Annotated[CorrespondenceService, Depends(_service)],
+):
+    from app.modules.correspondence.pdf.operational_document_pdf import (
+        generate_operational_document_pdf,
+    )
+
+    row = service._get_correspondence_or_404(correspondence_id, active_only=True)
+    if not row.document_snapshot:
+        from fastapi import HTTPException
+
+        raise HTTPException(
+            status_code=422,
+            detail="Este documento no dispone de snapshot institucional generado",
+        )
+    payload = generate_operational_document_pdf(row.document_snapshot)
+    return StreamingResponse(
+        io.BytesIO(payload),
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'inline; filename="documento_{row.route_number}.pdf"'
+        },
+    )
 
 
 @router.get("/{correspondence_id}/encadenamiento.pdf")

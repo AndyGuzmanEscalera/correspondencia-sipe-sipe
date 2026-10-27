@@ -15,6 +15,7 @@ import 'package:correspondencia_sipe_sipe/shared/widgets/app_form_dialog.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/form/app_dropdown.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/form/app_text_field.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/form/app_text_password.dart';
+import '../widgets/user_permissions_section.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -79,14 +80,24 @@ class UpsertUsersView extends StatelessWidget {
           onInit: () {
             if (inherited.typeOperation == TypeOperation.create) {
               inherited.clear();
-              upsertCubit.init(canAssignRoles: canAssignRoles);
+              upsertCubit.init(
+                  canAssignRoles: canAssignRoles,
+                  canManagePermissions: canAssignRoles &&
+                      hasPermission(
+                          context.read<AppSessionCubit>().state.userSession,
+                          Permissions.usersManage));
               return;
             }
 
             if (selected != null) {
               inherited.setData(selected);
               upsertCubit.init(
-                  editing: selected, canAssignRoles: canAssignRoles);
+                  editing: selected,
+                  canAssignRoles: canAssignRoles,
+                  canManagePermissions: canAssignRoles &&
+                      hasPermission(
+                          context.read<AppSessionCubit>().state.userSession,
+                          Permissions.usersManage));
             }
           },
           onDispose: inherited.dispose,
@@ -209,12 +220,19 @@ class _UpsertUsersBodyState extends State<UpsertUsersBody> {
                 employeeId: employeeId,
                 initialPassword: inherited.password.getValue(),
                 roleIds: roleIds,
+                directPermissionIds: state.canManagePermissions
+                    ? inherited.selectedPermissionIds.toList()
+                    : null,
                 email: inherited.email.getValue(),
               );
             } else {
               if (selected == null) return;
               upsertCubit.update(
                 entity: selected,
+                directPermissionIds:
+                    state.canManagePermissions && inherited.permissionsChanged
+                        ? inherited.selectedPermissionIds.toList()
+                        : null,
                 username: inherited.username.getValue(),
                 employeeId: employeeId,
                 roleIds: roleIds,
@@ -260,6 +278,11 @@ class _UpsertUsersBodyState extends State<UpsertUsersBody> {
                     RequiredValid(error: 'Seleccione un funcionario'),
                   ],
                 ),
+                UserPermissionsSection(
+                    permissions: state.permissions,
+                    canManage: state.canManagePermissions && !isLoading,
+                    directCodes: selected?.directPermissions ?? const [],
+                    effectiveCodes: selected?.effectivePermissions ?? const []),
                 UserRolesSection(
                   roles: state.roles,
                   canAssignRoles: canAssignRoles,

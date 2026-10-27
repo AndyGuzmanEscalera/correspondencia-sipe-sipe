@@ -52,8 +52,7 @@ void main() {
                           child: UpsertPositionsInherited(
                             typeOperation: typeOperation,
                             child: BlocProvider(
-                              create: (_) =>
-                                  UpsertPositionsCubit(repository),
+                              create: (_) => UpsertPositionsCubit(repository),
                               child: UpsertPositionsView(
                                 hostDialogContext: dialogContext,
                                 ownerContext: context,
@@ -87,6 +86,22 @@ void main() {
         find.byType(AppTextField).first,
       );
       expect(codeField.readOnly, isFalse);
+    });
+
+    testWidgets('selecciona y guarda jerarquía institucional', (tester) async {
+      await pumpUpsertDialog(tester, typeOperation: TypeOperation.create);
+      await tester.enterText(find.byType(TextFormField).at(0), 'DIR-QA');
+      await tester.enterText(find.byType(TextFormField).at(1), 'Director QA');
+      final selector = find.byKey(const Key('position-hierarchy'));
+      await tester.ensureVisible(selector);
+      await tester.tap(selector);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Director').last);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Registrar'));
+      await tester.tap(find.text('Registrar'));
+      await tester.pumpAndSettle();
+      expect(repository.lastCreateInput!.hierarchyId, 'director');
     });
 
     testWidgets('update dialog precarga setData y code es readonly',
@@ -220,11 +235,19 @@ class _FakeListRepository implements PositionsAdminRepository {
 }
 
 class _FakePositionsAdminRepository implements PositionsAdminRepository {
+  PositionInput? lastCreateInput;
+  @override
+  Future<Result<List<PositionHierarchy>, Failure>> listHierarchies() async =>
+      const Ok([
+        PositionHierarchy(
+            id: 'director', code: 'DIRECTOR', name: 'Director', rank: 4)
+      ]);
   Result<PositionAdmin, Failure>? createResult;
   Completer<void>? createGate;
 
   @override
   Future<Result<PositionAdmin, Failure>> create(PositionInput input) async {
+    lastCreateInput = input;
     if (createGate != null) await createGate!.future;
     return createResult ??
         Ok(

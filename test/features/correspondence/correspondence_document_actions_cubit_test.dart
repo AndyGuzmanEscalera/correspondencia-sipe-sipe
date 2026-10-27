@@ -44,6 +44,14 @@ class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
   final List<int> pdfBytes;
   final bool shouldFail;
   int downloadCalls = 0;
+  int documentDownloadCalls = 0;
+  @override
+  Future<Result<List<int>, Failure>> downloadDocumentPdf(
+      String correspondenceId) async {
+    documentDownloadCalls++;
+    return Ok(pdfBytes);
+  }
+
   void Function()? onDownload;
 
   @override
@@ -82,6 +90,24 @@ class _PreparedPdfService extends _RecordingFileDownloadService
 }
 
 void main() {
+  test(
+      'operational PDF opens and downloads through its own authenticated endpoint',
+      () async {
+    final repository = _FakeCorrespondenceRepository();
+    final files = _PreparedPdfService();
+    final cubit = CorrespondenceDocumentActionsCubit(
+        repository: repository,
+        correspondenceId: 'memo',
+        fileDownloadService: files);
+    await cubit.openChainingPdf(operational: true);
+    expect(files.prepared, isTrue);
+    expect(files.lastPdfBytes, repository.pdfBytes);
+    await cubit.downloadChainingPdf(operational: true);
+    expect(files.downloadedFilename, 'documento.pdf');
+    expect(repository.documentDownloadCalls, 2);
+    expect(repository.downloadCalls, 0);
+    await cubit.close();
+  });
   group('CorrespondenceDocumentActionsCubit', () {
     test('openChainingPdf descarga y abre PDF', () async {
       final repository = _FakeCorrespondenceRepository();

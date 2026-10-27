@@ -15,9 +15,15 @@ from sqlalchemy.orm import Session
 from app.core.config import get_settings
 from app.core.storage import get_storage_service
 from app.modules.correspondence.correspondence import Correspondence
-from app.modules.correspondence.correspondence_attachment import CorrespondenceAttachment
+from app.modules.correspondence.correspondence_attachment import (
+    CorrespondenceAttachment,
+)
 from app.modules.correspondence.schemas import CorrespondenceAttachmentResponse
 from app.modules.correspondence.service import CorrespondenceService
+from app.modules.correspondence.authorization import (
+    ATTACHMENTS_MANAGE,
+    require_operation,
+)
 from app.modules.identity.user import User
 
 _FILENAME_SAFE = re.compile(r"[^A-Za-z0-9._-]+")
@@ -38,7 +44,9 @@ class CorrespondenceAttachmentService:
             CorrespondenceAttachment.correspondence_id == correspondence_id
         )
         if active_only:
-            query = query.where(CorrespondenceAttachment.is_active == True)  # noqa: E712
+            query = query.where(
+                CorrespondenceAttachment.is_active == True
+            )  # noqa: E712
         rows = self._db.scalars(
             query.order_by(CorrespondenceAttachment.created_at.desc())
         ).all()
@@ -54,11 +62,18 @@ class CorrespondenceAttachmentService:
     ) -> CorrespondenceAttachmentResponse:
         correspondence = self._get_correspondence_or_404(
             correspondence_id,
-            active_only=active_only, lock=True,
+            active_only=active_only,
+            lock=True,
         )
-        CorrespondenceService(self._db).assert_current_unit_operator(user, correspondence)
+        require_operation(self._db, user, ATTACHMENTS_MANAGE)
+        CorrespondenceService(self._db).assert_current_unit_operator(
+            user, correspondence
+        )
         if correspondence.status != "ACTIVE":
-            raise HTTPException(status_code=422,detail="No se pueden modificar adjuntos de una correspondencia concluida")
+            raise HTTPException(
+                status_code=422,
+                detail="No se pueden modificar adjuntos de una correspondencia concluida",
+            )
         settings = get_settings()
         payload = await upload.read(settings.max_attachment_size_bytes + 1)
         if not payload:
@@ -153,10 +168,18 @@ class CorrespondenceAttachmentService:
         reason: str | None = None,
         active_only: bool = True,
     ) -> CorrespondenceAttachmentResponse:
-        correspondence = self._get_correspondence_or_404(correspondence_id, active_only=active_only, lock=True)
-        CorrespondenceService(self._db).assert_current_unit_operator(user, correspondence)
+        correspondence = self._get_correspondence_or_404(
+            correspondence_id, active_only=active_only, lock=True
+        )
+        require_operation(self._db, user, ATTACHMENTS_MANAGE)
+        CorrespondenceService(self._db).assert_current_unit_operator(
+            user, correspondence
+        )
         if correspondence.status != "ACTIVE":
-            raise HTTPException(status_code=422,detail="No se pueden modificar adjuntos de una correspondencia concluida")
+            raise HTTPException(
+                status_code=422,
+                detail="No se pueden modificar adjuntos de una correspondencia concluida",
+            )
         row = self._db.scalar(
             select(CorrespondenceAttachment).where(
                 CorrespondenceAttachment.id == attachment_id,
@@ -188,7 +211,7 @@ class CorrespondenceAttachmentService:
         if active_only:
             query = query.where(Correspondence.is_active == True)  # noqa: E712
         if lock:
-            query=query.with_for_update().execution_options(populate_existing=True)
+            query = query.with_for_update().execution_options(populate_existing=True)
         correspondence = self._db.scalar(query)
         if correspondence is None:
             raise HTTPException(
@@ -207,7 +230,9 @@ class CorrespondenceAttachmentService:
         safe_suffix = suffix if re.fullmatch(r"\.[a-z0-9]{1,8}", suffix) else ""
         return f"{safe_stem[:200]}{safe_suffix}"
 
-    def _to_response(self, row: CorrespondenceAttachment) -> CorrespondenceAttachmentResponse:
+    def _to_response(
+        self, row: CorrespondenceAttachment
+    ) -> CorrespondenceAttachmentResponse:
         creator = self._db.get(User, row.created_by_user_id)
         username = creator.username if creator else None
         return CorrespondenceAttachmentResponse(

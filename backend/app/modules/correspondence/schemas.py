@@ -6,12 +6,21 @@ from pydantic import BaseModel, Field
 
 
 class DocumentTypeResponse(BaseModel):
+    profile: str = "GENERIC"
+    is_operational: bool = False
+    creation_permission: str | None = None
+    minimum_hierarchy_id: uuid.UUID | None = None
     id: uuid.UUID
     code: str
     name: str
 
 
 class DocumentTypeAdminResponse(BaseModel):
+    profile: str = "GENERIC"
+    is_operational: bool = False
+    creation_permission: str | None = None
+    minimum_hierarchy_id: uuid.UUID | None = None
+    minimum_hierarchy_name: str | None = None
     id: uuid.UUID
     code: str
     name: str
@@ -28,6 +37,7 @@ class CreateDocumentTypeRequest(BaseModel):
 
 
 class UpdateDocumentTypeRequest(BaseModel):
+    model_config = {"extra": "forbid"}
     name: str = Field(min_length=1, max_length=200)
 
 
@@ -123,6 +133,10 @@ class CorrespondenceSentCountResponse(BaseModel):
 
 
 class CorrespondenceDetail(CorrespondenceListItem):
+    can_conclude: bool = False
+    can_reopen: bool = False
+    can_manage_attachments: bool = False
+    has_document_pdf: bool = False
     can_operate: bool = False
     can_derive: bool = False
     description: str | None

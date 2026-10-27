@@ -1,3 +1,4 @@
+from tests.historical_documents import seed_historical_document
 from tests.visibility_helpers import unit_reader_headers
 from app.core.security import create_access_token
 import io
@@ -23,7 +24,8 @@ def test_document_number_is_per_document_type(
     second_org_unit: OrganizationalUnit,
     second_user: User,
 ) -> None:
-    first = client.post(
+    first = seed_historical_document(
+        client,
         "/correspondences",
         headers=auth_headers,
         json=_create_payload(
@@ -34,14 +36,14 @@ def test_document_number_is_per_document_type(
             sender_name="Externo A",
         ),
     )
-    second = client.post(
+    second = seed_historical_document(
+        client,
         "/correspondences",
         headers=auth_headers,
         json=_create_payload(
             document_type,
             "Carta 1",
             unit_id=second_org_unit.id,
-            sender_name="Externo B",
         ),
     )
     assert first.status_code == 201, first.text
@@ -51,7 +53,8 @@ def test_document_number_is_per_document_type(
     assert first.json()["document_type_code"] != second.json()["document_type_code"]
     assert first.json()["route_number"] != second.json()["route_number"]
 
-    third = client.post(
+    third = seed_historical_document(
+        client,
         "/correspondences",
         headers=auth_headers,
         json=_create_payload(
@@ -73,7 +76,8 @@ def test_chaining_external_requires_sender_name(
     second_org_unit: OrganizationalUnit,
     second_user: User,
 ) -> None:
-    response = client.post(
+    response = seed_historical_document(
+        client,
         "/correspondences",
         headers=auth_headers,
         json=_create_payload(
@@ -96,7 +100,8 @@ def test_chaining_employee_origin(
     employee: Employee,
     second_user: User,
 ) -> None:
-    response = client.post(
+    response = seed_historical_document(
+        client,
         "/correspondences",
         headers=auth_headers,
         json={
@@ -126,7 +131,8 @@ def test_technical_report_rejects_external_origin(
     doc_type = db.scalar(select(DocumentType).where(DocumentType.code == "INFORME"))
     assert doc_type is not None
 
-    response = client.post(
+    response = seed_historical_document(
+        client,
         "/correspondences",
         headers=auth_headers,
         json={
@@ -152,7 +158,8 @@ def test_upload_list_download_and_deactivate_attachment(
     second_org_unit: OrganizationalUnit,
     second_user: User,
 ) -> None:
-    create = client.post(
+    create = seed_historical_document(
+        client,
         "/correspondences",
         headers=auth_headers,
         json=_create_payload(
@@ -165,11 +172,16 @@ def test_upload_list_download_and_deactivate_attachment(
     )
     correspondence_id = create.json()["id"]
 
-    operator_headers = {"Authorization": "Bearer " + create_access_token(uuid.UUID(create.json()["current_user_id"]))[0]}
+    operator_headers = {
+        "Authorization": "Bearer "
+        + create_access_token(uuid.UUID(create.json()["current_user_id"]))[0]
+    }
     upload = client.post(
         f"/correspondences/{correspondence_id}/attachments",
         headers=operator_headers,
-        files={"file": ("informe.pdf", io.BytesIO(b"%PDF-1.4 test"), "application/pdf")},
+        files={
+            "file": ("informe.pdf", io.BytesIO(b"%PDF-1.4 test"), "application/pdf")
+        },
     )
     assert upload.status_code == 201, upload.text
     attachment_id = upload.json()["id"]
@@ -212,7 +224,8 @@ def test_correspondence_persists_when_upload_fails(
     second_user: User,
     db: Session,
 ) -> None:
-    create = client.post(
+    create = seed_historical_document(
+        client,
         "/correspondences",
         headers=auth_headers,
         json=_create_payload(
@@ -227,7 +240,10 @@ def test_correspondence_persists_when_upload_fails(
 
     upload = client.post(
         f"/correspondences/{correspondence_id}/attachments",
-        headers={"Authorization": "Bearer " + create_access_token(uuid.UUID(create.json()["current_user_id"]))[0]},
+        headers={
+            "Authorization": "Bearer "
+            + create_access_token(uuid.UUID(create.json()["current_user_id"]))[0]
+        },
         files={"file": ("empty.txt", io.BytesIO(b""), "text/plain")},
     )
     assert upload.status_code == 422

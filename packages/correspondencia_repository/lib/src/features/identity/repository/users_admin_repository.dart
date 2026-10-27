@@ -44,6 +44,15 @@ class UsersAdminRepository {
     );
   }
 
+  Future<Result<List<PermissionOption>, Failure>> listPermissions() =>
+      handleExceptions(
+          () async => (await _usersApi.listPermissions())
+              .map((p) => PermissionOption(
+                  id: p.id, code: p.code, description: p.description))
+              .toList(),
+          feature: 'identity',
+          operation: 'listPermissionCatalog');
+
   Future<Result<List<RoleOption>, Failure>> listRoles() {
     return handleExceptions<List<RoleOption>>(
       () async {
@@ -68,7 +77,8 @@ class UsersAdminRepository {
     UserUpdateInput input,
   ) {
     return handleExceptions<UserAdmin>(
-      () async => (await _usersApi.update(id, input.toUpdateRequest())).toEntity(),
+      () async =>
+          (await _usersApi.update(id, input.toUpdateRequest())).toEntity(),
       feature: 'identity',
       operation: 'updateUserAdmin',
     );
@@ -79,7 +89,8 @@ class UsersAdminRepository {
     required bool isActive,
   }) {
     return handleExceptions<UserAdmin>(
-      () async => (await _usersApi.setActive(id, isActive: isActive)).toEntity(),
+      () async =>
+          (await _usersApi.setActive(id, isActive: isActive)).toEntity(),
       feature: 'identity',
       operation: 'setUserActive',
     );

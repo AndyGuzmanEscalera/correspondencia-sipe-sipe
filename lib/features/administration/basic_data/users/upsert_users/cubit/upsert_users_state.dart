@@ -4,6 +4,8 @@ class UpsertUsersState extends Equatable implements StatusState {
   const UpsertUsersState({
     this.employees = const [],
     this.roles = const [],
+    this.permissions = const [],
+    this.canManagePermissions = false,
     this.catalogLoaded = false,
     this.catalogReady = false,
     this.canAssignRoles = false,
@@ -13,6 +15,8 @@ class UpsertUsersState extends Equatable implements StatusState {
 
   final List<repo.EmployeeAdmin> employees;
   final List<repo.RoleOption> roles;
+  final List<repo.PermissionOption> permissions;
+  final bool canManagePermissions;
   final bool catalogLoaded;
 
   final bool catalogReady;
@@ -27,6 +31,8 @@ class UpsertUsersState extends Equatable implements StatusState {
   UpsertUsersState copyWith({
     List<repo.EmployeeAdmin>? employees,
     List<repo.RoleOption>? roles,
+    List<repo.PermissionOption>? permissions,
+    bool? canManagePermissions,
     bool? catalogLoaded,
     bool? catalogReady,
     bool? canAssignRoles,
@@ -36,6 +42,8 @@ class UpsertUsersState extends Equatable implements StatusState {
     return UpsertUsersState(
       employees: employees ?? this.employees,
       roles: roles ?? this.roles,
+      permissions: permissions ?? this.permissions,
+      canManagePermissions: canManagePermissions ?? this.canManagePermissions,
       catalogLoaded: catalogLoaded ?? this.catalogLoaded,
       catalogReady: catalogReady ?? this.catalogReady,
       canAssignRoles: canAssignRoles ?? this.canAssignRoles,
@@ -48,6 +56,8 @@ class UpsertUsersState extends Equatable implements StatusState {
   List<Object?> get props => [
         employees,
         roles,
+        permissions,
+        canManagePermissions,
         catalogLoaded,
         catalogReady,
         canAssignRoles,

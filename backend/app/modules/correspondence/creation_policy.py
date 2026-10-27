@@ -5,10 +5,6 @@ import uuid
 from fastapi import HTTPException
 from sqlalchemy import select
 
-from app.modules.identity.permission import Permission
-from app.modules.identity.role import Role
-from app.modules.identity.role_permission import RolePermission
-from app.modules.identity.user_role import UserRole
 from app.modules.organization.organizational_unit import OrganizationalUnit
 from app.modules.system.system_setting import SystemSetting
 
@@ -17,13 +13,9 @@ INITIAL_RECIPIENTS_KEY = "institutional.initial_recipient_employee_ids"
 
 
 def require_create_permission(db, user):
-    allowed = db.scalar(select(UserRole.user_id)
-        .join(Role, Role.id == UserRole.role_id)
-        .join(RolePermission, RolePermission.role_id == Role.id)
-        .join(Permission, Permission.id == RolePermission.permission_id)
-        .where(UserRole.user_id == user.id, Role.is_active.is_(True),
-               Permission.code == "correspondence.create").limit(1))
-    if allowed is None:
+    from app.modules.identity.rbac_service import RbacService
+    from app.modules.correspondence.document_type_profiles import CREATION_PERMISSIONS
+    if not (CREATION_PERMISSIONS & set(RbacService(db).get_effective_permission_codes(user.id))):
         raise HTTPException(status_code=403, detail="Permiso insuficiente para crear correspondencia")
 
 

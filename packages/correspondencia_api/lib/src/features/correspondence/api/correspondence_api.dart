@@ -28,7 +28,7 @@ class CorrespondenceApi {
 
   Future<List<DocumentTypeResponse>> listDocumentTypes() async {
     final items = await _mainApi.getList(
-      Endpoints.documentTypes,
+      '${Endpoints.documentTypes}/available-for-create',
       operation: 'correspondence.documentTypes',
     );
     return items.map(DocumentTypeResponse.fromJson).toList();
@@ -250,6 +250,11 @@ class CorrespondenceApi {
     );
     return CorrespondenceAttachmentResponse.fromJson(json);
   }
+
+  Future<List<int>> downloadDocumentPdf(String correspondenceId) =>
+      _mainApi.downloadBytes(
+          path: '/correspondences/$correspondenceId/document.pdf',
+          operation: 'correspondence.documentPdf');
 
   Future<List<int>> downloadChainingPdf(String correspondenceId) async {
     return _mainApi.downloadBytes(

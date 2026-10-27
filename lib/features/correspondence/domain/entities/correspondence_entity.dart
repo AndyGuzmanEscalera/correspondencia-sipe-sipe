@@ -4,8 +4,12 @@ import 'package:equatable/equatable.dart';
 class CorrespondenceEntity extends Equatable {
   const CorrespondenceEntity({
     required this.id,
+    this.hasDocumentPdf = false,
     this.canOperate = false,
     this.canDerive = false,
+    this.canConclude = false,
+    this.canReopen = false,
+    this.canManageAttachments = false,
     required this.uniqueNumber,
     required this.year,
     required this.cite,
@@ -38,8 +42,12 @@ class CorrespondenceEntity extends Equatable {
   });
 
   final String id;
+  final bool hasDocumentPdf;
   final bool canOperate;
   final bool canDerive;
+  final bool canConclude;
+  final bool canReopen;
+  final bool canManageAttachments;
   final int uniqueNumber;
   final int year;
   final String cite;
@@ -123,6 +131,9 @@ class CorrespondenceEntity extends Equatable {
     String? status,
     bool? canOperate,
     bool? canDerive,
+    bool? canConclude,
+    bool? canReopen,
+    bool? canManageAttachments,
     String? statusLabel,
     DateTime? lastSentAt,
   }) {
@@ -130,6 +141,10 @@ class CorrespondenceEntity extends Equatable {
       id: id,
       canOperate: canOperate ?? this.canOperate,
       canDerive: canDerive ?? this.canDerive,
+      canConclude: canConclude ?? this.canConclude,
+      canReopen: canReopen ?? this.canReopen,
+      canManageAttachments: canManageAttachments ?? this.canManageAttachments,
+      hasDocumentPdf: hasDocumentPdf,
       uniqueNumber: uniqueNumber,
       year: year,
       cite: cite,
@@ -165,8 +180,12 @@ class CorrespondenceEntity extends Equatable {
   @override
   List<Object?> get props => [
         id,
+        hasDocumentPdf,
         canOperate,
         canDerive,
+        canConclude,
+        canReopen,
+        canManageAttachments,
         uniqueNumber,
         year,
         cite,

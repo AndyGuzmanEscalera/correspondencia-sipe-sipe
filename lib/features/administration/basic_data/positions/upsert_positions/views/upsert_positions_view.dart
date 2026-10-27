@@ -65,6 +65,7 @@ class UpsertPositionsView extends StatelessWidget {
         ],
         child: FullWidgetGeneric(
           onInit: () {
+            context.read<UpsertPositionsCubit>().loadHierarchies();
             if (inherited.typeOperation == TypeOperation.create) {
               inherited.clear();
               return;
@@ -104,6 +105,8 @@ class UpsertPositionsBody extends StatelessWidget {
               : 'Modifique los datos del cargo',
           maxWidth: 480,
           isLoading: isLoading,
+          isSubmitDisabled:
+              state.hierarchiesLoading || state.hierarchiesError != null,
           submitLabel: isCreate ? 'Registrar' : 'Guardar',
           onSubmit: () {
             final validResult = inherited.valid();
@@ -112,6 +115,7 @@ class UpsertPositionsBody extends StatelessWidget {
             if (isCreate) {
               upsertCubit.save(
                 code: inherited.code.getValue(),
+                hierarchyId: inherited.hierarchyId.value,
                 name: inherited.name.getValue(),
                 description: inherited.description.getValue(),
                 canViewUnitCorrespondence:
@@ -122,6 +126,8 @@ class UpsertPositionsBody extends StatelessWidget {
               if (selected == null) return;
               upsertCubit.update(
                 entity: selected,
+                hierarchyId: inherited.hierarchyId.value,
+                hierarchyChanged: true,
                 name: inherited.name.getValue(),
                 description: inherited.description.getValue(),
                 canViewUnitCorrespondence:
@@ -149,6 +155,50 @@ class UpsertPositionsBody extends StatelessWidget {
                     RequiredValid(error: 'Campo requerido'),
                   ],
                 ),
+                if (state.hierarchiesError != null)
+                  Column(children: [
+                    Text(state.hierarchiesError!),
+                    TextButton(
+                        onPressed: upsertCubit.loadHierarchies,
+                        child: const Text('Reintentar jerarquías')),
+                  ]),
+                if (state.hierarchiesLoading) const LinearProgressIndicator(),
+                ValueListenableBuilder<String?>(
+                  valueListenable: inherited.hierarchyId,
+                  builder: (context, selectedId, _) {
+                    final choices =
+                        state.hierarchies.where((h) => h.isActive).toList();
+                    final legacy = selectedId != null &&
+                        !choices.any((h) => h.id == selectedId);
+                    return DropdownButtonFormField<String>(
+                      key: const Key('position-hierarchy'),
+                      value: selectedId ?? '',
+                      decoration: const InputDecoration(
+                          labelText: 'Jerarquía institucional'),
+                      isExpanded: true,
+                      items: [
+                        const DropdownMenuItem(
+                            value: '',
+                            child: Text('Sin jerarquía (transición)')),
+                        if (legacy)
+                          DropdownMenuItem(
+                              value: selectedId,
+                              enabled: false,
+                              child: Text(
+                                  listCubit.state.selected?.hierarchyName ??
+                                      'Jerarquía actual')),
+                        ...choices.map((h) =>
+                            DropdownMenuItem(value: h.id, child: Text(h.name))),
+                      ],
+                      onChanged: isLoading ||
+                              state.hierarchiesLoading ||
+                              state.hierarchiesError != null
+                          ? null
+                          : (id) => inherited.hierarchyId.value =
+                              id == '' ? null : id,
+                    );
+                  },
+                ),
                 ValueListenableBuilder<bool>(
                   valueListenable: inherited.canViewUnitCorrespondence,
                   builder: (context, value, _) => SwitchListTile(
@@ -156,10 +206,9 @@ class UpsertPositionsBody extends StatelessWidget {
                     title: const Text(
                         'Puede ver toda la correspondencia de su unidad'),
                     value: value,
-                    onChanged: isLoading
-                        ? null
-                        : (value) =>
-                            inherited.canViewUnitCorrespondence.value = value,
+                    onChanged: null,
+                    subtitle: const Text(
+                        'Campo legado conservado. El acceso de unidad se administra con correspondence.read.unit en Permisos del usuario.'),
                   ),
                 ),
                 AppTextField(

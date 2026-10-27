@@ -300,6 +300,13 @@ class CorrespondenceRepository {
     );
   }
 
+  Future<Result<List<int>, Failure>> downloadDocumentPdf(
+          String correspondenceId) =>
+      handleExceptions<List<int>>(
+          () => _correspondenceApi.downloadDocumentPdf(correspondenceId),
+          feature: 'correspondence',
+          operation: 'downloadDocumentPdf');
+
   Future<Result<List<int>, Failure>> downloadChainingPdf(
       String correspondenceId) {
     return handleExceptions<List<int>>(

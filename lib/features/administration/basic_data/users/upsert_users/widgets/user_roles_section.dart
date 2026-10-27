@@ -42,6 +42,7 @@ class _UserRolesSectionState extends State<UserRolesSection> {
       );
     }
     final roleItems = widget.roles
+        .where((role) => role.canAssign)
         .map(
           (role) => FormOption<String>(
             id: role.id.hashCode,
@@ -72,9 +73,11 @@ class _UserRolesSectionState extends State<UserRolesSection> {
               );
               return Chip(
                 label: Text(role.name),
-                onDeleted: () {
-                  setState(() => inherited.removeRole(roleId));
-                },
+                onDeleted: role.canAssign
+                    ? () {
+                        setState(() => inherited.removeRole(roleId));
+                      }
+                    : null,
               );
             }).toList(),
           ),

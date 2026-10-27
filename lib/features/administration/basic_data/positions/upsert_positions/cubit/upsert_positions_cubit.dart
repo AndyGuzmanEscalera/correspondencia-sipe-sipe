@@ -14,11 +14,29 @@ class UpsertPositionsCubit extends Cubit<UpsertPositionsState> {
 
   final repo.PositionsAdminRepository _repository;
 
+  Future<void> loadHierarchies() async {
+    emit(state.copyWith(hierarchiesLoading: true, clearHierarchiesError: true));
+    final result = await _repository.listHierarchies();
+    if (isClosed) return;
+    result.when(
+      ok: (items) => emit(state.copyWith(
+          hierarchies: items,
+          hierarchiesLoading: false,
+          clearHierarchiesError: true)),
+      err: (failure) => emit(state.copyWith(
+          hierarchiesLoading: false,
+          hierarchiesError: FailureGeneric.message(
+              failure: failure,
+              messageResult: 'No se pudieron cargar las jerarquías'))),
+    );
+  }
+
   Future<void> save({
     required String code,
     required String name,
     String? description,
     bool canViewUnitCorrespondence = false,
+    String? hierarchyId,
   }) async {
     emit(
       state.copyWith(
@@ -32,6 +50,7 @@ class UpsertPositionsCubit extends Cubit<UpsertPositionsState> {
     final result = await _repository.create(
       repo.PositionInput(
         canViewUnitCorrespondence: canViewUnitCorrespondence,
+        hierarchyId: hierarchyId,
         code: code.trim(),
         name: name.trim(),
         description: _optional(description),
@@ -72,6 +91,8 @@ class UpsertPositionsCubit extends Cubit<UpsertPositionsState> {
     required String name,
     String? description,
     bool? canViewUnitCorrespondence,
+    String? hierarchyId,
+    bool hierarchyChanged = false,
   }) async {
     emit(
       state.copyWith(
@@ -87,6 +108,7 @@ class UpsertPositionsCubit extends Cubit<UpsertPositionsState> {
       repo.PositionInput(
         canViewUnitCorrespondence:
             canViewUnitCorrespondence ?? entity.canViewUnitCorrespondence,
+        hierarchyId: hierarchyChanged ? hierarchyId : entity.hierarchyId,
         code: entity.code ?? '',
         name: name.trim(),
         description: _optional(description),

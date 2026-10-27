@@ -8,6 +8,11 @@ extension DocumentTypeAdminResponseMapper on DocumentTypeAdminResponse {
         code: code,
         name: name,
         isActive: isActive,
+        profile: profile,
+        isOperational: isOperational,
+        creationPermission: creationPermission,
+        minimumHierarchyId: minimumHierarchyId,
+        minimumHierarchyName: minimumHierarchyName,
         createdAt: createdAt,
         updatedAt: updatedAt,
       );

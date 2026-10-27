@@ -9,6 +9,14 @@ class PositionsAdminApi {
 
   final ApiMethod _mainApi;
 
+  Future<PaginatedResponse<PositionHierarchyResponse>> listHierarchies(
+      {int page = 1}) async {
+    final json = await _mainApi.get('/admin/positions/hierarchies',
+        queryParameters: {'page': page, 'page_size': 100},
+        operation: 'admin.positions.hierarchies');
+    return PaginatedResponse.fromJson(json, PositionHierarchyResponse.fromJson);
+  }
+
   Future<PaginatedResponse<PositionAdminResponse>> list({
     int page = 1,
     int pageSize = 50,

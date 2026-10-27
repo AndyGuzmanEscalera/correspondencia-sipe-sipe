@@ -168,9 +168,14 @@ class _UpsertCorrespondenceBodyState extends State<UpsertCorrespondenceBody> {
   bool get _isExternal => _selectedType == CorrespondenceTypeCode.ce;
 
   void _applyDefaultDocumentType(UpsertCorrespondenceState state) {
-    if (_defaultsApplied || state.defaultDocumentTypeId == null) return;
-
     final inherited = UpsertCorrespondenceInherited.of(context);
+    if (_defaultsApplied &&
+        state.documentTypes.any((t) => t.id == inherited.documentType.get())) {
+      return;
+    }
+    inherited.documentType.clear();
+    if (state.defaultDocumentTypeId == null) return;
+
     FormOption<String>? defaultOption;
     for (final type in state.documentTypes) {
       if (type.id == state.defaultDocumentTypeId) {
@@ -180,15 +185,14 @@ class _UpsertCorrespondenceBodyState extends State<UpsertCorrespondenceBody> {
           description: type.name,
           value: type.id,
         );
-        _profile = resolveDocumentFormProfile(type.code);
+        _profile = resolveDocumentFormProfile(type.code, profile: type.profile);
         _useConfiguredRecipient = _profile == DocumentFormProfile.chaining;
         break;
       }
     }
     if (defaultOption != null) {
       inherited.documentType.setDefaultValue(defaultOption);
-      if (_profile == DocumentFormProfile.technicalReport ||
-          _profile == DocumentFormProfile.internalNote) {
+      if (isContentProfile(_profile)) {
         inherited.type.setDefaultValue(
           UpsertCorrespondenceInherited.typeItems[1],
         );
@@ -199,13 +203,13 @@ class _UpsertCorrespondenceBodyState extends State<UpsertCorrespondenceBody> {
   }
 
   void _onDocumentTypeChanged(DocumentType documentType) {
-    final profile = resolveDocumentFormProfile(documentType.code);
+    final profile = resolveDocumentFormProfile(documentType.code,
+        profile: documentType.profile);
     setState(() {
       _profile = profile;
       _useConfiguredRecipient = profile == DocumentFormProfile.chaining;
     });
-    if (profile == DocumentFormProfile.technicalReport ||
-        profile == DocumentFormProfile.internalNote) {
+    if (isContentProfile(profile)) {
       _onTypeChanged(CorrespondenceTypeCode.ci);
     }
   }
@@ -246,8 +250,9 @@ class _UpsertCorrespondenceBodyState extends State<UpsertCorrespondenceBody> {
               maxWidth: 640,
               onSubmit: null,
               child: Column(mainAxisSize: MainAxisSize.min, children: [
-                const Text(
-                    'No se pudieron cargar los catálogos o la configuración necesaria.'),
+                Text(state.generalStatus == GeneralStatus.error
+                    ? 'No se pudieron cargar los catálogos o la configuración necesaria.'
+                    : 'No tiene tipos documentales disponibles con sus permisos y contexto institucional.'),
                 TextButton.icon(
                     onPressed: upsertCubit.init,
                     icon: const Icon(Icons.refresh),
@@ -285,6 +290,12 @@ class _UpsertCorrespondenceBodyState extends State<UpsertCorrespondenceBody> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisSize: MainAxisSize.min,
               children: [
+                Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton.icon(
+                        onPressed: isLoading ? null : upsertCubit.init,
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Actualizar tipos disponibles'))),
                 DocumentTypeSection(
                   documentTypes: state.documentTypes,
                   onDocumentTypeChanged: _onDocumentTypeChanged,
@@ -297,6 +308,8 @@ class _UpsertCorrespondenceBodyState extends State<UpsertCorrespondenceBody> {
                 ),
                 if (_profile == DocumentFormProfile.chaining)
                   const ChainingFields(),
+                if (requiresSubjectOrReference(_profile))
+                  const TechnicalReportFields(requireSubjectOrReference: true),
                 if (_profile == DocumentFormProfile.technicalReport)
                   const TechnicalReportFields(),
                 if (_profile == DocumentFormProfile.internalNote)

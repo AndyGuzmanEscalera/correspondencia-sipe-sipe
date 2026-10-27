@@ -1,3 +1,4 @@
+import 'package:correspondencia_sipe_sipe/core/auth/permissions.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/official_logo.dart';
 import 'package:correspondencia_sipe_sipe/core/auth/session_header_labels.dart';
 import 'package:correspondencia_repository/correspondencia_repository.dart'
@@ -147,7 +148,7 @@ class DashboardBody extends StatelessWidget {
           }),
           const SizedBox(height: 20),
           Wrap(spacing: 12, runSpacing: 12, children: [
-            if (permissions.contains('correspondence.create'))
+            if (canCreateCorrespondence(permissions))
               FilledButton.icon(
                   icon: const Icon(Icons.add),
                   label: const Text('Nueva correspondencia'),

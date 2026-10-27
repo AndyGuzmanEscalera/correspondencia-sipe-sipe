@@ -79,7 +79,7 @@ class UpsertCorrespondenceInherited extends InheritedWidget {
   DocumentFormProfile profileFor(List<DocumentType> documentTypes) {
     final selected = findDocumentTypeById(documentTypes, documentType.get());
     if (selected == null) return DocumentFormProfile.generic;
-    return resolveDocumentFormProfile(selected.code);
+    return resolveDocumentFormProfile(selected.code, profile: selected.profile);
   }
 
   void addPendingAttachment(PendingAttachment attachment) {
@@ -150,6 +150,11 @@ class UpsertCorrespondenceInherited extends InheritedWidget {
         } else {
           fieldKeys.add(originEmployee.fieldKey);
         }
+      case DocumentFormProfile.internalCommunication:
+      case DocumentFormProfile.memorandum:
+      case DocumentFormProfile.circular:
+        fieldKeys.addAll([subject.fieldKey, reference.fieldKey]);
+        fieldKeys.addAll([description.fieldKey, originEmployee.fieldKey]);
       case DocumentFormProfile.technicalReport:
       case DocumentFormProfile.internalNote:
         fieldKeys.add(description.fieldKey);
@@ -163,7 +168,8 @@ class UpsertCorrespondenceInherited extends InheritedWidget {
 
     final result = formKey.validateAndGetErrors(fieldKeys);
 
-    if (profile == DocumentFormProfile.chaining &&
+    if ((profile == DocumentFormProfile.chaining ||
+            requiresSubjectOrReference(profile)) &&
         subject.getValue().trim().isEmpty &&
         reference.getValue().trim().isEmpty) {
       return ResultValidate(
@@ -197,8 +203,7 @@ class UpsertCorrespondenceInherited extends InheritedWidget {
         (key: subject.fieldKey, focusNode: subject.focusNode),
         (key: reference.fieldKey, focusNode: reference.focusNode),
       ],
-      if (profile == DocumentFormProfile.technicalReport ||
-          profile == DocumentFormProfile.internalNote) ...[
+      if (isContentProfile(profile)) ...[
         (key: description.fieldKey, focusNode: description.focusNode),
         (key: originEmployee.fieldKey, focusNode: originEmployee.focusNode),
       ],

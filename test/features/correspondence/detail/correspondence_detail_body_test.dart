@@ -175,6 +175,9 @@ void main() {
             correspondence: externalCorrespondence.copyWith(
               status: 'CONCLUDED',
               canOperate: authorized,
+              canReopen: authorized,
+              canConclude: false,
+              canManageAttachments: false,
             ),
           ));
           await pumpBody(tester, size: size);
@@ -197,13 +200,34 @@ void main() {
       expect(find.text('Reabrir'), findsNothing);
     });
 
+    testWidgets(
+        'ownership without functional capabilities hides mutation controls',
+        (tester) async {
+      cubit.emit(cubit.state.copyWith(
+          correspondence: externalCorrespondence.copyWith(
+              canOperate: true,
+              canDerive: false,
+              canConclude: false,
+              canReopen: false,
+              canManageAttachments: false)));
+      await pumpBody(tester);
+      expect(find.text('Concluir'), findsNothing);
+      expect(find.text('Reabrir'), findsNothing);
+      expect(find.text('Agregar archivos'), findsNothing);
+      expect(find.text('Derivar trámite'), findsNothing);
+      expect(find.text('Ver PDF'), findsOneWidget);
+    });
     testWidgets('ACTIVE sin autorización oculta Derivar y Concluir', (
       tester,
     ) async {
       cubit.emit(
         cubit.state.copyWith(
           correspondence: externalCorrespondence.copyWith(
-              canOperate: false, canDerive: false),
+              canOperate: false,
+              canDerive: false,
+              canConclude: false,
+              canReopen: false,
+              canManageAttachments: false),
           movements: [vigenteMovement],
           viewerUnitId: 'unit-otra',
         ),
@@ -220,7 +244,11 @@ void main() {
           (tester) async {
         cubit.emit(cubit.state.copyWith(
             correspondence: externalCorrespondence.copyWith(
-                canOperate: false, canDerive: true)));
+                canOperate: false,
+                canDerive: true,
+                canConclude: false,
+                canReopen: false,
+                canManageAttachments: false)));
         await pumpBody(tester, size: size);
         expect(find.text('Derivar trámite'), findsOneWidget);
         expect(find.text('Concluir'), findsNothing);

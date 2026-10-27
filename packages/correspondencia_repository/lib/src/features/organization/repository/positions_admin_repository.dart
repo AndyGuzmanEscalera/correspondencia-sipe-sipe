@@ -10,6 +10,24 @@ class PositionsAdminRepository {
 
   final PositionsAdminApi _api;
 
+  Future<Result<List<PositionHierarchy>, Failure>> listHierarchies() =>
+      handleExceptions(() async {
+        final items = <PositionHierarchy>[];
+        var page = 1;
+        while (true) {
+          final result = await _api.listHierarchies(page: page);
+          items.addAll(result.items.map((p) => PositionHierarchy(
+              id: p.id,
+              code: p.code,
+              name: p.name,
+              rank: p.rank,
+              isActive: p.isActive)));
+          if (page >= result.totalPages) break;
+          page++;
+        }
+        return items;
+      }, feature: 'organization', operation: 'listPositionHierarchies');
+
   Future<Result<AdminPage<PositionAdmin>, Failure>> list({
     int page = 1,
     int pageSize = 50,

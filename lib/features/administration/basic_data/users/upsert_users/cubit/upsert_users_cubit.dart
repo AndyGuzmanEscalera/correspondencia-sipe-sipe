@@ -25,11 +25,28 @@ class UpsertUsersCubit extends Cubit<UpsertUsersState> {
   Future<void> init({
     repo.UserAdmin? editing,
     bool canAssignRoles = false,
+    bool canManagePermissions = false,
   }) async {
     final rolesResult = canAssignRoles
         ? await _usersRepository.listRoles()
         : const Ok<List<repo.RoleOption>, Failure>([]);
     final employeesResult = await _loadAvailableEmployees(editing: editing);
+    final permissionResult = canManagePermissions
+        ? await _usersRepository.listPermissions()
+        : const Ok<List<repo.PermissionOption>, Failure>([]);
+    if (permissionResult case Err(:final failure)) {
+      emit(state.copyWith(
+          catalogLoaded: true,
+          catalogReady: false,
+          generalStatus: GeneralStatus.error,
+          dialogMessage: DialogMessage(
+              title: 'Error',
+              message: FailureGeneric.message(
+                  failure: failure,
+                  messageResult:
+                      'No se pudo cargar el catálogo de permisos'))));
+      return;
+    }
 
     if (rolesResult case Err(:final failure)) {
       emit(
@@ -72,6 +89,8 @@ class UpsertUsersCubit extends Cubit<UpsertUsersState> {
     emit(
       state.copyWith(
         roles: rolesResult.valueOrNull() ?? const [],
+        permissions: permissionResult.valueOrNull() ?? const [],
+        canManagePermissions: canManagePermissions,
         employees: _employeesCatalog(
           employees: employees,
           editing: editing,
@@ -117,6 +136,7 @@ class UpsertUsersCubit extends Cubit<UpsertUsersState> {
     required String employeeId,
     required String initialPassword,
     List<String>? roleIds,
+    List<String>? directPermissionIds,
     String? email,
   }) async {
     emit(
@@ -134,6 +154,8 @@ class UpsertUsersCubit extends Cubit<UpsertUsersState> {
         employeeId: employeeId,
         initialPassword: initialPassword,
         roleIds: state.canAssignRoles ? roleIds : null,
+        directPermissionIds:
+            state.canManagePermissions ? directPermissionIds : null,
         email: _optional(email),
       ),
     );
@@ -172,6 +194,7 @@ class UpsertUsersCubit extends Cubit<UpsertUsersState> {
     required String username,
     required String employeeId,
     List<String>? roleIds,
+    List<String>? directPermissionIds,
     String? email,
   }) async {
     emit(
@@ -189,6 +212,8 @@ class UpsertUsersCubit extends Cubit<UpsertUsersState> {
         username: username.trim(),
         employeeId: employeeId,
         roleIds: state.canAssignRoles ? roleIds : null,
+        directPermissionIds:
+            state.canManagePermissions ? directPermissionIds : null,
         email: _optional(email),
       ),
     );

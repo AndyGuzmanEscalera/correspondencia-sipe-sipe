@@ -62,13 +62,12 @@ class CorrespondenceDetailBody extends StatelessWidget {
                             SizedBox(height: gap),
                             CorrespondenceAttachmentsSection(
                                 correspondenceId: correspondenceId,
-                                canManage: state.canOperateCurrentUnit &&
-                                    item.isActiveStatus),
-                            if (state.canOperateCurrentUnit) ...[
+                                canManage: item.canManageAttachments),
+                            if (item.canConclude || item.canReopen) ...[
                               SizedBox(height: gap),
                               CorrespondenceLifecycleSection(
                                   item: item,
-                                  canManage: state.canOperateCurrentUnit,
+                                  canManage: item.canConclude || item.canReopen,
                                   actionInProgress:
                                       state.lifecycleActionInProgress),
                             ],

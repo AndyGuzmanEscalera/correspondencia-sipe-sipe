@@ -54,29 +54,30 @@ class UpsertDocumentTypesView extends StatelessWidget {
     final inherited = UpsertDocumentTypesInherited.of(context);
     final listCubit = context.read<DocumentTypesCubit>();
 
-    return AdminUpsertBlocListener<
-        UpsertDocumentTypesCubit, UpsertDocumentTypesState>(
+    return AdminUpsertBlocListener<UpsertDocumentTypesCubit,
+        UpsertDocumentTypesState>(
       hostDialogContext: hostDialogContext,
       ownerContext: ownerContext,
       child: MultiBlocListener(
         listeners: [
-          ListenerPro<UpsertDocumentTypesCubit, UpsertDocumentTypesState>().event(
+          ListenerPro<UpsertDocumentTypesCubit, UpsertDocumentTypesState>()
+              .event(
             onSuccess: (_) => listCubit.get(),
           ),
         ],
         child: FullWidgetGeneric(
-        onInit: () {
-          if (inherited.typeOperation == TypeOperation.create) {
-            inherited.clear();
-            return;
-          }
+          onInit: () {
+            if (inherited.typeOperation == TypeOperation.create) {
+              inherited.clear();
+              return;
+            }
 
-          final selected = listCubit.state.selected;
-          if (selected != null) {
-            inherited.setData(selected);
-          }
-        },
-        onDispose: inherited.dispose,
+            final selected = listCubit.state.selected;
+            if (selected != null) {
+              inherited.setData(selected);
+            }
+          },
+          onDispose: inherited.dispose,
           child: const UpsertDocumentTypesBody(),
         ),
       ),
@@ -99,9 +100,8 @@ class UpsertDocumentTypesBody extends StatelessWidget {
         final isLoading = state.generalStatus == GeneralStatus.loading;
 
         return AppFormDialog(
-          title: isCreate
-              ? 'Nuevo tipo de documento'
-              : 'Editar tipo de documento',
+          title:
+              isCreate ? 'Nuevo tipo de documento' : 'Editar tipo de documento',
           subtitle: isCreate
               ? 'Defina el código y nombre del tipo de documento'
               : 'Modifique los datos del tipo de documento',
@@ -131,6 +131,18 @@ class UpsertDocumentTypesBody extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                if (!isCreate && listCubit.state.selected != null)
+                  Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: Text(
+                          'Perfil: ${listCubit.state.selected!.profile}\n'
+                          'Uso: ${listCubit.state.selected!.isOperational ? "Operativo" : "Histórico"}\n'
+                          'Jerarquía mínima: ${listCubit.state.selected!.minimumHierarchyName ?? "Sin mínimo superior"}\n'
+                          'Permiso: ${listCubit.state.selected!.creationPermission ?? "No habilitado para creación"}\n'
+                          'Estos campos son estructurales y no se pueden editar aquí.')),
+                if (isCreate)
+                  const Text(
+                      'Los tipos personalizados se conservan como catálogo histórico; no habilitan nuevas creaciones.'),
                 AppTextField(
                   controller: inherited.code,
                   label: 'Código',

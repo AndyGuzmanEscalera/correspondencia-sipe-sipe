@@ -15,14 +15,41 @@ class MeInstitutionalUnitResponse {
   final String name;
 }
 
+class MeInstitutionalHierarchyResponse {
+  const MeInstitutionalHierarchyResponse(
+      {required this.id,
+      required this.code,
+      required this.name,
+      required this.rank,
+      required this.isActive});
+  factory MeInstitutionalHierarchyResponse.fromJson(
+          Map<String, dynamic> json) =>
+      MeInstitutionalHierarchyResponse(
+          id: json['id'] as String,
+          code: json['code'] as String,
+          name: json['name'] as String,
+          rank: json['rank'] as int,
+          isActive: json['is_active'] as bool);
+  final String id;
+  final String code;
+  final String name;
+  final int rank;
+  final bool isActive;
+}
+
 class MeInstitutionalPositionResponse {
   const MeInstitutionalPositionResponse({
+    this.hierarchy,
     required this.id,
     required this.name,
   });
 
   factory MeInstitutionalPositionResponse.fromJson(Map<String, dynamic> json) {
     return MeInstitutionalPositionResponse(
+      hierarchy: json['hierarchy'] == null
+          ? null
+          : MeInstitutionalHierarchyResponse.fromJson(
+              json['hierarchy'] as Map<String, dynamic>),
       id: json['id'] as String,
       name: json['name'] as String,
     );
@@ -30,6 +57,7 @@ class MeInstitutionalPositionResponse {
 
   final String id;
   final String name;
+  final MeInstitutionalHierarchyResponse? hierarchy;
 }
 
 class MeEmployeeContextResponse {

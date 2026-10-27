@@ -49,7 +49,12 @@ class Correspondence(Base):
         nullable=False,
     )
     subject: Mapped[str] = mapped_column(String(500), nullable=False)
-    institutional_authority_snapshot: Mapped[dict | None] = mapped_column(JSONB(none_as_null=True), nullable=True)
+    document_snapshot: Mapped[dict | None] = mapped_column(
+        JSONB(none_as_null=True), nullable=True
+    )
+    institutional_authority_snapshot: Mapped[dict | None] = mapped_column(
+        JSONB(none_as_null=True), nullable=True
+    )
     reference: Mapped[str | None] = mapped_column(String(200), nullable=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     document_sequence: Mapped[int | None] = mapped_column(Integer, nullable=True)

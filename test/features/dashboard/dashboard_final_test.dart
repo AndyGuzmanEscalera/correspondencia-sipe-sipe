@@ -69,7 +69,7 @@ void main() {
   testWidgets('quick actions use permissions and custom grants',
       (tester) async {
     final cubit = await pump(tester, FakeDashboard(), permissions: [
-      'correspondence.create',
+      'correspondence.create.internal_communication',
       'reports.view',
       'master_data.positions.read'
     ]);

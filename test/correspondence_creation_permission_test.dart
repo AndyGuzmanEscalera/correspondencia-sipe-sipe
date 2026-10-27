@@ -30,7 +30,9 @@ void main() {
           isActive: true,
           roles: const ['ADMIN'],
           employeeId: example.$2 ? 'employee' : null,
-          permissions: [if (example.$1) 'correspondence.create']));
+          permissions: [
+            if (example.$1) 'correspondence.create.internal_communication'
+          ]));
       await tester.pumpWidget(MaterialApp(
           theme: AppTheme.light,
           builder: ResponsiveBreakpointsConfig.builder,

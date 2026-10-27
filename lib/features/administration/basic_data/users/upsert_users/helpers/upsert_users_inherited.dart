@@ -20,6 +20,11 @@ class UpsertUsersInherited extends InheritedWidget {
   final employee = ControllerFieldDropdown<String>();
   final rolePicker = ControllerFieldDropdown<String>();
   final Set<String> selectedRoleIds = {};
+  final Set<String> selectedPermissionIds = {};
+  final Set<String> _initialPermissionIds = {};
+  bool get permissionsChanged =>
+      selectedPermissionIds.length != _initialPermissionIds.length ||
+      !selectedPermissionIds.containsAll(_initialPermissionIds);
   final Set<String> _initialRoleIds = {};
 
   bool get rolesChanged =>
@@ -34,6 +39,12 @@ class UpsertUsersInherited extends InheritedWidget {
   }
 
   void setData(UserAdmin entity) {
+    selectedPermissionIds
+      ..clear()
+      ..addAll(entity.directPermissionIds);
+    _initialPermissionIds
+      ..clear()
+      ..addAll(entity.directPermissionIds);
     username.setValue(entity.username);
     email.setValue(entity.email ?? '');
     if (entity.employeeId != null) {
@@ -93,6 +104,8 @@ class UpsertUsersInherited extends InheritedWidget {
     username.textEditingController.clear();
     email.textEditingController.clear();
     password.textEditingController.clear();
+    selectedPermissionIds.clear();
+    _initialPermissionIds.clear();
     employee.clear();
     rolePicker.clear();
     selectedRoleIds.clear();

@@ -16,6 +16,7 @@ from app.modules.organization.admin_schemas import (
     UpdatePositionRequest,
 )
 from app.modules.organization.position import Position
+from app.modules.organization.position_hierarchy import PositionHierarchy
 
 
 class PositionAdminService:
@@ -58,7 +59,9 @@ class PositionAdminService:
     ) -> PositionAdminResponse:
         code = normalize_code(body.code)
         self._ensure_code_unique(code)
+        self._validate_hierarchy(body.hierarchy_id)
         row = Position(
+            hierarchy_id=body.hierarchy_id,
             code=code,
             name=body.name.strip(),
             description=body.description.strip() if body.description else None,
@@ -81,6 +84,9 @@ class PositionAdminService:
         code = normalize_code(body.code)
         self._ensure_code_unique(code, exclude_id=position_id)
         row.code = code
+        if "hierarchy_id" in body.model_fields_set and body.hierarchy_id != row.hierarchy_id:
+            self._validate_hierarchy(body.hierarchy_id)
+            row.hierarchy_id = body.hierarchy_id
         row.name = body.name.strip()
         row.description = body.description.strip() if body.description else None
         if "can_view_unit_correspondence" in body.model_fields_set:
@@ -136,8 +142,19 @@ class PositionAdminService:
         if self._db.scalar(query):
             raise conflict(f"Ya existe un cargo con el código {code}.")
 
+    def _validate_hierarchy(self, hierarchy_id):
+        if hierarchy_id is None:
+            return
+        row = self._db.get(PositionHierarchy, hierarchy_id)
+        if row is None or not row.is_active:
+            raise HTTPException(status_code=422, detail="Jerarquía no encontrada o inactiva")
+
     def _to_response(self, row: Position) -> PositionAdminResponse:
+        hierarchy = self._db.get(PositionHierarchy, row.hierarchy_id) if row.hierarchy_id else None
         return PositionAdminResponse(
+            hierarchy_id=row.hierarchy_id,
+            hierarchy_code=hierarchy.code if hierarchy else None,
+            hierarchy_name=hierarchy.name if hierarchy else None,
             id=row.id,
             code=row.code,
             name=row.name,

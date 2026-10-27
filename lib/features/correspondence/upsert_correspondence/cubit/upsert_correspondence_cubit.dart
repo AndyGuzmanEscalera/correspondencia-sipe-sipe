@@ -26,6 +26,7 @@ class UpsertCorrespondenceCubit extends Cubit<UpsertCorrespondenceState> {
   Future<void> init() async {
     if (state.generalStatus == GeneralStatus.loading) return;
     emit(state.copyWith(
+        documentTypes: const [],
         catalogLoaded: false,
         generalStatus: GeneralStatus.loading,
         dialogMessage: const DialogMessage(
@@ -268,8 +269,7 @@ class UpsertCorrespondenceCubit extends Cubit<UpsertCorrespondenceState> {
     String? senderContact,
     String? originDescription,
   }) {
-    final isContent = profile == DocumentFormProfile.technicalReport ||
-        profile == DocumentFormProfile.internalNote;
+    final isContent = isContentProfile(profile);
     final isExternal = !isContent && type == CorrespondenceTypeCode.ce;
     final requiresOrigin =
         isContent || (profile == DocumentFormProfile.chaining && !isExternal);

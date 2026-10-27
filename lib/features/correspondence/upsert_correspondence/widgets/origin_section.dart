@@ -33,8 +33,7 @@ class OriginSection extends StatelessWidget {
           profile == DocumentFormProfile.generic);
 
   bool get _showsEmployeeOrigin =>
-      profile == DocumentFormProfile.technicalReport ||
-      profile == DocumentFormProfile.internalNote ||
+      isContentProfile(profile) ||
       (profile == DocumentFormProfile.chaining && !isExternal) ||
       (profile == DocumentFormProfile.generic && !isExternal);
 
@@ -59,52 +58,52 @@ class OriginSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (_showsCorrespondenceType)
-          AppDropdown<CorrespondenceTypeCode>(
-            controller: inherited.type,
-            label: 'Tipo de correspondencia',
-            items: UpsertCorrespondenceInherited.typeItems,
-            onChanged: (option) {
-              onTypeChanged(option.value!);
-            },
-          ),
-        if (_showsEmployeeOrigin) ...[
-          if (employeeItems.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8),
-              child: Text('No hay empleados activos disponibles.'),
-            )
-          else
-            AppDropdown<String>(
-              controller: inherited.originEmployee,
-              label: 'Empleado origen',
-              items: employeeItems,
+            AppDropdown<CorrespondenceTypeCode>(
+              controller: inherited.type,
+              label: 'Tipo de correspondencia',
+              items: UpsertCorrespondenceInherited.typeItems,
+              onChanged: (option) {
+                onTypeChanged(option.value!);
+              },
+            ),
+          if (_showsEmployeeOrigin) ...[
+            if (employeeItems.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Text('No hay empleados activos disponibles.'),
+              )
+            else
+              AppDropdown<String>(
+                controller: inherited.originEmployee,
+                label: 'Empleado origen',
+                items: employeeItems,
+                validators: [
+                  RequiredValid(error: 'Seleccione el empleado origen'),
+                ],
+              ),
+          ],
+          if (_showsExternalFields) ...[
+            AppTextField(
+              controller: inherited.senderName,
+              label: 'Remitente externo',
               validators: [
-                RequiredValid(error: 'Seleccione el empleado origen'),
+                RequiredValid(error: 'Campo requerido'),
               ],
             ),
-        ],
-        if (_showsExternalFields) ...[
-          AppTextField(
-            controller: inherited.senderName,
-            label: 'Remitente externo',
-            validators: [
-              RequiredValid(error: 'Campo requerido'),
-            ],
-          ),
-          AppTextField(
-            controller: inherited.senderDocument,
-            label: 'Documento del remitente (opcional)',
-          ),
-          AppTextField(
-            controller: inherited.senderContact,
-            label: 'Contacto del remitente (opcional)',
-            inputType: TextInputType.phone,
-          ),
-          AppTextField(
-            controller: inherited.originDescription,
-            label: 'Descripción del origen (opcional)',
-          ),
-        ],
+            AppTextField(
+              controller: inherited.senderDocument,
+              label: 'Documento del remitente (opcional)',
+            ),
+            AppTextField(
+              controller: inherited.senderContact,
+              label: 'Contacto del remitente (opcional)',
+              inputType: TextInputType.phone,
+            ),
+            AppTextField(
+              controller: inherited.originDescription,
+              label: 'Descripción del origen (opcional)',
+            ),
+          ],
         ],
       ),
     );

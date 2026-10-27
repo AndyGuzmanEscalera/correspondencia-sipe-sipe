@@ -22,26 +22,22 @@ class CorrespondenceLifecycleSection extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    if (item.isActiveStatus) {
+    if (item.isActiveStatus && item.canConclude) {
       return _LifecyclePanel(
         title: 'Cierre de trámite',
         child: FilledButton.icon(
-          onPressed: actionInProgress
-              ? null
-              : () => _confirmConclude(context),
+          onPressed: actionInProgress ? null : () => _confirmConclude(context),
           icon: const Icon(Icons.check_circle_outline_rounded),
           label: const Text('Concluir'),
         ),
       );
     }
 
-    if (item.isConcludedStatus) {
+    if (item.isConcludedStatus && item.canReopen) {
       return _LifecyclePanel(
         title: 'Reapertura',
         child: OutlinedButton.icon(
-          onPressed: actionInProgress
-              ? null
-              : () => _confirmReopen(context),
+          onPressed: actionInProgress ? null : () => _confirmReopen(context),
           icon: const Icon(Icons.refresh_rounded),
           label: const Text('Reabrir'),
         ),

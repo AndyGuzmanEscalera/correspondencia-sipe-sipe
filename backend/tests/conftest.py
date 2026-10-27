@@ -7,7 +7,10 @@ from sqlalchemy.orm import Session
 
 from app.core.database import SessionLocal
 from app.core.security import hash_password
-from tests.visibility_helpers import grant_creation_permission
+from tests.visibility_helpers import (
+    grant_creation_permission,
+    grant_operational_permissions,
+)
 from app.main import app
 from app.modules.correspondence.document_type import DocumentType
 from app.modules.identity.permission import Permission
@@ -19,7 +22,10 @@ from app.modules.organization.employee import Employee
 from app.modules.organization.organizational_unit import OrganizationalUnit
 from app.modules.organization.position import Position
 from app.modules.system.system_setting import SystemSetting
-from app.modules.system.constants import INSTITUTIONAL_MAYOR_EMPLOYEE_ID, INSTITUTIONAL_MAYOR_DISPLAY_NAME
+from app.modules.system.constants import (
+    INSTITUTIONAL_MAYOR_EMPLOYEE_ID,
+    INSTITUTIONAL_MAYOR_DISPLAY_NAME,
+)
 
 MASTER_DATA_PERMISSION_CODES = [
     "master_data.organizational_units.read",
@@ -69,7 +75,10 @@ def seed_institutional_mayor(db: Session, org_unit: OrganizationalUnit) -> None:
     # Las suites de identidad aisladas no incluyen configuración/correspondencia.
     if not inspect(db.get_bind()).has_table("system_settings"):
         return
-    for code, name in (("ALCALDE", "Alcalde Municipal"), ("ALCALDESA", "Alcaldesa Municipal")):
+    for code, name in (
+        ("ALCALDE", "Alcalde Municipal"),
+        ("ALCALDESA", "Alcaldesa Municipal"),
+    ):
         existing = db.scalar(select(Position).where(Position.code == code))
         if existing is None:
             db.add(
@@ -84,11 +93,17 @@ def seed_institutional_mayor(db: Session, org_unit: OrganizationalUnit) -> None:
 
     mayor_position = db.scalar(select(Position).where(Position.code == "SMA"))
     if mayor_position is None:
-        mayor_position = Position(code="SMA", name="Secretario Municipal Administrativo", is_active=True)
+        mayor_position = Position(
+            code="SMA", name="Secretario Municipal Administrativo", is_active=True
+        )
         db.add(mayor_position)
-    secretary_unit = db.scalar(select(OrganizationalUnit).where(OrganizationalUnit.code == "SMA"))
+    secretary_unit = db.scalar(
+        select(OrganizationalUnit).where(OrganizationalUnit.code == "SMA")
+    )
     if secretary_unit is None:
-        secretary_unit = OrganizationalUnit(code="SMA", name="Secretaría Municipal Administrativa", is_active=True)
+        secretary_unit = OrganizationalUnit(
+            code="SMA", name="Secretaría Municipal Administrativa", is_active=True
+        )
         db.add(secretary_unit)
     db.flush()
     assert mayor_position is not None
@@ -129,35 +144,54 @@ def seed_institutional_mayor(db: Session, org_unit: OrganizationalUnit) -> None:
 
     setting = db.get(SystemSetting, INSTITUTIONAL_MAYOR_EMPLOYEE_ID)
     if setting is None:
-        db.add(SystemSetting(key=INSTITUTIONAL_MAYOR_EMPLOYEE_ID, value=str(mayor_employee.id)))
+        db.add(
+            SystemSetting(
+                key=INSTITUTIONAL_MAYOR_EMPLOYEE_ID, value=str(mayor_employee.id)
+            )
+        )
     else:
         setting.value = str(mayor_employee.id)
     db.commit()
     display = db.get(SystemSetting, INSTITUTIONAL_MAYOR_DISPLAY_NAME)
     if display is None:
-        db.add(SystemSetting(key=INSTITUTIONAL_MAYOR_DISPLAY_NAME, value="Autoridad documental"))
+        db.add(
+            SystemSetting(
+                key=INSTITUTIONAL_MAYOR_DISPLAY_NAME, value="Autoridad documental"
+            )
+        )
     else:
         display.value = "Autoridad documental"
     db.commit()
     # Configuración explícita, independiente de códigos/nombres de cargos.
-    intake=db.scalar(select(OrganizationalUnit).where(OrganizationalUnit.code=="QA_INTAKE"))
+    intake = db.scalar(
+        select(OrganizationalUnit).where(OrganizationalUnit.code == "QA_INTAKE")
+    )
     if intake is None:
-        intake=OrganizationalUnit(code="QA_INTAKE",name="Recepción de prueba",is_active=True)
-        db.add(intake);db.flush()
+        intake = OrganizationalUnit(
+            code="QA_INTAKE", name="Recepción de prueba", is_active=True
+        )
+        db.add(intake)
+        db.flush()
     import json
-    for key,value in [("institutional.intake_unit_id",str(intake.id)),
-                      ("institutional.initial_recipient_employee_ids",json.dumps([str(mayor_employee.id)]))]:
-        row=db.get(SystemSetting,key)
-        if row is None:db.add(SystemSetting(key=key,value=value))
-        else:row.value=value
+
+    for key, value in [
+        ("institutional.intake_unit_id", str(intake.id)),
+        (
+            "institutional.initial_recipient_employee_ids",
+            json.dumps([str(mayor_employee.id)]),
+        ),
+    ]:
+        row = db.get(SystemSetting, key)
+        if row is None:
+            db.add(SystemSetting(key=key, value=value))
+        else:
+            row.value = value
     db.commit()
 
 
 @pytest.fixture()
 def encadenamiento_document_type(db: Session, mayor_user: User) -> DocumentType:
-    existing = db.scalar(
-        select(DocumentType).where(DocumentType.code == "EDIE")
-    )
+    existing = db.scalar(select(DocumentType).where(DocumentType.code == "EDIE"))
     if existing:
         if not existing.is_active:
             existing.is_active = True
@@ -180,23 +214,17 @@ def encadenamiento_document_type(db: Session, mayor_user: User) -> DocumentType:
 
 @pytest.fixture()
 def document_type(db: Session) -> DocumentType:
-    fixed_id = uuid.UUID("a1000001-0001-4001-8001-000000000001")
-    existing = db.get(DocumentType, fixed_id)
-    if existing:
-        if not existing.is_active:
-            existing.is_active = True
-            db.commit()
-            db.refresh(existing)
-        return existing
-    doc_type = DocumentType(
-        id=uuid.UUID("a1000001-0001-4001-8001-000000000001"),
-        code="CARTA",
-        name="Carta",
-        is_active=True,
+    row = db.scalar(
+        select(DocumentType).where(DocumentType.code == "COMUNICADO_INTERNO")
     )
-    db.add(doc_type)
-    db.commit()
-    return doc_type
+    assert (
+        row is not None
+    ), "Migrate the isolated database to the operational document catalog"
+    if not row.is_active:
+        row.is_active = True
+        db.commit()
+        db.refresh(row)
+    return row
 
 
 @pytest.fixture()
@@ -295,7 +323,7 @@ def user(db: Session, employee: Employee) -> User:
     db.add(user)
     db.commit()
     db.refresh(user)
-    grant_creation_permission(db,user)
+    grant_creation_permission(db, user)
     return user
 
 
@@ -303,6 +331,7 @@ def user(db: Session, employee: Employee) -> User:
 def mayor_user(db: Session) -> User:
     user = db.scalar(select(User).where(User.username == "mayor_test"))
     assert user is not None
+    grant_operational_permissions(db, user)
     return user
 
 
@@ -320,7 +349,7 @@ def second_user(db: Session, second_employee: Employee) -> User:
     db.add(user)
     db.commit()
     db.refresh(user)
-    grant_creation_permission(db,user)
+    grant_creation_permission(db, user)
     return user
 
 
@@ -360,7 +389,9 @@ def master_data_role(db: Session, master_data_permissions: list[Permission]) -> 
     for perm in master_data_permissions:
         db.add(RolePermission(role_id=role.id, permission_id=perm.id))
     # Full administration test fixture explicitly opts into C4 role assignment.
-    assignment = db.scalar(select(Permission).where(Permission.code == "master_data.roles.assign"))
+    assignment = db.scalar(
+        select(Permission).where(Permission.code == "master_data.roles.assign")
+    )
     if assignment is None:
         assignment = Permission(id=uuid.uuid4(), code="master_data.roles.assign")
         db.add(assignment)
@@ -376,7 +407,7 @@ def admin_user(db: Session, user: User, master_data_role: Role) -> User:
     db.add(UserRole(user_id=user.id, role_id=master_data_role.id, assigned_by=user.id))
     db.commit()
     db.refresh(user)
-    grant_creation_permission(db,user)
+    grant_creation_permission(db, user)
     return user
 
 

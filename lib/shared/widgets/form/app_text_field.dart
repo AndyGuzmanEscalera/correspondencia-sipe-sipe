@@ -17,6 +17,7 @@ class AppTextField extends StatelessWidget {
     this.inputType,
     this.inputFormatters,
     this.maxLength,
+    this.maxLines = 1,
     this.readOnly = false,
     this.onChanged,
     this.onSubmitted,
@@ -31,6 +32,7 @@ class AppTextField extends StatelessWidget {
   final TextInputType? inputType;
   final List<TextInputFormatter>? inputFormatters;
   final int? maxLength;
+  final int maxLines;
   final bool readOnly;
   final void Function(String)? onChanged;
   final void Function(String)? onSubmitted;
@@ -57,6 +59,7 @@ class AppTextField extends StatelessWidget {
             focusNode: controller.focusNode,
             readOnly: readOnly,
             maxLength: maxLength,
+            maxLines: maxLines,
             keyboardType: inputType,
             inputFormatters: inputFormatters,
             autofillHints: autofillHints,

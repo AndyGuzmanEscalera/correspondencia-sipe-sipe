@@ -5,7 +5,9 @@ import 'package:correspondencia_sipe_sipe/shared/widgets/form/app_text_field.dar
 import 'package:flutter/material.dart';
 
 class TechnicalReportFields extends StatelessWidget {
-  const TechnicalReportFields({super.key});
+  const TechnicalReportFields(
+      {this.requireSubjectOrReference = false, super.key});
+  final bool requireSubjectOrReference;
 
   @override
   Widget build(BuildContext context) {
@@ -16,21 +18,44 @@ class TechnicalReportFields extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-        AppTextField(
-          controller: inherited.description,
-          label: 'Descripción / contenido',
-          validators: [
-            RequiredValid(error: 'La descripción es obligatoria'),
-          ],
-        ),
-        AppTextField(
-          controller: inherited.subject,
-          label: 'Asunto (opcional)',
-        ),
-        AppTextField(
-          controller: inherited.reference,
-          label: 'Referencia (opcional)',
-        ),
+          AppTextField(
+            controller: inherited.description,
+            inputType: TextInputType.multiline,
+            maxLines: 6,
+            maxLength: 10000,
+            label: 'Descripción / contenido',
+            validators: [
+              RequiredValid(error: 'La descripción es obligatoria'),
+            ],
+          ),
+          AppTextField(
+            controller: inherited.subject,
+            validators: [
+              if (requireSubjectOrReference)
+                AtLeastOneOfValid(
+                    otherValue: inherited.reference.getValue,
+                    error: UpsertCorrespondenceInherited
+                        .chainingSubjectReferenceError)
+            ],
+            onChanged: (_) =>
+                inherited.reference.fieldKey.currentState?.validate(),
+            label: requireSubjectOrReference
+                ? 'Asunto o referencia'
+                : 'Asunto (opcional)',
+          ),
+          AppTextField(
+            controller: inherited.reference,
+            validators: [
+              if (requireSubjectOrReference)
+                AtLeastOneOfValid(
+                    otherValue: inherited.subject.getValue,
+                    error: UpsertCorrespondenceInherited
+                        .chainingSubjectReferenceError)
+            ],
+            onChanged: (_) =>
+                inherited.subject.fieldKey.currentState?.validate(),
+            label: 'Referencia (opcional)',
+          ),
         ],
       ),
     );

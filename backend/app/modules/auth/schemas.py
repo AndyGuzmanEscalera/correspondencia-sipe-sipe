@@ -6,7 +6,16 @@ class MeInstitutionalUnit(BaseModel):
     name: str
 
 
+class MeInstitutionalHierarchy(BaseModel):
+    id: str
+    code: str
+    name: str
+    rank: int
+    is_active: bool
+
+
 class MeInstitutionalPosition(BaseModel):
+    hierarchy: MeInstitutionalHierarchy | None = None
     id: str
     name: str
 

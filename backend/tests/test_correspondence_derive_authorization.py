@@ -1,3 +1,8 @@
+from tests.visibility_helpers import (
+    set_position_scope,
+    set_unit_scope,
+    grant_operational_permissions,
+)
 from tests.visibility_helpers import unit_reader_headers
 import uuid
 
@@ -25,6 +30,7 @@ def _create_payload(
         "correspondence_type": "INTERNAL",
         "document_type_id": str(document_type.id),
         "subject": subject,
+        "description": subject,
         "priority": "MEDIUM",
         "initial_to_unit_id": str(unit_id),
     }
@@ -48,7 +54,10 @@ def _create_in_unit(
 ) -> dict:
     if user_id is None:
         from app.core.security import decode_access_token
-        user_id=uuid.UUID(decode_access_token(headers['Authorization'].split(' ',1)[1])['sub'])
+
+        user_id = uuid.UUID(
+            decode_access_token(headers["Authorization"].split(" ", 1)[1])["sub"]
+        )
     response = client.post(
         "/correspondences",
         headers=headers,
@@ -91,9 +100,7 @@ def test_derive_allowed_same_current_unit(
     org_unit: OrganizationalUnit,
     second_org_unit: OrganizationalUnit,
 ) -> None:
-    created = _create_in_unit(
-        client, auth_headers, document_type, org_unit.id
-    )
+    created = _create_in_unit(client, auth_headers, document_type, org_unit.id)
     response = _derive(
         client,
         auth_headers,
@@ -112,9 +119,7 @@ def test_derive_forbidden_other_unit_actor(
     second_user: User,
 ) -> None:
     creator_headers = _auth_headers(user.id)
-    created = _create_in_unit(
-        client, creator_headers, document_type, org_unit.id
-    )
+    created = _create_in_unit(client, creator_headers, document_type, org_unit.id)
     outsider_headers = _auth_headers(second_user.id)
     response = _derive(
         client,
@@ -145,9 +150,7 @@ def test_derive_forbidden_user_without_employee(
     db.commit()
 
     creator_headers = _auth_headers(user.id)
-    created = _create_in_unit(
-        client, creator_headers, document_type, org_unit.id
-    )
+    created = _create_in_unit(client, creator_headers, document_type, org_unit.id)
     response = _derive(
         client,
         _auth_headers(no_emp.id),
@@ -167,9 +170,7 @@ def test_derive_forbidden_inactive_employee(
     user: User,
 ) -> None:
     headers = _auth_headers(user.id)
-    created = _create_in_unit(
-        client, headers, document_type, org_unit.id
-    )
+    created = _create_in_unit(client, headers, document_type, org_unit.id)
     employee.is_active = False
     db.commit()
 
@@ -191,9 +192,7 @@ def test_derive_forbidden_inactive_unit(
     user: User,
 ) -> None:
     headers = _auth_headers(user.id)
-    created = _create_in_unit(
-        client, headers, document_type, org_unit.id
-    )
+    created = _create_in_unit(client, headers, document_type, org_unit.id)
     org_unit.is_active = False
     db.commit()
 
@@ -215,7 +214,8 @@ def test_derive_allowed_when_current_user_inactive(
     user: User,
     position: Position,
 ) -> None:
-    position.can_view_unit_correspondence=True
+    position.can_view_unit_correspondence = True
+    set_position_scope(db, position, True)
     db.commit()
     inactive_employee = Employee(
         id=uuid.uuid4(),
@@ -240,9 +240,7 @@ def test_derive_allowed_when_current_user_inactive(
     db.commit()
 
     headers = _auth_headers(user.id)
-    created = _create_in_unit(
-        client, headers, document_type, org_unit.id
-    )
+    created = _create_in_unit(client, headers, document_type, org_unit.id)
     row = db.get(Correspondence, uuid.UUID(created["id"]))
     assert row is not None
     row.current_user_id = inactive_user.id
@@ -264,9 +262,7 @@ def test_derive_rejects_concluded(
     org_unit: OrganizationalUnit,
     second_org_unit: OrganizationalUnit,
 ) -> None:
-    created = _create_in_unit(
-        client, auth_headers, document_type, org_unit.id
-    )
+    created = _create_in_unit(client, auth_headers, document_type, org_unit.id)
     client.post(
         f"/correspondences/{created['id']}/conclude",
         headers=auth_headers,
@@ -289,9 +285,7 @@ def test_derive_rejects_inactive_correspondence(
     org_unit: OrganizationalUnit,
     second_org_unit: OrganizationalUnit,
 ) -> None:
-    created = _create_in_unit(
-        client, auth_headers, document_type, org_unit.id
-    )
+    created = _create_in_unit(client, auth_headers, document_type, org_unit.id)
     row = db.get(Correspondence, uuid.UUID(created["id"]))
     assert row is not None
     row.is_active = False
@@ -314,9 +308,7 @@ def test_derive_rejects_inactive_destination_unit(
     org_unit: OrganizationalUnit,
     second_org_unit: OrganizationalUnit,
 ) -> None:
-    created = _create_in_unit(
-        client, auth_headers, document_type, org_unit.id
-    )
+    created = _create_in_unit(client, auth_headers, document_type, org_unit.id)
     second_org_unit.is_active = False
     db.commit()
 
@@ -337,9 +329,7 @@ def test_derive_rejects_destination_user_other_unit(
     second_org_unit: OrganizationalUnit,
     second_user: User,
 ) -> None:
-    created = _create_in_unit(
-        client, auth_headers, document_type, org_unit.id
-    )
+    created = _create_in_unit(client, auth_headers, document_type, org_unit.id)
     response = _derive(
         client,
         auth_headers,
@@ -358,9 +348,7 @@ def test_derive_rejects_inactive_destination_user(
     org_unit: OrganizationalUnit,
     second_user: User,
 ) -> None:
-    created = _create_in_unit(
-        client, auth_headers, document_type, org_unit.id
-    )
+    created = _create_in_unit(client, auth_headers, document_type, org_unit.id)
     second_user.is_active = False
     db.commit()
 
@@ -381,9 +369,7 @@ def test_derive_allows_null_destination_user(
     org_unit: OrganizationalUnit,
     second_org_unit: OrganizationalUnit,
 ) -> None:
-    created = _create_in_unit(
-        client, auth_headers, document_type, org_unit.id
-    )
+    created = _create_in_unit(client, auth_headers, document_type, org_unit.id)
     response = _derive(
         client,
         auth_headers,
@@ -470,9 +456,7 @@ def test_derive_movement_and_assignment(
     second_user: User,
     user: User,
 ) -> None:
-    created = _create_in_unit(
-        client, auth_headers, document_type, org_unit.id
-    )
+    created = _create_in_unit(client, auth_headers, document_type, org_unit.id)
     response = _derive(
         client,
         auth_headers,
@@ -511,12 +495,14 @@ def test_derive_inbox_origin_dest_and_sent(
     second_user: User,
 ) -> None:
     from app.modules.organization.position import Position
-    db.get(Position, db.get(Employee, user.employee_id).position_id).can_view_unit_correspondence = True
+
+    db.get(
+        Position, db.get(Employee, user.employee_id).position_id
+    ).can_view_unit_correspondence = True
+    set_unit_scope(db, user, True)
     db.commit()
     actor_headers = _auth_headers(user.id)
-    created = _create_in_unit(
-        client, actor_headers, document_type, org_unit.id
-    )
+    created = _create_in_unit(client, actor_headers, document_type, org_unit.id)
 
     origin_before = client.get(
         "/correspondences/inbox",
@@ -556,23 +542,43 @@ import pytest
 from sqlalchemy import select, func
 
 
-@pytest.mark.parametrize("assignment,scope,same_unit,allowed", [
-    ("direct", False, True, True),
-    ("unit_only", True, True, True),
-    ("peer", True, True, True),
-    ("unit_only", False, True, False),
-    ("peer", False, True, False),
-    ("unit_only", True, False, False),
-    ("peer", True, False, False),
-])
-def test_derivation_scope_and_capability(client, db, auth_headers, user, second_user,
-        position, document_type, org_unit, second_org_unit,
-        assignment, scope, same_unit, allowed):
+@pytest.mark.parametrize(
+    "assignment,scope,same_unit,allowed",
+    [
+        ("direct", False, True, True),
+        ("unit_only", True, True, True),
+        ("peer", True, True, True),
+        ("unit_only", False, True, False),
+        ("peer", False, True, False),
+        ("unit_only", True, False, False),
+        ("peer", True, False, False),
+    ],
+)
+def test_derivation_scope_and_capability(
+    client,
+    db,
+    auth_headers,
+    user,
+    second_user,
+    position,
+    document_type,
+    org_unit,
+    second_org_unit,
+    assignment,
+    scope,
+    same_unit,
+    allowed,
+):
     created = _create_in_unit(client, auth_headers, document_type, org_unit.id)
     row = db.get(Correspondence, uuid.UUID(created["id"]))
     position.can_view_unit_correspondence = scope
+    set_position_scope(db, position, scope)
     row.current_unit_id = org_unit.id if same_unit else second_org_unit.id
-    row.current_user_id = {"direct": user.id, "unit_only": None, "peer": second_user.id}[assignment]
+    row.current_user_id = {
+        "direct": user.id,
+        "unit_only": None,
+        "peer": second_user.id,
+    }[assignment]
     db.commit()
     detail = client.get(f"/correspondences/{row.id}", headers=auth_headers)
     assert detail.status_code == 200, detail.text
@@ -581,14 +587,26 @@ def test_derivation_scope_and_capability(client, db, auth_headers, user, second_
         assert detail.json()["can_operate"] is False
         # Derivation scope does not grant lifecycle mutations or attachments.
         for action in ("conclude", "reopen"):
-            result = client.post(f"/correspondences/{row.id}/{action}", headers=auth_headers, json={})
+            result = client.post(
+                f"/correspondences/{row.id}/{action}", headers=auth_headers, json={}
+            )
             assert result.status_code == 403, result.text
-    count = lambda: db.scalar(select(func.count()).select_from(CorrespondenceMovement).where(
-        CorrespondenceMovement.correspondence_id == row.id,
-        CorrespondenceMovement.movement_type == "DERIVED"))
+    count = lambda: db.scalar(
+        select(func.count())
+        .select_from(CorrespondenceMovement)
+        .where(
+            CorrespondenceMovement.correspondence_id == row.id,
+            CorrespondenceMovement.movement_type == "DERIVED",
+        )
+    )
     before = count()
-    response = _derive(client, auth_headers, str(row.id), to_unit_id=second_org_unit.id,
-                       to_user_id=second_user.id if assignment != "peer" else None)
+    response = _derive(
+        client,
+        auth_headers,
+        str(row.id),
+        to_unit_id=second_org_unit.id,
+        to_user_id=second_user.id if assignment != "peer" else None,
+    )
     assert response.status_code == (200 if allowed else 403), response.text
     db.expire_all()
     assert count() == before + (1 if allowed else 0)

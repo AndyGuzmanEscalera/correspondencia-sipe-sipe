@@ -5,7 +5,10 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.common.audit import apply_audit
-from app.common.master_data_deletion import validate_deletion, validate_employee_restoration
+from app.common.master_data_deletion import (
+    validate_deletion,
+    validate_employee_restoration,
+)
 from app.common.db_commit import commit_or_conflict, conflict, flush_or_conflict
 from app.core.security import hash_password
 from app.common.schemas import PaginatedResponse, paginate
@@ -15,10 +18,15 @@ from app.modules.identity.admin_schemas import (
     UserAdminResponse,
 )
 from app.modules.identity.rbac_service import RbacService
-from app.modules.identity.administrative_continuity import protect_deactivation, protect_role_change
+from app.modules.identity.administrative_continuity import (
+    protect_deactivation,
+    protect_role_change,
+    _lock_administration,
+)
 from app.modules.identity.role import Role
 from app.modules.identity.user import User
 from app.modules.identity.user_role import UserRole
+from app.modules.identity.user_permission import UserPermission
 from app.modules.organization.employee import Employee as OrgEmployee
 from app.modules.organization.organizational_unit import OrganizationalUnit
 
@@ -46,12 +54,8 @@ class UserAdminService:
             )
         if search:
             term = f"%{search.strip()}%"
-            query = query.where(
-                User.username.ilike(term) | User.email.ilike(term)
-            )
-        total = self._db.scalar(
-            select(func.count()).select_from(query.subquery())
-        ) or 0
+            query = query.where(User.username.ilike(term) | User.email.ilike(term))
+        total = self._db.scalar(select(func.count()).select_from(query.subquery())) or 0
         offset = (page - 1) * page_size
         rows = self._db.scalars(
             query.order_by(User.username).offset(offset).limit(page_size)
@@ -78,6 +82,9 @@ class UserAdminService:
         if body.role_ids:
             self._assert_can_assign_roles(actor)
             self._rbac.validate_active_role_ids(body.role_ids)
+            self._rbac.assert_can_assign_roles(actor, body.role_ids)
+        if body.direct_permission_ids is not None:
+            self._rbac.assert_can_manage_permissions(actor, body.direct_permission_ids)
 
         row = User(
             username=username,
@@ -93,6 +100,10 @@ class UserAdminService:
             values={"username": username, "email": email or ""},
         )
         self._replace_roles(row.id, body.role_ids, actor.id)
+        if body.direct_permission_ids is not None:
+            self._replace_direct_permissions(
+                row.id, body.direct_permission_ids, actor.id
+            )
         commit_or_conflict(
             self._db,
             values={"username": username, "email": email or ""},
@@ -106,6 +117,7 @@ class UserAdminService:
         user_id: uuid.UUID,
         body: UpdateUserRequest,
     ) -> UserAdminResponse:
+        _lock_administration(self._db)
         row = self._get_or_404(user_id)
         username = body.username.strip()
         email = body.email.strip() if body.email else None
@@ -114,9 +126,11 @@ class UserAdminService:
             self._ensure_email_unique(email, exclude_id=user_id)
         employee = self._get_active_employee(body.employee_id)
         self._ensure_employee_available(employee.id, exclude_user_id=user_id)
-        current_role_ids = set(self._db.scalars(
-            select(UserRole.role_id).where(UserRole.user_id == row.id)
-        ).all())
+        current_role_ids = set(
+            self._db.scalars(
+                select(UserRole.role_id).where(UserRole.user_id == row.id)
+            ).all()
+        )
         roles_changed = (
             body.role_ids is not None and set(body.role_ids) != current_role_ids
         )
@@ -124,7 +138,28 @@ class UserAdminService:
             self._assert_can_assign_roles(actor)
             if body.role_ids:
                 self._rbac.validate_active_role_ids(body.role_ids)
-            protect_role_change(self._db, row, body.role_ids, employee.id)
+            self._rbac.assert_can_assign_roles(
+                actor,
+                body.role_ids,
+                target_id=row.id,
+                current_role_ids=current_role_ids,
+            )
+        if body.direct_permission_ids is not None:
+            self._rbac.assert_can_manage_permissions(
+                actor, body.direct_permission_ids, target_id=row.id
+            )
+        if (
+            roles_changed
+            or body.direct_permission_ids is not None
+            or employee.id != row.employee_id
+        ):
+            protect_role_change(
+                self._db,
+                row,
+                body.role_ids if roles_changed else list(current_role_ids),
+                employee.id,
+                direct_permission_ids=body.direct_permission_ids,
+            )
 
         row.username = username
         row.email = email
@@ -132,6 +167,10 @@ class UserAdminService:
         apply_audit(row, actor.id)
         if roles_changed:
             self._replace_roles(row.id, body.role_ids, actor.id)
+        if body.direct_permission_ids is not None:
+            self._replace_direct_permissions(
+                row.id, body.direct_permission_ids, actor.id
+            )
         commit_or_conflict(
             self._db,
             values={"username": username, "email": email or ""},
@@ -150,7 +189,7 @@ class UserAdminService:
         if not is_active:
             protect_deactivation(self._db, actor, row)
         if not is_active and row.is_active:
-            validate_deletion(self._db, 'users', row)
+            validate_deletion(self._db, "users", row)
         if is_active and not row.is_active and row.employee_id is not None:
             employee = self._get_active_employee(row.employee_id)
             validate_employee_restoration(self._db, employee)
@@ -161,11 +200,51 @@ class UserAdminService:
         return self._to_response(row)
 
     def _assert_can_assign_roles(self, actor: User) -> None:
-        if "master_data.roles.assign" not in self._rbac.get_user_permission_codes(actor.id):
+        if "master_data.roles.assign" not in self._rbac.get_user_permission_codes(
+            actor.id
+        ):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="No tienes permisos para asignar roles.",
             )
+
+    def _replace_direct_permissions(self, user_id, permission_ids, actor_id):
+        requested = set(permission_ids)
+        existing = {
+            p.permission_id: p
+            for p in self._db.scalars(
+                select(UserPermission).where(UserPermission.user_id == user_id)
+            )
+        }
+        for id, row in existing.items():
+            if id not in requested:
+                self._db.delete(row)
+        for id in requested - existing.keys():
+            self._db.add(
+                UserPermission(
+                    user_id=user_id, permission_id=id, granted_by_user_id=actor_id
+                )
+            )
+
+    def set_direct_permissions(self, actor, user_id, permission_ids):
+        # Same lock order as role changes and deactivation. Concurrent idempotent
+        # replacements cannot race on the composite grant key.
+        _lock_administration(self._db)
+        row = self._get_or_404(user_id)
+        self._rbac.assert_can_manage_permissions(
+            actor, permission_ids, target_id=row.id
+        )
+        roles = list(
+            self._db.scalars(select(UserRole.role_id).where(UserRole.user_id == row.id))
+        )
+        protect_role_change(
+            self._db, row, roles, row.employee_id, direct_permission_ids=permission_ids
+        )
+        self._replace_direct_permissions(row.id, permission_ids, actor.id)
+        apply_audit(row, actor.id)
+        self._db.commit()
+        self._db.refresh(row)
+        return self._to_response(row)
 
     def _replace_roles(
         self,
@@ -252,8 +331,10 @@ class UserAdminService:
                     unit = self._db.get(OrganizationalUnit, employee.unit_id)
                     unit_name = unit.name if unit else None
         assigned_roles = self._db.scalars(
-            select(Role).join(UserRole, UserRole.role_id == Role.id)
-            .where(UserRole.user_id == row.id).order_by(Role.code)
+            select(Role)
+            .join(UserRole, UserRole.role_id == Role.id)
+            .where(UserRole.user_id == row.id)
+            .order_by(Role.code)
         ).all()
         role_codes = [role.code for role in assigned_roles]
         return UserAdminResponse(
@@ -265,6 +346,15 @@ class UserAdminService:
             unit_name=unit_name,
             is_active=row.is_active,
             role_codes=role_codes,
+            direct_permission_ids=list(
+                self._db.scalars(
+                    select(UserPermission.permission_id).where(
+                        UserPermission.user_id == row.id
+                    )
+                )
+            ),
+            direct_permissions=self._rbac.get_direct_permission_codes(row.id),
+            effective_permissions=self._rbac.get_effective_permission_codes(row.id),
             created_at=row.created_at,
             updated_at=row.updated_at,
             created_by_user_id=row.created_by_user_id,

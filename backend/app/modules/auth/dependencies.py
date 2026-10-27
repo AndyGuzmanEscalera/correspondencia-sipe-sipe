@@ -4,7 +4,6 @@ from typing import Annotated
 import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -61,32 +60,15 @@ def get_current_user(
 
 def require_permission(permission_code: str):
     """Dependency factory: current user must have the given permission code
-    via an active role.
+    via the central effective permission resolver.
     """
-    from app.modules.identity.permission import Permission
-    from app.modules.identity.role import Role
-    from app.modules.identity.role_permission import RolePermission
-    from app.modules.identity.user_role import UserRole
+    from app.modules.identity.rbac_service import RbacService
 
     def dependency(
         current_user: Annotated[User, Depends(get_current_user)],
         db: Annotated[Session, Depends(get_db)],
     ) -> User:
-        exists = db.execute(
-            select(1)
-            .select_from(UserRole)
-            .join(
-                Role,
-                and_(Role.id == UserRole.role_id, Role.is_active == True),  # noqa: E712
-            )
-            .join(RolePermission, RolePermission.role_id == Role.id)
-            .join(Permission, Permission.id == RolePermission.permission_id)
-            .where(
-                UserRole.user_id == current_user.id,
-                Permission.code == permission_code,
-            )
-        ).first()
-        if exists is None:
+        if not RbacService(db).has_permission(current_user.id, permission_code):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Permiso insuficiente",

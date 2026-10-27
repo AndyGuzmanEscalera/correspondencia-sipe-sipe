@@ -1,3 +1,4 @@
+from tests.historical_documents import seed_historical_document
 from tests.visibility_helpers import unit_reader_headers, route_to
 import uuid
 from datetime import datetime, timezone
@@ -8,7 +9,9 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.modules.correspondence.correspondence_attachment import CorrespondenceAttachment
+from app.modules.correspondence.correspondence_attachment import (
+    CorrespondenceAttachment,
+)
 from app.modules.correspondence.correspondence_movement import CorrespondenceMovement
 from app.modules.correspondence.document_type import DocumentType
 from app.modules.identity.user import User
@@ -115,7 +118,8 @@ def test_create_correspondence_does_not_persist_encadenamiento_attachment(
     second_user: User,
     db: Session,
 ) -> None:
-    response = client.post(
+    response = seed_historical_document(
+        client,
         "/correspondences",
         headers=auth_headers,
         json=_create_payload(
@@ -150,7 +154,8 @@ def test_download_encadenamiento_pdf_on_demand(
     second_org_unit: OrganizationalUnit,
     second_user: User,
 ) -> None:
-    create = client.post(
+    create = seed_historical_document(
+        client,
         "/correspondences",
         headers=auth_headers,
         json=_create_payload(
@@ -163,7 +168,7 @@ def test_download_encadenamiento_pdf_on_demand(
     )
     assert create.status_code == 201, create.text
     if create.json().get("current_user_id"):
-        route_to(client,create.json(),second_org_unit.id,second_user.id)
+        route_to(client, create.json(), second_org_unit.id, second_user.id)
     correspondence_id = create.json()["id"]
 
     pdf_response = client.get(
@@ -183,7 +188,8 @@ def test_download_encadenamiento_pdf_requires_auth(
     auth_headers: dict[str, str],
     second_user: User,
 ) -> None:
-    create = client.post(
+    create = seed_historical_document(
+        client,
         "/correspondences",
         headers=auth_headers,
         json=_create_payload(
@@ -195,14 +201,16 @@ def test_download_encadenamiento_pdf_requires_auth(
         ),
     )
     if create.json().get("current_user_id"):
-        route_to(client,create.json(),second_org_unit.id,second_user.id)
+        route_to(client, create.json(), second_org_unit.id, second_user.id)
     correspondence_id = create.json()["id"]
 
     response = client.get(f"/correspondences/{correspondence_id}/encadenamiento.pdf")
     assert response.status_code == 401
 
 
-def test_download_encadenamiento_pdf_not_found(client: TestClient, auth_headers: dict[str, str]) -> None:
+def test_download_encadenamiento_pdf_not_found(
+    client: TestClient, auth_headers: dict[str, str]
+) -> None:
     missing_id = uuid.uuid4()
     response = client.get(
         f"/correspondences/{missing_id}/encadenamiento.pdf",
@@ -221,7 +229,8 @@ def test_download_encadenamiento_pdf_reflects_new_derivation(
     user: User,
     db: Session,
 ) -> None:
-    create = client.post(
+    create = seed_historical_document(
+        client,
         "/correspondences",
         headers=auth_headers,
         json=_create_payload(
@@ -234,7 +243,7 @@ def test_download_encadenamiento_pdf_reflects_new_derivation(
     )
     assert create.status_code == 201, create.text
     if create.json().get("current_user_id"):
-        route_to(client,create.json(),second_org_unit.id,second_user.id)
+        route_to(client, create.json(), second_org_unit.id, second_user.id)
     correspondence_id = create.json()["id"]
 
     from app.core.security import create_access_token
@@ -294,18 +303,17 @@ def test_download_encadenamiento_pdf_rejects_non_chaining_type(
     document_type: DocumentType,
     second_org_unit: OrganizationalUnit,
 ) -> None:
-    create = client.post(
+    create = seed_historical_document(
+        client,
         "/correspondences",
         headers=auth_headers,
         json=_create_payload(
             document_type,
             "No encadenamiento",
             unit_id=second_org_unit.id,
-            sender_name="Remitente externo",
         ),
     )
-    if create.json().get("current_user_id"):
-        route_to(client,create.json(),second_org_unit.id,second_user.id)
+    assert create.status_code == 201, create.text
     correspondence_id = create.json()["id"]
     response = client.get(
         f"/correspondences/{correspondence_id}/encadenamiento.pdf",
@@ -322,7 +330,8 @@ def test_download_encadenamiento_pdf_generation_failure_returns_500(
     second_org_unit: OrganizationalUnit,
     second_user: User,
 ) -> None:
-    create = client.post(
+    create = seed_historical_document(
+        client,
         "/correspondences",
         headers=auth_headers,
         json=_create_payload(
@@ -334,7 +343,7 @@ def test_download_encadenamiento_pdf_generation_failure_returns_500(
         ),
     )
     if create.json().get("current_user_id"):
-        route_to(client,create.json(),second_org_unit.id,second_user.id)
+        route_to(client, create.json(), second_org_unit.id, second_user.id)
     correspondence_id = create.json()["id"]
 
     with patch(

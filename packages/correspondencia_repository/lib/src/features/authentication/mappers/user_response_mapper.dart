@@ -24,5 +24,10 @@ extension MeEmployeeContextMapping on MeEmployeeContextResponse {
         positionName: position?.name,
         unitId: unit?.id,
         unitName: unit?.name,
+        hierarchyId: position?.hierarchy?.id,
+        hierarchyCode: position?.hierarchy?.code,
+        hierarchyName: position?.hierarchy?.name,
+        hierarchyRank: position?.hierarchy?.rank,
+        hierarchyIsActive: position?.hierarchy?.isActive,
       );
 }

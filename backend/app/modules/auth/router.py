@@ -136,5 +136,5 @@ def me(
         **_user_to_brief(current_user),
         employee=resolve_me_employee_context(db, current_user),
         roles=rbac.get_user_role_codes(current_user.id),
-        permissions=rbac.get_user_permission_codes(current_user.id),
+        permissions=rbac.get_effective_permission_codes(current_user.id),
     )
