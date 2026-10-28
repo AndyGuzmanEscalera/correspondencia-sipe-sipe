@@ -26,6 +26,8 @@ from app.modules.system.admin_router import router as system_settings_admin_rout
 from app.modules.notifications.router import router as notifications_router
 from app.modules.correspondence.insights_router import router as insights_router
 
+from app.modules.rrhh.router import router as rrhh_router
+
 settings = get_settings()
 
 app = FastAPI(
@@ -53,6 +55,7 @@ app.include_router(admin_employees_router)
 app.include_router(identity_admin_router)
 app.include_router(document_types_admin_router)
 app.include_router(system_settings_admin_router)
+app.include_router(rrhh_router)
 
 
 @app.get("/health", tags=["health"])

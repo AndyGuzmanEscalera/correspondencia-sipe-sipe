@@ -25,6 +25,7 @@ settings = get_settings()
 config.set_main_option("sqlalchemy.url", settings.effective_database_url)
 
 # Base.metadata is empty today; will be populated as business models are added.
+from app.modules.rrhh import models  # noqa: F401, E402
 target_metadata = Base.metadata
 
 

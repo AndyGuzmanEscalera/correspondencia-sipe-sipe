@@ -1,0 +1,23 @@
+{
+  "purpose": "controlled_rrhh_staging",
+  "database_name": "rrhh_staging",
+  "device_id": "REPLACE_DEVICE_ID",
+  "contract_type_id": "20000000-0000-4000-8000-000000000001",
+  "contract_name": "Configuración temporal de dos días; no institucional",
+  "year": 2026,
+  "month": 10,
+  "period": {"start_date": "2026-10-01", "end_exclusive": "2026-10-03"},
+  "employees": [{
+    "employee_id": "10000000-0000-4000-8000-000000000001",
+    "biometric_user_id": "REPLACE_EXACT_USER_ID",
+    "shift_id": "30000000-0000-4000-8000-000000000001",
+    "working_days": {"2026-10-01": true, "2026-10-02": true},
+    "session_kinds": [["morning_entry", "morning_exit"], ["afternoon_entry", "final_exit"]],
+    "windows": {
+      "morning_entry": ["07:00:00", "09:00:00"],
+      "morning_exit": ["11:00:00", "13:00:00"],
+      "afternoon_entry": ["13:00:01", "15:00:00"],
+      "final_exit": ["17:00:00", "19:00:00"]
+    }
+  }]
+}
