@@ -3,6 +3,7 @@ import uuid
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from app.core.security import verify_password
 from app.modules.identity.user import User
 from app.modules.organization.organizational_unit import OrganizationalUnit
 from app.modules.organization.position import Position
@@ -240,6 +241,25 @@ def test_users_create_without_password_in_response(
     body = created.json()
     assert "password" not in body
     assert "password_hash" not in body
+
+    updated = client.put(
+        f"/admin/users/{body['id']}",
+        headers=admin_headers,
+        json={
+            "username": body["username"],
+            "email": body["email"],
+            "employee_id": employee_id,
+            "new_password": "NewSecurePass123!",
+        },
+    )
+    assert updated.status_code == 200, updated.text
+    assert "password" not in updated.json()
+    assert "password_hash" not in updated.json()
+    db.expire_all()
+    assert verify_password(
+        db.get(User, uuid.UUID(body["id"])).password_hash,
+        "NewSecurePass123!",
+    )
 
     unit_users = client.get(
         f"/organizational-units/{org_unit.id}/users",

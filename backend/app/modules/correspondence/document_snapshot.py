@@ -53,6 +53,10 @@ def freeze_document(db, actor, row, document_type):
         "code": document_type.code,
         "name": document_type.name,
         "profile": document_type.profile,
+        "behavior": document_type.behavior,
+        "emission_date": row.emission_date.isoformat() if row.emission_date else None,
+        "emission_time": row.emission_time.isoformat() if row.emission_time else None,
+        "page_count": row.page_count,
         "issued_at": datetime.now(timezone.utc).isoformat(),
         "document_number": row.document_number,
         "document_year": row.document_year,
@@ -62,8 +66,10 @@ def freeze_document(db, actor, row, document_type):
         "content": row.description,
         "priority": row.priority,
         "actor": party(db, employee_id=actor.employee_id, user_id=actor.id),
-        "origin": party(
-            db, employee_id=row.origin_employee_id, unit_id=row.origin_unit_id
+        "origin": (
+            party(db, employee_id=row.origin_employee_id, unit_id=row.origin_unit_id)
+            if row.origin_employee_id
+            else {"employee_name": row.sender_name, "external": True}
         ),
         "destination": party(
             db, unit_id=row.current_unit_id, user_id=row.current_user_id

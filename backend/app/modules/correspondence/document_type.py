@@ -3,7 +3,7 @@ from datetime import datetime
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, String, func
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, synonym
 
 from app.core.database import Base
 
@@ -16,9 +16,15 @@ class DocumentType(Base):
         primary_key=True,
         default=uuid.uuid4,
     )
-    profile: Mapped[str] = mapped_column(
-        String(40), nullable=False, default="GENERIC", server_default="GENERIC"
+    # One persisted field; profile remains an alias for historical API clients.
+    behavior: Mapped[str] = mapped_column(
+        "profile",
+        String(40),
+        nullable=False,
+        default="GENERIC",
+        server_default="GENERIC",
     )
+    profile = synonym("behavior")
     is_operational: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default="false"
     )

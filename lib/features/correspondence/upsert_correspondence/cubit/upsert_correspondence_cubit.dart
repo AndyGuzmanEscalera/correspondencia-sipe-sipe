@@ -27,6 +27,7 @@ class UpsertCorrespondenceCubit extends Cubit<UpsertCorrespondenceState> {
     if (state.generalStatus == GeneralStatus.loading) return;
     emit(state.copyWith(
         documentTypes: const [],
+        clearRouteSheetAuthority: true,
         catalogLoaded: false,
         generalStatus: GeneralStatus.loading,
         dialogMessage: const DialogMessage(
@@ -89,6 +90,12 @@ class UpsertCorrespondenceCubit extends Cubit<UpsertCorrespondenceState> {
 
     final documentTypes = typesResult.valueOrNull() ?? const [];
     final defaultType = resolveDefaultChainingDocumentType(documentTypes);
+    final authority = documentTypes
+            .any((type) => type.behavior == repo.DocumentBehavior.routeSheet)
+        ? (await _correspondenceRepository.getRouteSheetAuthority())
+            .valueOrNull()
+        : null;
+    if (isClosed) return;
 
     emit(
       state.copyWith(
@@ -96,6 +103,7 @@ class UpsertCorrespondenceCubit extends Cubit<UpsertCorrespondenceState> {
         dialogMessage: const DialogMessage.empty(),
         isIntake: policyResult.valueOrNull()!,
         documentTypes: documentTypes,
+        routeSheetAuthority: authority,
         organizationalUnits: unitsResult.valueOrNull() ?? const [],
         employees: employeesResult.valueOrNull() ?? const [],
         firstRecipients: recipientsResult.valueOrNull() ?? const [],
@@ -158,7 +166,7 @@ class UpsertCorrespondenceCubit extends Cubit<UpsertCorrespondenceState> {
   }
 
   Future<void> create({
-    required DocumentFormProfile profile,
+    required DocumentBehavior profile,
     required CorrespondenceTypeCode type,
     required String priorityLabel,
     required String documentTypeId,
@@ -166,6 +174,9 @@ class UpsertCorrespondenceCubit extends Cubit<UpsertCorrespondenceState> {
     String? subject,
     String? reference,
     String? description,
+    String? emissionDate,
+    String? emissionTime,
+    int? pageCount,
     String? originEmployeeId,
     String? firstRecipientEmployeeId,
     String? initialToUserId,
@@ -197,6 +208,9 @@ class UpsertCorrespondenceCubit extends Cubit<UpsertCorrespondenceState> {
       subject: subject,
       reference: reference,
       description: description,
+      emissionDate: emissionDate,
+      emissionTime: emissionTime,
+      pageCount: pageCount,
       originEmployeeId: originEmployeeId,
       firstRecipientEmployeeId: firstRecipientEmployeeId,
       initialToUserId: initialToUserId,
@@ -252,7 +266,7 @@ class UpsertCorrespondenceCubit extends Cubit<UpsertCorrespondenceState> {
   }
 
   repo.CreateCorrespondenceInput _buildInput({
-    required DocumentFormProfile profile,
+    required DocumentBehavior profile,
     required CorrespondenceTypeCode type,
     required String priorityLabel,
     required String documentTypeId,
@@ -260,6 +274,9 @@ class UpsertCorrespondenceCubit extends Cubit<UpsertCorrespondenceState> {
     String? subject,
     String? reference,
     String? description,
+    String? emissionDate,
+    String? emissionTime,
+    int? pageCount,
     String? originEmployeeId,
     String? firstRecipientEmployeeId,
     String? initialToUserId,
@@ -271,18 +288,29 @@ class UpsertCorrespondenceCubit extends Cubit<UpsertCorrespondenceState> {
   }) {
     final isContent = isContentProfile(profile);
     final isExternal = !isContent && type == CorrespondenceTypeCode.ce;
-    final requiresOrigin =
-        isContent || (profile == DocumentFormProfile.chaining && !isExternal);
+    final requiresOrigin = isContent ||
+        ((profile == DocumentBehavior.legacyChaining ||
+                profile == DocumentBehavior.routeSheet) &&
+            !isExternal);
     return repo.CreateCorrespondenceInput(
       correspondenceType:
           isContent ? 'INTERNAL' : correspondenceTypeCodeFromUi(type),
       documentTypeId: documentTypeId,
-      subject: profile == DocumentFormProfile.generic
+      subject: profile == DocumentBehavior.generic
           ? _required(subject)
           : _optional(subject),
       priority: priorityCodeFromLabel(priorityLabel),
       reference: _optional(reference),
-      description: isContent ? _required(description) : null,
+      description: isContent || profile == DocumentBehavior.routeSheet
+          ? _required(description)
+          : null,
+      emissionDate: profile == DocumentBehavior.routeSheet
+          ? _required(emissionDate)
+          : null,
+      emissionTime: profile == DocumentBehavior.routeSheet
+          ? _required(emissionTime)
+          : null,
+      pageCount: profile == DocumentBehavior.routeSheet ? pageCount : null,
       originEmployeeId: isExternal
           ? null
           : requiresOrigin

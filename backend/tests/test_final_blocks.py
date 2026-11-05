@@ -114,8 +114,9 @@ def test_dashboard_personal_and_unit_isolation(
 
 
 def test_dashboard_conclusion_and_empty_scope(
-    client, db, document, second_user, org_unit
+    client, db, document, second_user, second_org_unit, org_unit
 ):
+    unit_observer, _, _ = reader(db, second_org_unit)
     path = "/correspondences/" + document["id"]
     assert (
         client.post(
@@ -129,6 +130,11 @@ def test_dashboard_conclusion_and_empty_scope(
         and data["concluded"] == 1
         and data["activity"][0]["type"] == "CONCLUDED"
     )
+    notifications = client.get(
+        "/notifications", headers=headers(unit_observer)
+    ).json()
+    assert notifications["unread"] == 1
+    assert notifications["items"][0]["type"] == "CONCLUDED"
     outsider, _, _ = reader(db, org_unit)
     empty = client.get("/dashboard", headers=headers(outsider)).json()
     assert empty["total"] == 0 and empty["activity"] == []

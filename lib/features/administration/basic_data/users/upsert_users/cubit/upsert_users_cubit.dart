@@ -196,6 +196,7 @@ class UpsertUsersCubit extends Cubit<UpsertUsersState> {
     List<String>? roleIds,
     List<String>? directPermissionIds,
     String? email,
+    String? newPassword,
   }) async {
     emit(
       state.copyWith(
@@ -215,6 +216,7 @@ class UpsertUsersCubit extends Cubit<UpsertUsersState> {
         directPermissionIds:
             state.canManagePermissions ? directPermissionIds : null,
         email: _optional(email),
+        newPassword: _optional(newPassword),
       ),
     );
 

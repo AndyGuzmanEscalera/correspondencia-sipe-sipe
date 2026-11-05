@@ -10,6 +10,7 @@ from app.common.db_commit import commit_or_conflict, conflict
 from app.common.normalize import normalize_code
 from app.common.schemas import PaginatedResponse, paginate
 from app.modules.correspondence.document_type import DocumentType
+from app.modules.correspondence.document_behavior import CODE_BEHAVIORS
 from app.modules.correspondence.schemas import (
     CreateDocumentTypeRequest,
     DocumentTypeAdminResponse,
@@ -58,9 +59,14 @@ class DocumentTypeAdminService:
     ) -> DocumentTypeAdminResponse:
         code = normalize_code(body.code)
         self._ensure_code_unique(code)
+        if code in CODE_BEHAVIORS:
+            raise HTTPException(
+                422, "Este código está reservado por el contrato documental"
+            )
         row = DocumentType(
             code=code,
             name=body.name.strip(),
+            behavior=body.behavior.value,
             is_active=True,
         )
         apply_audit(row, actor.id, is_create=True)
@@ -76,6 +82,19 @@ class DocumentTypeAdminService:
         body: UpdateDocumentTypeRequest,
     ) -> DocumentTypeAdminResponse:
         row = self._get_or_404(document_type_id)
+        if body.behavior is not None and body.behavior.value != row.behavior:
+            from app.modules.correspondence.correspondence import Correspondence
+
+            if row.code.strip().upper() in CODE_BEHAVIORS or self._db.scalar(
+                select(Correspondence.id)
+                .where(Correspondence.document_type_id == row.id)
+                .limit(1)
+            ):
+                raise HTTPException(
+                    422,
+                    "No se puede cambiar el comportamiento de un tipo estructural o utilizado",
+                )
+            row.behavior = body.behavior.value
         row.name = body.name.strip()
         apply_audit(row, actor.id)
         self._db.commit()
@@ -129,8 +148,19 @@ class DocumentTypeAdminService:
             if row.minimum_hierarchy_id
             else None
         )
+        from app.modules.correspondence.correspondence import Correspondence
+
+        behavior_locked = row.code.strip().upper() in CODE_BEHAVIORS or bool(
+            self._db.scalar(
+                select(Correspondence.id)
+                .where(Correspondence.document_type_id == row.id)
+                .limit(1)
+            )
+        )
         return DocumentTypeAdminResponse(
+            behavior_locked=behavior_locked,
             profile=row.profile,
+            behavior=row.behavior,
             is_operational=row.is_operational,
             creation_permission=row.creation_permission,
             minimum_hierarchy_id=row.minimum_hierarchy_id,

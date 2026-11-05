@@ -29,4 +29,16 @@ void main() {
     expect(create.toJson()['role_ids'], ['role']);
     expect(update.toJson()['role_ids'], ['role']);
   });
+
+  test('update serializa contraseña nueva solo cuando fue informada', () {
+    const unchanged = UpdateUserRequest(
+        username: 'user', employeeId: 'employee', roleIds: null);
+    const changed = UpdateUserRequest(
+        username: 'user',
+        employeeId: 'employee',
+        roleIds: null,
+        newPassword: 'NewSecret123!');
+    expect(unchanged.toJson().containsKey('new_password'), isFalse);
+    expect(changed.toJson()['new_password'], 'NewSecret123!');
+  });
 }

@@ -81,6 +81,17 @@ class AppSessionCubit extends Cubit<AppSessionState> {
     );
   }
 
+  Future<bool> refreshCurrentUser() async {
+    final result = await _authRepository.currentUser();
+    return result.when(
+      ok: (session) {
+        onSessionRestored(session);
+        return true;
+      },
+      err: (_) => false,
+    );
+  }
+
   Future<void> logout() async {
     final result = await _authRepository.logout();
     result.when(ok: (_) {}, err: (_) {});

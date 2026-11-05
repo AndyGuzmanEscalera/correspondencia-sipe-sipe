@@ -21,6 +21,7 @@ import 'package:correspondencia_sipe_sipe/features/home/side_menu/cubit/side_men
 import 'package:correspondencia_sipe_sipe/injection/injection_bloc.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/app_form_dialog.dart';
 import 'package:flutter/material.dart';
+import '../widgets/route_sheet_fields.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class UpsertCorrespondencePage extends StatelessWidget {
@@ -161,7 +162,7 @@ class UpsertCorrespondenceBody extends StatefulWidget {
 
 class _UpsertCorrespondenceBodyState extends State<UpsertCorrespondenceBody> {
   CorrespondenceTypeCode _selectedType = CorrespondenceTypeCode.ce;
-  DocumentFormProfile _profile = DocumentFormProfile.chaining;
+  DocumentBehavior _profile = DocumentBehavior.legacyChaining;
   bool _defaultsApplied = false;
   bool _useConfiguredRecipient = true;
 
@@ -185,8 +186,9 @@ class _UpsertCorrespondenceBodyState extends State<UpsertCorrespondenceBody> {
           description: type.name,
           value: type.id,
         );
-        _profile = resolveDocumentFormProfile(type.code, profile: type.profile);
-        _useConfiguredRecipient = _profile == DocumentFormProfile.chaining;
+        _profile = type.behavior;
+        _useConfiguredRecipient = _profile == DocumentBehavior.routeSheet ||
+            _profile == DocumentBehavior.legacyChaining;
         break;
       }
     }
@@ -203,11 +205,11 @@ class _UpsertCorrespondenceBodyState extends State<UpsertCorrespondenceBody> {
   }
 
   void _onDocumentTypeChanged(DocumentType documentType) {
-    final profile = resolveDocumentFormProfile(documentType.code,
-        profile: documentType.profile);
+    final profile = documentType.behavior;
     setState(() {
       _profile = profile;
-      _useConfiguredRecipient = profile == DocumentFormProfile.chaining;
+      _useConfiguredRecipient = profile == DocumentBehavior.routeSheet ||
+          profile == DocumentBehavior.legacyChaining;
     });
     if (isContentProfile(profile)) {
       _onTypeChanged(CorrespondenceTypeCode.ci);
@@ -267,7 +269,9 @@ class _UpsertCorrespondenceBodyState extends State<UpsertCorrespondenceBody> {
           profile: _profile,
           isExternal: _isExternal,
         );
-        final canSubmit = catalogReady &&
+        final canSubmit = (_profile != DocumentBehavior.routeSheet ||
+                (state.routeSheetAuthority?.isNotEmpty ?? false)) &&
+            catalogReady &&
             !isLoading &&
             !state.unitUsersLoading &&
             (!(state.isIntake || _useConfiguredRecipient) ||
@@ -306,15 +310,17 @@ class _UpsertCorrespondenceBodyState extends State<UpsertCorrespondenceBody> {
                   isExternal: _isExternal,
                   onTypeChanged: _onTypeChanged,
                 ),
-                if (_profile == DocumentFormProfile.chaining)
+                if (_profile == DocumentBehavior.routeSheet)
+                  RouteSheetFields(paraLabel: state.routeSheetAuthority),
+                if (_profile == DocumentBehavior.legacyChaining)
                   const ChainingFields(),
                 if (requiresSubjectOrReference(_profile))
                   const TechnicalReportFields(requireSubjectOrReference: true),
-                if (_profile == DocumentFormProfile.technicalReport)
+                if (_profile == DocumentBehavior.report)
                   const TechnicalReportFields(),
-                if (_profile == DocumentFormProfile.internalNote)
+                if (_profile == DocumentBehavior.legacyInternalNote)
                   const InternalNoteFields(),
-                if (_profile == DocumentFormProfile.generic)
+                if (_profile == DocumentBehavior.generic)
                   const GenericFields(),
                 if (!state.isIntake)
                   SwitchListTile(
@@ -431,6 +437,9 @@ class _UpsertCorrespondenceBodyState extends State<UpsertCorrespondenceBody> {
       subject: inherited.subject.getValue(),
       reference: inherited.reference.getValue(),
       description: inherited.description.getValue(),
+      emissionDate: inherited.emissionDate.getValue(),
+      emissionTime: inherited.emissionTime.getValue(),
+      pageCount: int.tryParse(inherited.pageCount.getValue()),
       originEmployeeId: inherited.originEmployee.get(),
       type: type,
       priorityLabel: priority,

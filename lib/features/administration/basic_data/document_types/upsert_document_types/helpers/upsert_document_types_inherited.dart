@@ -14,6 +14,9 @@ class UpsertDocumentTypesInherited extends InheritedWidget {
   final TypeOperation typeOperation;
   final formKey = GlobalKey<FormState>();
   final code = ControllerFieldPro();
+  final _behavior = ValueNotifier(DocumentBehavior.generic);
+  DocumentBehavior get behavior => _behavior.value;
+  set behavior(DocumentBehavior value) => _behavior.value = value;
   final name = ControllerFieldPro();
 
   static UpsertDocumentTypesInherited of(BuildContext context) {
@@ -28,6 +31,7 @@ class UpsertDocumentTypesInherited extends InheritedWidget {
 
   void setData(DocumentTypeAdmin entity) {
     code.setValue(entity.code);
+    behavior = entity.behavior;
     name.setValue(entity.name);
   }
 
@@ -40,11 +44,13 @@ class UpsertDocumentTypesInherited extends InheritedWidget {
 
   void clear() {
     code.textEditingController.clear();
+    behavior = DocumentBehavior.generic;
     name.textEditingController.clear();
   }
 
   void dispose() {
     code.dispose();
+    _behavior.dispose();
     name.dispose();
   }
 

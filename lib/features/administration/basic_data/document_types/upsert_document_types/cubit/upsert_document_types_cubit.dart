@@ -1,4 +1,5 @@
-import 'package:correspondencia_repository/correspondencia_repository.dart' as repo;
+import 'package:correspondencia_repository/correspondencia_repository.dart'
+    as repo;
 import 'package:correspondencia_sipe_sipe/core/helpers/dialog_message.dart';
 import 'package:correspondencia_sipe_sipe/core/helpers/status_state.dart';
 import 'package:correspondencia_sipe_sipe/core/util/enums.dart';
@@ -9,12 +10,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 part 'upsert_document_types_state.dart';
 
 class UpsertDocumentTypesCubit extends Cubit<UpsertDocumentTypesState> {
-  UpsertDocumentTypesCubit(this._repository) : super(const UpsertDocumentTypesState());
+  UpsertDocumentTypesCubit(this._repository)
+      : super(const UpsertDocumentTypesState());
 
   final repo.DocumentTypesAdminRepository _repository;
 
   Future<void> save({
     required String code,
+    repo.DocumentBehavior behavior = repo.DocumentBehavior.generic,
     required String name,
   }) async {
     emit(
@@ -27,7 +30,8 @@ class UpsertDocumentTypesCubit extends Cubit<UpsertDocumentTypesState> {
     );
 
     final result = await _repository.create(
-      repo.DocumentTypeInput(code: code.trim(), name: name.trim()),
+      repo.DocumentTypeInput(
+          code: code.trim(), name: name.trim(), behavior: behavior),
     );
 
     result.when(
@@ -62,6 +66,7 @@ class UpsertDocumentTypesCubit extends Cubit<UpsertDocumentTypesState> {
   Future<void> update({
     required String name,
     required repo.DocumentTypeAdmin entity,
+    repo.DocumentBehavior? behavior,
   }) async {
     emit(
       state.copyWith(
@@ -74,7 +79,7 @@ class UpsertDocumentTypesCubit extends Cubit<UpsertDocumentTypesState> {
 
     final result = await _repository.update(
       entity.id,
-      repo.DocumentTypeUpdateInput(name: name.trim()),
+      repo.DocumentTypeUpdateInput(name: name.trim(), behavior: behavior),
     );
 
     result.when(

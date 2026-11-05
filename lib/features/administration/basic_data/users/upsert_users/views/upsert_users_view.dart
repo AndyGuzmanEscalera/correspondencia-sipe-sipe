@@ -73,7 +73,17 @@ class UpsertUsersView extends StatelessWidget {
       child: MultiBlocListener(
         listeners: [
           ListenerPro<UpsertUsersCubit, UpsertUsersState>().event(
-            onSuccess: (_) => listCubit.get(),
+            onSuccess: (_) async {
+              final appSession = context.read<AppSessionCubit>();
+              final current = appSession.state.userSession;
+              final edited = listCubit.state.selected;
+              await listCubit.get();
+              if (!appSession.isClosed &&
+                  edited != null &&
+                  current?.id == edited.id) {
+                await appSession.refreshCurrentUser();
+              }
+            },
           ),
         ],
         child: FullWidgetGeneric(
@@ -237,6 +247,7 @@ class _UpsertUsersBodyState extends State<UpsertUsersBody> {
                 employeeId: employeeId,
                 roleIds: roleIds,
                 email: inherited.email.getValue(),
+                newPassword: inherited.password.getValue(),
               );
             }
           },
@@ -265,6 +276,20 @@ class _UpsertUsersBodyState extends State<UpsertUsersBody> {
                       RequiredValid(error: 'Campo requerido'),
                     ],
                   ),
+                if (!isCreate) ...[
+                  AppTextPassword(
+                    controller: inherited.password,
+                    label: 'Nueva contraseña (opcional)',
+                    validators: [_OptionalPasswordValid()],
+                  ),
+                  AppTextPassword(
+                    controller: inherited.confirmPassword,
+                    label: 'Confirmar nueva contraseña',
+                    validators: [
+                      _ConfirmPasswordValid(inherited.password.getValue),
+                    ],
+                  ),
+                ],
                 AppDropdown<String>(
                   controller: inherited.employee,
                   label: 'Funcionario',
@@ -295,5 +320,27 @@ class _UpsertUsersBodyState extends State<UpsertUsersBody> {
         );
       },
     );
+  }
+}
+
+class _OptionalPasswordValid extends AbstractValid {
+  @override
+  String? valid(String? value) {
+    final text = value?.trim() ?? '';
+    if (text.isNotEmpty && text.length < 8) {
+      return 'La contraseña debe tener al menos 8 caracteres';
+    }
+    return null;
+  }
+}
+
+class _ConfirmPasswordValid extends AbstractValid {
+  _ConfirmPasswordValid(this.password);
+  final String Function() password;
+  @override
+  String? valid(String? value) {
+    if (password().isEmpty && (value?.isEmpty ?? true)) return null;
+    if (value != password()) return 'Las contraseñas no coinciden';
+    return null;
   }
 }

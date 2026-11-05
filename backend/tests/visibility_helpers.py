@@ -62,7 +62,7 @@ def grant_creation_permission(db, user):
     db.add(RolePermission(role_id=role.id, permission_id=permission.id))
     from app.modules.correspondence.document_type_profiles import CREATION_PERMISSIONS
 
-    for code in CREATION_PERMISSIONS | {
+    for code in (CREATION_PERMISSIONS - {"correspondence.create"}) | {
         "correspondence.read.own",
         "correspondence.derive",
         "correspondence.conclude",

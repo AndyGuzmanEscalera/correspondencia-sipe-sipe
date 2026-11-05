@@ -9,6 +9,8 @@ extension DocumentTypeAdminResponseMapper on DocumentTypeAdminResponse {
         name: name,
         isActive: isActive,
         profile: profile,
+        behaviorLocked: behaviorLocked,
+        behavior: behavior,
         isOperational: isOperational,
         creationPermission: creationPermission,
         minimumHierarchyId: minimumHierarchyId,
@@ -22,11 +24,13 @@ extension DocumentTypeInputMapper on DocumentTypeInput {
   CreateDocumentTypeRequest toCreateRequest() => CreateDocumentTypeRequest(
         code: code,
         name: name,
+        behavior: behavior,
       );
 }
 
 extension DocumentTypeUpdateInputMapper on DocumentTypeUpdateInput {
   UpdateDocumentTypeRequest toUpdateRequest() => UpdateDocumentTypeRequest(
         name: name,
+        behavior: behavior,
       );
 }

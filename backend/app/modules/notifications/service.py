@@ -18,11 +18,12 @@ from app.modules.organization.organizational_unit import OrganizationalUnit
 
 def notify_movement(db, correspondence, movement):
     """Same transaction as the movement; delivery never grants document visibility."""
-    if movement.movement_type not in {"DERIVED", "REOPENED"}:
+    if movement.movement_type not in {"DERIVED", "CONCLUDED", "REOPENED"}:
         return
     reopened = movement.movement_type == "REOPENED"
-    unit_id = movement.from_unit_id if reopened else movement.to_unit_id
-    direct_user = movement.from_user_id if reopened else movement.to_user_id
+    concluded = movement.movement_type == "CONCLUDED"
+    unit_id = movement.from_unit_id if (reopened or concluded) else movement.to_unit_id
+    direct_user = movement.from_user_id if (reopened or concluded) else movement.to_user_id
     candidates = db.scalars(
         select(User)
         .join(Employee, Employee.id == User.employee_id)
@@ -47,12 +48,11 @@ def notify_movement(db, correspondence, movement):
             or (candidate.id == direct_user and bool({READ_OWN, READ_ALL} & codes))
         ):
             recipients.add(candidate.id)
-    kind = (
-        "REOPENED"
-        if reopened
-        else ("ASSIGNED" if movement.sequence_number == 2 else "DERIVED")
-    )
-    label = "Correspondencia reabierta" if reopened else "Correspondencia recibida"
+    kind = ("REOPENED" if reopened else "CONCLUDED" if concluded
+            else ("ASSIGNED" if movement.sequence_number == 2 else "DERIVED"))
+    label = ("Correspondencia reabierta" if reopened else
+             "Correspondencia concluida" if concluded else
+             "Correspondencia recibida")
     for user_id in recipients:
         db.execute(
             insert(Notification)

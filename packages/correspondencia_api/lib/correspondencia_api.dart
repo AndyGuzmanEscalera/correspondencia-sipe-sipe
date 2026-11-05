@@ -8,6 +8,8 @@
 ///     login / refresh / logout so a 401 there cannot trigger another refresh.
 library correspondencia_api;
 
+export 'src/features/correspondence/models/document_behavior.dart';
+
 export 'src/core/network/network.dart';
 export 'src/core/network/api_client.dart';
 export 'src/core/network/api_config.dart';

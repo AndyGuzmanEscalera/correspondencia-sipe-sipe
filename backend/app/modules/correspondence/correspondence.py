@@ -1,9 +1,11 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, date, time
 
 from sqlalchemy import (
     Boolean,
     DateTime,
+    Date,
+    Time,
     ForeignKey,
     Integer,
     String,
@@ -55,6 +57,9 @@ class Correspondence(Base):
     institutional_authority_snapshot: Mapped[dict | None] = mapped_column(
         JSONB(none_as_null=True), nullable=True
     )
+    emission_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    emission_time: Mapped[time | None] = mapped_column(Time, nullable=True)
+    page_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     reference: Mapped[str | None] = mapped_column(String(200), nullable=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     document_sequence: Mapped[int | None] = mapped_column(Integer, nullable=True)

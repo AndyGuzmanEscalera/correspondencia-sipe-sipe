@@ -37,3 +37,4 @@ class UpdateUserRequest(BaseModel):
     employee_id: uuid.UUID
     role_ids: list[uuid.UUID] | None = None
     direct_permission_ids: list[uuid.UUID] | None = None
+    new_password: str | None = Field(default=None, min_length=8, max_length=255)

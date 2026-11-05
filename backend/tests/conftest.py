@@ -193,6 +193,8 @@ def seed_institutional_mayor(db: Session, org_unit: OrganizationalUnit) -> None:
 def encadenamiento_document_type(db: Session, mayor_user: User) -> DocumentType:
     existing = db.scalar(select(DocumentType).where(DocumentType.code == "EDIE"))
     if existing:
+        existing.behavior = "LEGACY_CHAINING"
+        db.commit()
         if not existing.is_active:
             existing.is_active = True
             db.commit()
@@ -202,6 +204,7 @@ def encadenamiento_document_type(db: Session, mayor_user: User) -> DocumentType:
     doc_type = DocumentType(
         id=uuid.uuid4(),
         code="EDIE",
+        behavior="LEGACY_CHAINING",
         name="ENCADENAMIENTO DE DOCUMENTOS INTERNOS Y EXTERNOS",
         is_active=True,
     )

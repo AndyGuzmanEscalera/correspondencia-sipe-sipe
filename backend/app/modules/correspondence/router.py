@@ -70,6 +70,20 @@ def available_document_types(
     return service.list_available_document_types(user)
 
 
+@catalog_router.get("/route-sheet-authority")
+def route_sheet_authority(
+    user: Annotated[User, Depends(get_current_user)],
+    service: Annotated[CorrespondenceService, Depends(_service)],
+):
+    from app.modules.correspondence.creation_policy import require_create_permission
+    from app.modules.correspondence.institutional_mayor import (
+        require_document_authority_name,
+    )
+
+    require_create_permission(service._db, user)
+    return {"para_label": require_document_authority_name(service._db)}
+
+
 @catalog_router.get("/employees", response_model=list[EmployeeOptionResponse])
 def list_active_employees(
     service: Annotated[CorrespondenceService, Depends(_service)],
@@ -244,9 +258,7 @@ def download_operational_pdf(
     user: Annotated[User, Depends(_visible_user)],
     service: Annotated[CorrespondenceService, Depends(_service)],
 ):
-    from app.modules.correspondence.pdf.operational_document_pdf import (
-        generate_operational_document_pdf,
-    )
+    from app.modules.correspondence.pdf.document_renderer import generate_document_pdf
 
     row = service._get_correspondence_or_404(correspondence_id, active_only=True)
     if not row.document_snapshot:
@@ -256,7 +268,9 @@ def download_operational_pdf(
             status_code=422,
             detail="Este documento no dispone de snapshot institucional generado",
         )
-    payload = generate_operational_document_pdf(row.document_snapshot)
+    payload = generate_document_pdf(
+        row.document_snapshot, authority_snapshot=row.institutional_authority_snapshot
+    )
     return StreamingResponse(
         io.BytesIO(payload),
         media_type="application/pdf",

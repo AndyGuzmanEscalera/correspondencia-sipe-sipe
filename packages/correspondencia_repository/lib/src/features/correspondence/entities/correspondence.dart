@@ -1,9 +1,16 @@
 import 'package:equatable/equatable.dart';
+import 'package:correspondencia_api/correspondencia_api.dart'
+    show DocumentBehavior;
 
 class Correspondence extends Equatable {
   const Correspondence({
     required this.id,
     this.hasDocumentPdf = false,
+    DocumentBehavior? documentBehavior,
+    this.emissionDate,
+    this.emissionTime,
+    this.pageCount,
+    this.paraLabel,
     this.canOperate = false,
     this.canDerive = false,
     this.canConclude = false,
@@ -40,10 +47,17 @@ class Correspondence extends Equatable {
     this.currentUserId,
     this.createdByUsername,
     this.lastSentAt,
-  });
+  }) : _documentBehavior = documentBehavior;
 
   final String id;
   final bool hasDocumentPdf;
+  final DocumentBehavior? _documentBehavior;
+  DocumentBehavior get documentBehavior =>
+      _documentBehavior ?? DocumentBehavior.fromLegacy(documentTypeCode);
+  final String? emissionDate;
+  final String? emissionTime;
+  final int? pageCount;
+  final String? paraLabel;
   final bool canOperate;
   final bool canDerive;
   final bool canConclude;
@@ -87,6 +101,11 @@ class Correspondence extends Equatable {
   List<Object?> get props => [
         id,
         hasDocumentPdf,
+        documentBehavior,
+        emissionDate,
+        emissionTime,
+        pageCount,
+        paraLabel,
         canOperate,
         canDerive,
         canConclude,

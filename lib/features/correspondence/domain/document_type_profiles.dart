@@ -1,116 +1,62 @@
 import 'package:correspondencia_repository/correspondencia_repository.dart';
+export 'package:correspondencia_repository/correspondencia_repository.dart'
+    show DocumentBehavior;
 
-/// Perfil funcional por código estable de document_types (no por display name).
-enum DocumentFormProfile {
-  chaining,
-  internalCommunication,
-  memorandum,
-  circular,
-  technicalReport,
-  internalNote,
-  generic,
-}
-
-// Preserve the full catalog code used by existing documents.
-const chainingDocumentTypeCodes = {
-  'S',
-  'EDIE',
-  'ENCADENAMIENTO DE DOCUMENTOS INTERNOS Y EXTERNOS'
-};
-const technicalReportDocumentTypeCodes = {'INFORME'};
-const internalNoteDocumentTypeCodes = {'NOTA'};
-const defaultChainingDocumentTypeCodes = [
-  'S',
-  'EDIE',
-  'ENCADENAMIENTO DE DOCUMENTOS INTERNOS Y EXTERNOS'
-];
+/// Compatibility type name for existing callers; semantics live in DocumentBehavior.
+typedef DocumentFormProfile = DocumentBehavior;
 
 String normalizeDocumentTypeCode(String code) => code.trim().toUpperCase();
 
-DocumentFormProfile resolveDocumentFormProfile(String code, {String? profile}) {
-  const profiles = {
-    'INTERNAL_COMMUNICATION': DocumentFormProfile.internalCommunication,
-    'REPORT': DocumentFormProfile.technicalReport,
-    'MEMORANDUM': DocumentFormProfile.memorandum,
-    'CIRCULAR': DocumentFormProfile.circular,
-    'LEGACY_CHAINING': DocumentFormProfile.chaining,
-    'LEGACY_INTERNAL_NOTE': DocumentFormProfile.internalNote,
-  };
-  if (profiles.containsKey(profile)) return profiles[profile]!;
-  const operational = {
-    'COMUNICADO_INTERNO': DocumentFormProfile.internalCommunication,
-    'MEMORANDUM': DocumentFormProfile.memorandum,
-    'CIRCULAR': DocumentFormProfile.circular,
-  };
-  if (operational.containsKey(normalizeDocumentTypeCode(code))) {
-    return operational[normalizeDocumentTypeCode(code)]!;
-  }
-  final normalized = normalizeDocumentTypeCode(code);
-  if (chainingDocumentTypeCodes.contains(normalized)) {
-    return DocumentFormProfile.chaining;
-  }
-  if (technicalReportDocumentTypeCodes.contains(normalized)) {
-    return DocumentFormProfile.technicalReport;
-  }
-  if (internalNoteDocumentTypeCodes.contains(normalized)) {
-    return DocumentFormProfile.internalNote;
-  }
-  return DocumentFormProfile.generic;
-}
-
+/// Old integrations only. Live forms use DocumentType.behavior from the API.
+DocumentBehavior resolveDocumentFormProfile(String code, {String? profile}) =>
+    DocumentBehavior.fromLegacy(code, profile);
 bool supportsEncadenamientoPdf(String code) =>
-    resolveDocumentFormProfile(code) == DocumentFormProfile.chaining;
+    DocumentBehavior.fromLegacy(code) == DocumentBehavior.legacyChaining;
 
 DocumentType? resolveDefaultChainingDocumentType(List<DocumentType> types) {
-  for (final code in [
-    'COMUNICADO_INTERNO',
-    ...defaultChainingDocumentTypeCodes
+  for (final behavior in [
+    DocumentBehavior.routeSheet,
+    DocumentBehavior.internalCommunication,
+    DocumentBehavior.legacyChaining
   ]) {
     for (final type in types) {
-      if (normalizeDocumentTypeCode(type.code) == code) {
-        return type;
-      }
+      if (type.behavior == behavior) return type;
     }
   }
-  return types.isNotEmpty ? types.first : null;
+  return types.isEmpty ? null : types.first;
 }
 
-DocumentType? findDocumentTypeById(
-  List<DocumentType> types,
-  String? id,
-) {
-  if (id == null || id.isEmpty) return null;
+DocumentType? findDocumentTypeById(List<DocumentType> types, String? id) {
   for (final type in types) {
     if (type.id == id) return type;
   }
   return null;
 }
 
-/// Indica si el flujo actual requiere catálogo de funcionarios para DE.
 bool requiresOriginEmployee({
-  required DocumentFormProfile profile,
+  required DocumentBehavior profile,
   required bool isExternal,
 }) {
   switch (profile) {
-    case DocumentFormProfile.chaining:
+    case DocumentBehavior.routeSheet:
+    case DocumentBehavior.legacyChaining:
+    case DocumentBehavior.generic:
       return !isExternal;
-    case DocumentFormProfile.internalCommunication:
-    case DocumentFormProfile.memorandum:
-    case DocumentFormProfile.circular:
-    case DocumentFormProfile.technicalReport:
-    case DocumentFormProfile.internalNote:
+    case DocumentBehavior.internalCommunication:
+    case DocumentBehavior.report:
+    case DocumentBehavior.memorandum:
+    case DocumentBehavior.circular:
+    case DocumentBehavior.legacyInternalNote:
       return true;
-    case DocumentFormProfile.generic:
-      return !isExternal;
   }
 }
 
-bool isContentProfile(DocumentFormProfile profile) =>
-    profile == DocumentFormProfile.technicalReport ||
-    profile == DocumentFormProfile.internalNote ||
+bool isContentProfile(DocumentBehavior profile) =>
+    profile == DocumentBehavior.report ||
+    profile == DocumentBehavior.legacyInternalNote ||
     requiresSubjectOrReference(profile);
 
-bool requiresSubjectOrReference(DocumentFormProfile profile) =>
-    profile == DocumentFormProfile.internalCommunication ||
-    profile == DocumentFormProfile.memorandum ||
-    profile == DocumentFormProfile.circular;
+bool requiresSubjectOrReference(DocumentBehavior profile) =>
+    profile == DocumentBehavior.internalCommunication ||
+    profile == DocumentBehavior.memorandum ||
+    profile == DocumentBehavior.circular;

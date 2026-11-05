@@ -45,7 +45,7 @@ class _UserPermissionsSectionState extends State<UserPermissionsSection> {
               children: widget.permissions
                   .where((p) => p.category == category)
                   .map((p) => CheckboxListTile(
-                        title: Text(p.description ?? p.code),
+                        title: Text(p.displayName),
                         subtitle: Text(p.isDeprecated
                             ? '${p.code} · Legado: use los permisos específicos de creación'
                             : p.code),
@@ -63,10 +63,16 @@ class _UserPermissionsSectionState extends State<UserPermissionsSection> {
                   .toList()),
       if (widget.effectiveCodes.isNotEmpty)
         ExpansionTile(
-            title: const Text('Permisos efectivos actuales'),
-            children: widget.effectiveCodes
-                .map((code) => ListTile(dense: true, title: Text(code)))
-                .toList()),
+            title: const Text('Permisos heredados y efectivos'),
+            children: widget.effectiveCodes.map((code) {
+              final option = widget.permissions.where((p) => p.code == code);
+              final label = option.isEmpty ? code : option.first.displayName;
+              final direct = widget.directCodes.contains(code);
+              return ListTile(
+                  dense: true,
+                  title: Text(label),
+                  trailing: Chip(label: Text(direct ? 'Directo' : 'Heredado')));
+            }).toList()),
     ]);
   }
 }

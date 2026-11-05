@@ -7,7 +7,7 @@ from app.modules.organization.position import Position
 from app.modules.organization.position_hierarchy import PositionHierarchy
 from app.modules.organization.organizational_unit import OrganizationalUnit
 from app.modules.correspondence.document_type_profiles import (
-    OPERATIONAL_DOCUMENTS,
+    STRUCTURAL_DOCUMENTS,
     normalize_document_type_code,
 )
 
@@ -17,15 +17,15 @@ def authorize_document_creation(db, actor, document_type):
     if (
         not document_type.is_active
         or not document_type.is_operational
-        or code not in OPERATIONAL_DOCUMENTS
+        or code not in STRUCTURAL_DOCUMENTS
     ):
         raise HTTPException(
             status_code=422,
             detail="Este tipo documental solo está disponible para consulta histórica",
         )
-    expected = OPERATIONAL_DOCUMENTS[code]
+    expected = STRUCTURAL_DOCUMENTS[code]
     if (
-        document_type.profile != expected[1].value
+        document_type.behavior != expected[1].value
         or document_type.creation_permission != expected[2]
     ):
         raise HTTPException(

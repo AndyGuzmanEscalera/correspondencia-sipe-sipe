@@ -6,6 +6,9 @@ class CreateCorrespondenceRequest {
     required this.priority,
     this.reference,
     this.description,
+    this.emissionDate,
+    this.emissionTime,
+    this.pageCount,
     this.originEmployeeId,
     this.senderName,
     this.senderDocument,
@@ -23,6 +26,9 @@ class CreateCorrespondenceRequest {
   final String priority;
   final String? reference;
   final String? description;
+  final String? emissionDate;
+  final String? emissionTime;
+  final int? pageCount;
   final String? originEmployeeId;
   final String? senderName;
   final String? senderDocument;
@@ -40,6 +46,9 @@ class CreateCorrespondenceRequest {
         'priority': priority,
         if (reference != null) 'reference': reference,
         if (description != null) 'description': description,
+        if (emissionDate != null) 'emission_date': emissionDate,
+        if (emissionTime != null) 'emission_time': emissionTime,
+        if (pageCount != null) 'page_count': pageCount,
         if (originEmployeeId != null) 'origin_employee_id': originEmployeeId,
         if (senderName != null) 'sender_name': senderName,
         if (senderDocument != null) 'sender_document': senderDocument,

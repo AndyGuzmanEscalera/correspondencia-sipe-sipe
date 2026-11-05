@@ -6,6 +6,9 @@ class CreateCorrespondenceInput {
     required this.priority,
     this.reference,
     this.description,
+    this.emissionDate,
+    this.emissionTime,
+    this.pageCount,
     this.originEmployeeId,
     this.senderName,
     this.senderDocument,
@@ -23,6 +26,9 @@ class CreateCorrespondenceInput {
   final String priority;
   final String? reference;
   final String? description;
+  final String? emissionDate;
+  final String? emissionTime;
+  final int? pageCount;
   final String? originEmployeeId;
   final String? senderName;
   final String? senderDocument;

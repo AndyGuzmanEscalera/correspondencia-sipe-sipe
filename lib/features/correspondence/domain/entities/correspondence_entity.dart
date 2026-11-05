@@ -1,10 +1,17 @@
 import 'package:correspondencia_sipe_sipe/core/util/enums.dart';
 import 'package:equatable/equatable.dart';
+import 'package:correspondencia_repository/correspondencia_repository.dart'
+    show DocumentBehavior;
 
 class CorrespondenceEntity extends Equatable {
   const CorrespondenceEntity({
     required this.id,
     this.hasDocumentPdf = false,
+    DocumentBehavior? documentBehavior,
+    this.emissionDate,
+    this.emissionTime,
+    this.pageCount,
+    this.paraLabel,
     this.canOperate = false,
     this.canDerive = false,
     this.canConclude = false,
@@ -39,10 +46,17 @@ class CorrespondenceEntity extends Equatable {
     this.senderDocument,
     this.senderContact,
     this.lastSentAt,
-  });
+  }) : _documentBehavior = documentBehavior;
 
   final String id;
   final bool hasDocumentPdf;
+  final DocumentBehavior? _documentBehavior;
+  DocumentBehavior get documentBehavior =>
+      _documentBehavior ?? DocumentBehavior.fromLegacy(documentTypeCode);
+  final String? emissionDate;
+  final String? emissionTime;
+  final int? pageCount;
+  final String? paraLabel;
   final bool canOperate;
   final bool canDerive;
   final bool canConclude;
@@ -145,6 +159,11 @@ class CorrespondenceEntity extends Equatable {
       canReopen: canReopen ?? this.canReopen,
       canManageAttachments: canManageAttachments ?? this.canManageAttachments,
       hasDocumentPdf: hasDocumentPdf,
+      documentBehavior: documentBehavior,
+      emissionDate: emissionDate,
+      emissionTime: emissionTime,
+      pageCount: pageCount,
+      paraLabel: paraLabel,
       uniqueNumber: uniqueNumber,
       year: year,
       cite: cite,
@@ -181,6 +200,11 @@ class CorrespondenceEntity extends Equatable {
   List<Object?> get props => [
         id,
         hasDocumentPdf,
+        documentBehavior,
+        emissionDate,
+        emissionTime,
+        pageCount,
+        paraLabel,
         canOperate,
         canDerive,
         canConclude,

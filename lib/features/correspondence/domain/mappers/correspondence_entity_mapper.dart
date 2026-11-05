@@ -8,6 +8,11 @@ extension CorrespondenceToEntity on repo.Correspondence {
   CorrespondenceEntity toUiEntity() => CorrespondenceEntity(
         id: id,
         hasDocumentPdf: hasDocumentPdf,
+        documentBehavior: documentBehavior,
+        emissionDate: emissionDate,
+        emissionTime: emissionTime,
+        pageCount: pageCount,
+        paraLabel: paraLabel,
         canOperate: canOperate,
         canDerive: canDerive,
         canConclude: canConclude,

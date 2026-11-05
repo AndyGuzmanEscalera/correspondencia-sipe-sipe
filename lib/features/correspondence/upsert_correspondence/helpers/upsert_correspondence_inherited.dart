@@ -49,6 +49,9 @@ class UpsertCorrespondenceInherited extends InheritedWidget {
   final subject = ControllerFieldPro();
   final reference = ControllerFieldPro();
   final description = ControllerFieldPro();
+  final emissionDate = ControllerFieldPro();
+  final emissionTime = ControllerFieldPro();
+  final pageCount = ControllerFieldPro();
   final senderName = ControllerFieldPro();
   final senderDocument = ControllerFieldPro();
   final senderContact = ControllerFieldPro();
@@ -76,10 +79,10 @@ class UpsertCorrespondenceInherited extends InheritedWidget {
 
   bool get isExternal => selectedType == CorrespondenceTypeCode.ce;
 
-  DocumentFormProfile profileFor(List<DocumentType> documentTypes) {
+  DocumentBehavior profileFor(List<DocumentType> documentTypes) {
     final selected = findDocumentTypeById(documentTypes, documentType.get());
-    if (selected == null) return DocumentFormProfile.generic;
-    return resolveDocumentFormProfile(selected.code, profile: selected.profile);
+    if (selected == null) return DocumentBehavior.generic;
+    return selected.behavior;
   }
 
   void addPendingAttachment(PendingAttachment attachment) {
@@ -100,6 +103,9 @@ class UpsertCorrespondenceInherited extends InheritedWidget {
     subject.textEditingController.clear();
     reference.textEditingController.clear();
     description.textEditingController.clear();
+    emissionDate.textEditingController.clear();
+    emissionTime.textEditingController.clear();
+    pageCount.textEditingController.clear();
     senderName.textEditingController.clear();
     senderDocument.textEditingController.clear();
     senderContact.textEditingController.clear();
@@ -127,7 +133,7 @@ class UpsertCorrespondenceInherited extends InheritedWidget {
   }
 
   ResultValidate valid({
-    required DocumentFormProfile profile,
+    required DocumentBehavior profile,
     required bool isExternal,
   }) {
     final fieldKeys = <GlobalKey<FormFieldState<Object?>>>[
@@ -137,7 +143,16 @@ class UpsertCorrespondenceInherited extends InheritedWidget {
     ];
 
     switch (profile) {
-      case DocumentFormProfile.chaining:
+      case DocumentBehavior.routeSheet:
+        fieldKeys.addAll([
+          reference.fieldKey,
+          description.fieldKey,
+          emissionDate.fieldKey,
+          emissionTime.fieldKey,
+          pageCount.fieldKey,
+          isExternal ? senderName.fieldKey : originEmployee.fieldKey
+        ]);
+      case DocumentBehavior.legacyChaining:
         fieldKeys.addAll([
           firstRecipient.fieldKey,
           toUser.fieldKey,
@@ -150,16 +165,16 @@ class UpsertCorrespondenceInherited extends InheritedWidget {
         } else {
           fieldKeys.add(originEmployee.fieldKey);
         }
-      case DocumentFormProfile.internalCommunication:
-      case DocumentFormProfile.memorandum:
-      case DocumentFormProfile.circular:
+      case DocumentBehavior.internalCommunication:
+      case DocumentBehavior.memorandum:
+      case DocumentBehavior.circular:
         fieldKeys.addAll([subject.fieldKey, reference.fieldKey]);
         fieldKeys.addAll([description.fieldKey, originEmployee.fieldKey]);
-      case DocumentFormProfile.technicalReport:
-      case DocumentFormProfile.internalNote:
+      case DocumentBehavior.report:
+      case DocumentBehavior.legacyInternalNote:
         fieldKeys.add(description.fieldKey);
         fieldKeys.add(originEmployee.fieldKey);
-      case DocumentFormProfile.generic:
+      case DocumentBehavior.generic:
         fieldKeys.addAll([subject.fieldKey, type.fieldKey]);
         if (isExternal) {
           fieldKeys.add(senderName.fieldKey);
@@ -168,7 +183,7 @@ class UpsertCorrespondenceInherited extends InheritedWidget {
 
     final result = formKey.validateAndGetErrors(fieldKeys);
 
-    if ((profile == DocumentFormProfile.chaining ||
+    if ((profile == DocumentBehavior.legacyChaining ||
             requiresSubjectOrReference(profile)) &&
         subject.getValue().trim().isEmpty &&
         reference.getValue().trim().isEmpty) {
@@ -185,7 +200,7 @@ class UpsertCorrespondenceInherited extends InheritedWidget {
   }
 
   void focusFirstInvalidField({
-    required DocumentFormProfile profile,
+    required DocumentBehavior profile,
     required bool isExternal,
   }) {
     final candidates =
@@ -193,7 +208,18 @@ class UpsertCorrespondenceInherited extends InheritedWidget {
       (key: documentType.fieldKey, focusNode: documentType.focusNode),
       (key: priority.fieldKey, focusNode: priority.focusNode),
       (key: type.fieldKey, focusNode: type.focusNode),
-      if (profile == DocumentFormProfile.chaining) ...[
+      if (profile == DocumentBehavior.routeSheet) ...[
+        (key: reference.fieldKey, focusNode: reference.focusNode),
+        (key: description.fieldKey, focusNode: description.focusNode),
+        (key: emissionDate.fieldKey, focusNode: emissionDate.focusNode),
+        (key: emissionTime.fieldKey, focusNode: emissionTime.focusNode),
+        (key: pageCount.fieldKey, focusNode: pageCount.focusNode),
+        if (isExternal)
+          (key: senderName.fieldKey, focusNode: senderName.focusNode)
+        else
+          (key: originEmployee.fieldKey, focusNode: originEmployee.focusNode),
+      ],
+      if (profile == DocumentBehavior.legacyChaining) ...[
         (key: firstRecipient.fieldKey, focusNode: firstRecipient.focusNode),
         (key: toUser.fieldKey, focusNode: toUser.focusNode),
         if (isExternal)
@@ -207,7 +233,7 @@ class UpsertCorrespondenceInherited extends InheritedWidget {
         (key: description.fieldKey, focusNode: description.focusNode),
         (key: originEmployee.fieldKey, focusNode: originEmployee.focusNode),
       ],
-      if (profile == DocumentFormProfile.generic) ...[
+      if (profile == DocumentBehavior.generic) ...[
         (key: subject.fieldKey, focusNode: subject.focusNode),
         if (isExternal)
           (key: senderName.fieldKey, focusNode: senderName.focusNode),
@@ -233,6 +259,9 @@ class UpsertCorrespondenceInherited extends InheritedWidget {
     subject.dispose();
     reference.dispose();
     description.dispose();
+    emissionDate.dispose();
+    emissionTime.dispose();
+    pageCount.dispose();
     senderName.dispose();
     senderDocument.dispose();
     senderContact.dispose();

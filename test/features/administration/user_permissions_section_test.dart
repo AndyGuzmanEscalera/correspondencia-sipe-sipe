@@ -26,7 +26,7 @@ void main() {
           tester.widget<CheckboxListTile>(find.byType(CheckboxListTile));
       expect(tile.onChanged == null, !allowed);
       if (allowed) {
-        await tester.tap(find.text('Consultar usuarios'));
+        await tester.tap(find.text('Ver usuarios'));
         await tester.pumpAndSettle();
         expect(form.selectedPermissionIds, {'p'});
       }

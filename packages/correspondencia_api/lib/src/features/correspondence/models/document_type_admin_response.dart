@@ -1,9 +1,13 @@
+import 'document_behavior.dart';
+
 class DocumentTypeAdminResponse {
   const DocumentTypeAdminResponse({
     required this.id,
     required this.code,
     required this.name,
     this.profile = 'GENERIC',
+    this.behaviorLocked = true,
+    DocumentBehavior? behavior,
     this.isOperational = false,
     this.creationPermission,
     this.minimumHierarchyId,
@@ -13,7 +17,7 @@ class DocumentTypeAdminResponse {
     required this.updatedAt,
     this.createdByUserId,
     this.updatedByUserId,
-  });
+  }) : _behavior = behavior;
 
   factory DocumentTypeAdminResponse.fromJson(Map<String, dynamic> json) {
     return DocumentTypeAdminResponse(
@@ -21,6 +25,10 @@ class DocumentTypeAdminResponse {
       code: json['code'] as String,
       name: json['name'] as String,
       profile: json['profile'] as String? ?? 'GENERIC',
+      behaviorLocked: json['behavior_locked'] as bool? ?? true,
+      behavior: json['behavior'] == null
+          ? null
+          : DocumentBehavior.fromJson(json['behavior'] as String),
       isOperational: json['is_operational'] as bool? ?? false,
       creationPermission: json['creation_permission'] as String?,
       minimumHierarchyId: json['minimum_hierarchy_id'] as String?,
@@ -37,6 +45,10 @@ class DocumentTypeAdminResponse {
   final String code;
   final String name;
   final String profile;
+  final bool behaviorLocked;
+  final DocumentBehavior? _behavior;
+  DocumentBehavior get behavior =>
+      _behavior ?? DocumentBehavior.fromLegacy(code, profile);
   final bool isOperational;
   final String? creationPermission;
   final String? minimumHierarchyId;
@@ -52,21 +64,26 @@ class CreateDocumentTypeRequest {
   const CreateDocumentTypeRequest({
     required this.code,
     required this.name,
+    this.behavior = DocumentBehavior.generic,
   });
 
   final String code;
   final String name;
+  final DocumentBehavior behavior;
 
   Map<String, dynamic> toJson() => {
         'code': code,
         'name': name,
+        'behavior': behavior.value,
       };
 }
 
 class UpdateDocumentTypeRequest {
-  const UpdateDocumentTypeRequest({required this.name});
+  const UpdateDocumentTypeRequest({required this.name, this.behavior});
 
   final String name;
+  final DocumentBehavior? behavior;
 
-  Map<String, dynamic> toJson() => {'name': name};
+  Map<String, dynamic> toJson() =>
+      {'name': name, if (behavior != null) 'behavior': behavior!.value};
 }

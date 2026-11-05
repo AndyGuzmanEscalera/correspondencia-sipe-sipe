@@ -17,6 +17,7 @@ class UpsertUsersInherited extends InheritedWidget {
   final username = ControllerFieldPro();
   final email = ControllerFieldPro();
   final password = ControllerFieldPro();
+  final confirmPassword = ControllerFieldPro();
   final employee = ControllerFieldDropdown<String>();
   final rolePicker = ControllerFieldDropdown<String>();
   final Set<String> selectedRoleIds = {};
@@ -92,6 +93,9 @@ class UpsertUsersInherited extends InheritedWidget {
     ];
     if (isCreate) {
       fieldKeys.add(password.fieldKey);
+    } else if (password.getValue().isNotEmpty ||
+        confirmPassword.getValue().isNotEmpty) {
+      fieldKeys.addAll([password.fieldKey, confirmPassword.fieldKey]);
     }
 
     final result = formKey.validateAndGetErrors(fieldKeys);
@@ -104,6 +108,7 @@ class UpsertUsersInherited extends InheritedWidget {
     username.textEditingController.clear();
     email.textEditingController.clear();
     password.textEditingController.clear();
+    confirmPassword.textEditingController.clear();
     selectedPermissionIds.clear();
     _initialPermissionIds.clear();
     employee.clear();
@@ -116,6 +121,7 @@ class UpsertUsersInherited extends InheritedWidget {
     username.dispose();
     email.dispose();
     password.dispose();
+    confirmPassword.dispose();
     employee.dispose();
     rolePicker.dispose();
   }

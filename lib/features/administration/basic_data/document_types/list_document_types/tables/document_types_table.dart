@@ -20,6 +20,12 @@ List<AppDataGridColumn<DocumentTypeAdmin>> documentTypesTableColumns() {
       mobilePriority: 1,
     ),
     AppDataGridColumn<DocumentTypeAdmin>(
+      key: 'behavior',
+      label: 'Comportamiento',
+      width: 200,
+      value: (item) => item.behavior.label,
+    ),
+    AppDataGridColumn<DocumentTypeAdmin>(
       key: 'usage',
       label: 'Uso / jerarquía',
       width: 190,

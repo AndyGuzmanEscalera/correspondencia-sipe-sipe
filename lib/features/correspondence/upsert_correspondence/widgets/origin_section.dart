@@ -18,24 +18,27 @@ class OriginSection extends StatelessWidget {
     super.key,
   });
 
-  final DocumentFormProfile profile;
+  final DocumentBehavior profile;
   final List<EmployeeOption> employees;
   final bool isExternal;
   final ValueChanged<CorrespondenceTypeCode> onTypeChanged;
 
   bool get _showsCorrespondenceType =>
-      profile == DocumentFormProfile.chaining ||
-      profile == DocumentFormProfile.generic;
+      profile == DocumentBehavior.routeSheet ||
+      profile == DocumentBehavior.legacyChaining ||
+      profile == DocumentBehavior.generic;
 
   bool get _showsExternalFields =>
       isExternal &&
-      (profile == DocumentFormProfile.chaining ||
-          profile == DocumentFormProfile.generic);
+      (profile == DocumentBehavior.routeSheet ||
+          profile == DocumentBehavior.legacyChaining ||
+          profile == DocumentBehavior.generic);
 
   bool get _showsEmployeeOrigin =>
       isContentProfile(profile) ||
-      (profile == DocumentFormProfile.chaining && !isExternal) ||
-      (profile == DocumentFormProfile.generic && !isExternal);
+      (profile == DocumentBehavior.routeSheet && !isExternal) ||
+      (profile == DocumentBehavior.legacyChaining && !isExternal) ||
+      (profile == DocumentBehavior.generic && !isExternal);
 
   @override
   Widget build(BuildContext context) {
@@ -60,7 +63,9 @@ class OriginSection extends StatelessWidget {
           if (_showsCorrespondenceType)
             AppDropdown<CorrespondenceTypeCode>(
               controller: inherited.type,
-              label: 'Tipo de correspondencia',
+              label: profile == DocumentBehavior.routeSheet
+                  ? 'DE: tipo de solicitante'
+                  : 'Tipo de correspondencia',
               items: UpsertCorrespondenceInherited.typeItems,
               onChanged: (option) {
                 onTypeChanged(option.value!);
@@ -75,7 +80,9 @@ class OriginSection extends StatelessWidget {
             else
               AppDropdown<String>(
                 controller: inherited.originEmployee,
-                label: 'Empleado origen',
+                label: profile == DocumentBehavior.routeSheet
+                    ? 'DE: funcionario'
+                    : 'Empleado origen',
                 items: employeeItems,
                 validators: [
                   RequiredValid(error: 'Seleccione el empleado origen'),
@@ -85,7 +92,9 @@ class OriginSection extends StatelessWidget {
           if (_showsExternalFields) ...[
             AppTextField(
               controller: inherited.senderName,
-              label: 'Remitente externo',
+              label: profile == DocumentBehavior.routeSheet
+                  ? 'DE: nombre libre'
+                  : 'Remitente externo',
               validators: [
                 RequiredValid(error: 'Campo requerido'),
               ],

@@ -19,6 +19,12 @@ class CorrespondenceRepository {
 
   final CorrespondenceApi _correspondenceApi;
 
+  Future<Result<String, Failure>> getRouteSheetAuthority() =>
+      handleExceptions<String>(
+          () => _correspondenceApi.getRouteSheetAuthority(),
+          feature: 'correspondence',
+          operation: 'routeSheetAuthority');
+
   Future<Result<bool, Failure>> getCreationPolicy() =>
       handleExceptions<bool>(() => _correspondenceApi.getCreationPolicy(),
           feature: 'correspondence', operation: 'creationPolicy');

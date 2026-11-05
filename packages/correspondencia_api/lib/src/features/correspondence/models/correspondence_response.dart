@@ -1,7 +1,14 @@
+import 'document_behavior.dart';
+
 class CorrespondenceResponse {
   const CorrespondenceResponse({
     required this.id,
     this.hasDocumentPdf = false,
+    DocumentBehavior? documentBehavior,
+    this.emissionDate,
+    this.emissionTime,
+    this.pageCount,
+    this.paraLabel,
     this.canOperate = false,
     this.canDerive = false,
     this.canConclude = false,
@@ -43,12 +50,19 @@ class CorrespondenceResponse {
     this.createdByUserId,
     this.createdByUsername,
     this.lastSentAt,
-  });
+  }) : _documentBehavior = documentBehavior;
 
   factory CorrespondenceResponse.fromJson(Map<String, dynamic> json) {
     return CorrespondenceResponse(
       id: json['id'] as String,
       hasDocumentPdf: json['has_document_pdf'] as bool? ?? false,
+      documentBehavior: json['document_behavior'] == null
+          ? null
+          : DocumentBehavior.fromJson(json['document_behavior'] as String),
+      emissionDate: json['emission_date'] as String?,
+      emissionTime: json['emission_time'] as String?,
+      pageCount: json['page_count'] as int?,
+      paraLabel: json['para_label'] as String?,
       canOperate: json['can_operate'] as bool? ?? false,
       canDerive: json['can_derive'] as bool? ?? false,
       canConclude: json['can_conclude'] as bool? ?? false,
@@ -101,6 +115,13 @@ class CorrespondenceResponse {
 
   final String id;
   final bool hasDocumentPdf;
+  final DocumentBehavior? _documentBehavior;
+  DocumentBehavior get documentBehavior =>
+      _documentBehavior ?? DocumentBehavior.fromLegacy(documentTypeCode);
+  final String? emissionDate;
+  final String? emissionTime;
+  final int? pageCount;
+  final String? paraLabel;
   final bool canOperate;
   final bool canDerive;
   final bool canConclude;

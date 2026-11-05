@@ -92,6 +92,7 @@ class UpdateUserRequest {
     required this.employeeId,
     required this.roleIds,
     this.directPermissionIds,
+    this.newPassword,
     this.email,
   });
 
@@ -100,6 +101,7 @@ class UpdateUserRequest {
   final String employeeId;
   final List<String>? roleIds;
   final List<String>? directPermissionIds;
+  final String? newPassword;
 
   Map<String, dynamic> toJson() => {
         'username': username,
@@ -108,6 +110,8 @@ class UpdateUserRequest {
         if (roleIds != null) 'role_ids': roleIds,
         if (directPermissionIds != null)
           'direct_permission_ids': directPermissionIds,
+        if (newPassword != null && newPassword!.isNotEmpty)
+          'new_password': newPassword,
       };
 }
 

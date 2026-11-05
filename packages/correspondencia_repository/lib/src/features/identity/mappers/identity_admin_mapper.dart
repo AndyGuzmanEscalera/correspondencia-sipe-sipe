@@ -38,6 +38,7 @@ extension UserUpdateInputMapper on UserUpdateInput {
         employeeId: employeeId,
         roleIds: roleIds,
         directPermissionIds: directPermissionIds,
+        newPassword: newPassword,
       );
 }
 

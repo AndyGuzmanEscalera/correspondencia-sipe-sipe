@@ -1,11 +1,13 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, date, time
+from app.modules.correspondence.document_behavior import DocumentBehavior
 from typing import Literal
 
 from pydantic import BaseModel, Field
 
 
 class DocumentTypeResponse(BaseModel):
+    behavior: DocumentBehavior = DocumentBehavior.GENERIC
     profile: str = "GENERIC"
     is_operational: bool = False
     creation_permission: str | None = None
@@ -16,6 +18,8 @@ class DocumentTypeResponse(BaseModel):
 
 
 class DocumentTypeAdminResponse(BaseModel):
+    behavior_locked: bool = True
+    behavior: DocumentBehavior = DocumentBehavior.GENERIC
     profile: str = "GENERIC"
     is_operational: bool = False
     creation_permission: str | None = None
@@ -32,11 +36,13 @@ class DocumentTypeAdminResponse(BaseModel):
 
 
 class CreateDocumentTypeRequest(BaseModel):
+    behavior: DocumentBehavior = DocumentBehavior.GENERIC
     code: str = Field(min_length=1, max_length=50)
     name: str = Field(min_length=1, max_length=200)
 
 
 class UpdateDocumentTypeRequest(BaseModel):
+    behavior: DocumentBehavior | None = None
     model_config = {"extra": "forbid"}
     name: str = Field(min_length=1, max_length=200)
 
@@ -61,6 +67,9 @@ class InstitutionalMayorResponse(BaseModel):
 
 
 class CreateCorrespondenceRequest(BaseModel):
+    emission_date: date | None = None
+    emission_time: time | None = None
+    page_count: int | None = Field(default=None, gt=0, le=2147483647, strict=True)
     correspondence_type: Literal["INTERNAL", "EXTERNAL"]
     document_type_id: uuid.UUID
     subject: str | None = Field(default=None, max_length=500)
@@ -98,6 +107,7 @@ class CorrespondenceListItem(BaseModel):
     document_sequence: int | None
     document_year: int | None
     correspondence_type: str
+    document_behavior: DocumentBehavior = DocumentBehavior.GENERIC
     document_type_code: str
     document_type_name: str
     subject: str
@@ -133,6 +143,10 @@ class CorrespondenceSentCountResponse(BaseModel):
 
 
 class CorrespondenceDetail(CorrespondenceListItem):
+    emission_date: date | None = None
+    emission_time: time | None = None
+    page_count: int | None = None
+    para_label: str | None = None
     can_conclude: bool = False
     can_reopen: bool = False
     can_manage_attachments: bool = False

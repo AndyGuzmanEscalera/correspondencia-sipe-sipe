@@ -5,6 +5,9 @@
 /// under their own sub-package directory.
 library correspondencia_repository;
 
+export 'package:correspondencia_api/correspondencia_api.dart'
+    show DocumentBehavior;
+
 export 'src/core/entities/admin_page.dart';
 export 'src/features/authentication/authentication.dart';
 export 'src/features/correspondence/correspondence.dart';

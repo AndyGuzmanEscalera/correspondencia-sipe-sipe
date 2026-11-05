@@ -2,6 +2,12 @@ import 'package:correspondencia_sipe_sipe/shared/widgets/official_logo.dart';
 import 'package:correspondencia_sipe_sipe/core/theme/app_decorations.dart';
 import 'package:correspondencia_sipe_sipe/core/theme/ui_colors.dart';
 import 'package:correspondencia_sipe_sipe/features/home/side_menu/cubit/side_menu_cubit.dart';
+import 'package:correspondencia_sipe_sipe/core/auth/permissions.dart';
+import 'package:correspondencia_sipe_sipe/core/util/enums.dart';
+import 'package:correspondencia_sipe_sipe/features/app/cubit/app_session_cubit.dart';
+import 'package:correspondencia_sipe_sipe/features/correspondence/list_correspondence/cubit/correspondence_cubit.dart';
+import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/views/upsert_correspondence_view.dart';
+import 'package:correspondencia_sipe_sipe/injection/injection_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -49,6 +55,32 @@ class _SideMenuWidgetState extends State<SideMenuWidget> {
             padding: EdgeInsets.symmetric(horizontal: 16),
             child: Divider(color: Color(0xFF1E293B), height: 1),
           ),
+          Builder(builder: (context) {
+            AppSessionCubit? sessionCubit;
+            try {
+              sessionCubit = context.read<AppSessionCubit>();
+            } on ProviderNotFoundException {
+              return const SizedBox.shrink();
+            }
+            return BlocBuilder<AppSessionCubit, AppSessionState>(
+              bloc: sessionCubit,
+              builder: (context, session) {
+                final permissions =
+                    session.userSession?.permissions ?? const [];
+                if (!canCreateCorrespondence(permissions)) {
+                  return const SizedBox.shrink();
+                }
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                  child: FilledButton.icon(
+                    onPressed: () => _openCreate(context),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Nueva correspondencia'),
+                  ),
+                );
+              },
+            );
+          }),
           Expanded(
             child: BlocBuilder<SideMenuCubit, SideMenuState>(
               builder: (context, state) {
@@ -163,5 +195,21 @@ class _SideMenuWidgetState extends State<SideMenuWidget> {
         ],
       ),
     );
+  }
+
+  Future<void> _openCreate(BuildContext context) async {
+    final listCubit = getIt<CorrespondenceCubit>();
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => BlocProvider.value(
+        value: listCubit,
+        child: UpsertCorrespondencePage(
+          typeOperation: TypeOperation.create,
+          hostDialogContext: dialogContext,
+          ownerContext: context,
+        ),
+      ),
+    );
+    await listCubit.close();
   }
 }

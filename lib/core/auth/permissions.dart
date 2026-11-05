@@ -27,6 +27,7 @@ bool hasPermission(UserSession? session, String code) {
 }
 
 const correspondenceCreationPermissions = {
+  'correspondence.create', // Hoja de Ruta only; the backend enforces each type.
   'correspondence.create.internal_communication',
   'correspondence.create.report',
   'correspondence.create.memorandum',

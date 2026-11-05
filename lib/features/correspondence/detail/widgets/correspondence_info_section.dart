@@ -28,6 +28,8 @@ class CorrespondenceInfoSection extends StatelessWidget {
       _InfoGroup(title: 'Origen y responsable', fields: [
         CorrespondenceInfoTile(label: 'Origen', value: item.originTypeLabel),
         CorrespondenceInfoTile(label: 'DE', value: item.originLabel),
+        if (item.paraLabel != null)
+          CorrespondenceInfoTile(label: 'PARA', value: item.paraLabel!),
         if (item.originDescription?.isNotEmpty ?? false)
           CorrespondenceInfoTile(
               label: 'Descripción del origen', value: item.originDescription!),
@@ -40,6 +42,15 @@ class CorrespondenceInfoSection extends StatelessWidget {
       ]),
       _InfoGroup(title: 'Registro', fields: [
         CorrespondenceInfoTile(label: 'Prioridad', value: item.priority),
+        if (item.emissionDate != null)
+          CorrespondenceInfoTile(
+              label: 'Fecha de emisión', value: item.emissionDate!),
+        if (item.emissionTime != null)
+          CorrespondenceInfoTile(
+              label: 'Hora de emisión', value: item.emissionTime!),
+        if (item.pageCount != null)
+          CorrespondenceInfoTile(
+              label: 'Número de hojas', value: item.pageCount.toString()),
         if (item.createdByUsername?.isNotEmpty ?? false)
           CorrespondenceInfoTile(
               label: 'Registrado por', value: item.createdByUsername!),

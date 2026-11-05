@@ -10,6 +10,8 @@ import 'package:correspondencia_sipe_sipe/injection/injection_bloc.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/app_form_dialog.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/form/app_text_field.dart';
 import 'package:flutter/material.dart';
+import 'package:correspondencia_repository/correspondencia_repository.dart'
+    show DocumentBehavior;
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class UpsertDocumentTypesPage extends StatelessWidget {
@@ -114,6 +116,7 @@ class UpsertDocumentTypesBody extends StatelessWidget {
               if (isCreate) {
                 upsertCubit.save(
                   code: inherited.code.getValue(),
+                  behavior: inherited.behavior,
                   name: inherited.name.getValue(),
                 );
               } else {
@@ -122,6 +125,7 @@ class UpsertDocumentTypesBody extends StatelessWidget {
                 upsertCubit.update(
                   name: inherited.name.getValue(),
                   entity: selected,
+                  behavior: inherited.behavior,
                 );
               }
             }
@@ -139,7 +143,7 @@ class UpsertDocumentTypesBody extends StatelessWidget {
                           'Uso: ${listCubit.state.selected!.isOperational ? "Operativo" : "Histórico"}\n'
                           'Jerarquía mínima: ${listCubit.state.selected!.minimumHierarchyName ?? "Sin mínimo superior"}\n'
                           'Permiso: ${listCubit.state.selected!.creationPermission ?? "No habilitado para creación"}\n'
-                          'Estos campos son estructurales y no se pueden editar aquí.')),
+                          'Los permisos y la jerarquía son estructurales. El comportamiento de tipos del sistema o ya utilizados está protegido.')),
                 if (isCreate)
                   const Text(
                       'Los tipos personalizados se conservan como catálogo histórico; no habilitan nuevas creaciones.'),
@@ -151,6 +155,27 @@ class UpsertDocumentTypesBody extends StatelessWidget {
                     RequiredValid(error: 'Campo requerido'),
                   ],
                 ),
+                DropdownButtonFormField<DocumentBehavior>(
+                  key: const Key('document-behavior-selector'),
+                  value: inherited.behavior,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                      labelText: 'Comportamiento documental'),
+                  items: [
+                    for (final behavior in DocumentBehavior.values)
+                      DropdownMenuItem(
+                          value: behavior, child: Text(behavior.label))
+                  ],
+                  onChanged: isLoading ||
+                          (!isCreate &&
+                              (listCubit.state.selected?.behaviorLocked ??
+                                  true))
+                      ? null
+                      : (value) {
+                          if (value != null) inherited.behavior = value;
+                        },
+                ),
+                const SizedBox(height: 12),
                 AppTextField(
                   controller: inherited.name,
                   label: 'Nombre',

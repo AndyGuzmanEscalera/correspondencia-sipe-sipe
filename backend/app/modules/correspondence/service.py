@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
-from sqlalchemy import case, func, select
+from sqlalchemy import case, exists, func, or_, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
@@ -35,10 +35,9 @@ from app.modules.correspondence.correspondence_route_sequence import (
     CorrespondenceRouteSequence,
 )
 from app.modules.correspondence.document_type import DocumentType
+from app.modules.correspondence.document_behavior import DocumentBehavior, behavior_of
+from app.modules.correspondence.route_sheet_policy import validate_route_sheet
 from app.modules.correspondence.document_type_profiles import (
-    DocumentFormProfile,
-    resolve_document_form_profile,
-    supports_encadenamiento_pdf,
     is_internal_content_profile,
 )
 from app.modules.correspondence.institutional_mayor import (
@@ -138,6 +137,7 @@ class CorrespondenceService:
                 code=row.code,
                 name=row.name,
                 profile=row.profile,
+                behavior=behavior_of(row),
                 is_operational=row.is_operational,
                 creation_permission=row.creation_permission,
                 minimum_hierarchy_id=row.minimum_hierarchy_id,
@@ -171,6 +171,7 @@ class CorrespondenceService:
                     code=row.code,
                     name=row.name,
                     profile=row.profile,
+                    behavior=behavior_of(row),
                     is_operational=row.is_operational,
                     creation_permission=row.creation_permission,
                     minimum_hierarchy_id=row.minimum_hierarchy_id,
@@ -349,7 +350,9 @@ class CorrespondenceService:
         # Construction is separate from public creation authorization. This also
         # keeps legacy fixture/import semantics available without exposing a route.
         doc_type = self._document_type(body.document_type_id)
-        profile = resolve_document_form_profile(doc_type.code, doc_type.profile)
+        profile = behavior_of(doc_type)
+        if profile == DocumentBehavior.ROUTE_SHEET:
+            validate_route_sheet(body)
 
         origin = self._resolve_origin_fields(body, profile, user=user)
         subject = self._resolve_subject(body, profile)
@@ -400,12 +403,13 @@ class CorrespondenceService:
             )
         mayor = (
             resolve_institutional_mayor(self._db)
-            if profile == DocumentFormProfile.CHAINING
+            if profile
+            in {DocumentBehavior.ROUTE_SHEET, DocumentBehavior.LEGACY_CHAINING}
             else None
         )
 
         authority_snapshot = None
-        if profile == DocumentFormProfile.CHAINING:
+        if profile in {DocumentBehavior.ROUTE_SHEET, DocumentBehavior.LEGACY_CHAINING}:
             authority_snapshot = dict(
                 document_display_name=require_document_authority_name(self._db),
                 para_label=require_document_authority_name(self._db),
@@ -453,6 +457,15 @@ class CorrespondenceService:
             correspondence_type=origin.correspondence_type,
             document_type_id=body.document_type_id,
             subject=subject,
+            emission_date=(
+                body.emission_date if profile == DocumentBehavior.ROUTE_SHEET else None
+            ),
+            emission_time=(
+                body.emission_time if profile == DocumentBehavior.ROUTE_SHEET else None
+            ),
+            page_count=(
+                body.page_count if profile == DocumentBehavior.ROUTE_SHEET else None
+            ),
             institutional_authority_snapshot=authority_snapshot,
             reference=self._normalize_optional_text(body.reference),
             description=description,
@@ -664,7 +677,7 @@ class CorrespondenceService:
             active_only=active_only,
         )
         doc_type = self._document_type(correspondence.document_type_id)
-        if not supports_encadenamiento_pdf(doc_type.code):
+        if behavior_of(doc_type) != DocumentBehavior.LEGACY_CHAINING:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail=(
@@ -918,12 +931,46 @@ class CorrespondenceService:
         if not search:
             return query
         term = f"%{search.strip()}%"
-        return query.where(
-            Correspondence.subject.ilike(term)
-            | Correspondence.route_number.ilike(term)
-            | Correspondence.cite.ilike(term)
-            | Correspondence.reference.ilike(term)
+        origin_employee = exists(
+            select(1).where(
+                Employee.id == Correspondence.origin_employee_id,
+                func.concat(Employee.first_name, " ", Employee.last_name).ilike(term),
+            )
         )
+        destination_user = exists(
+            select(1)
+            .select_from(User)
+            .join(Employee, Employee.id == User.employee_id)
+            .where(
+                User.id == Correspondence.current_user_id,
+                func.concat(Employee.first_name, " ", Employee.last_name).ilike(term),
+            )
+        )
+        destination_unit = exists(
+            select(1).where(
+                OrganizationalUnit.id == Correspondence.current_unit_id,
+                OrganizationalUnit.name.ilike(term),
+            )
+        )
+        origin_unit = exists(
+            select(1).where(
+                OrganizationalUnit.id == Correspondence.origin_unit_id,
+                OrganizationalUnit.name.ilike(term),
+            )
+        )
+        return query.where(or_(
+            Correspondence.subject.ilike(term),
+            Correspondence.route_number.ilike(term),
+            Correspondence.cite.ilike(term),
+            Correspondence.reference.ilike(term),
+            Correspondence.description.ilike(term),
+            Correspondence.sender_name.ilike(term),
+            Correspondence.origin_description.ilike(term),
+            origin_employee,
+            origin_unit,
+            destination_user,
+            destination_unit,
+        ))
 
     @staticmethod
     def _apply_list_filters(
@@ -1111,15 +1158,39 @@ class CorrespondenceService:
     def _resolve_origin_fields(
         self,
         body: CreateCorrespondenceRequest,
-        profile: DocumentFormProfile,
+        profile: DocumentBehavior,
         *,
         user: User,
     ) -> ResolvedOrigin:
+        if profile == DocumentBehavior.ROUTE_SHEET:
+            validate_route_sheet(body)
+            if body.origin_employee_id:
+                employee = self._require_active_employee(body.origin_employee_id)
+                return ResolvedOrigin(
+                    correspondence_type=CORRESPONDENCE_TYPE_INTERNAL,
+                    origin_employee_id=employee.id,
+                    origin_unit_id=employee.unit_id,
+                    sender_name=None,
+                    sender_document=None,
+                    sender_contact=None,
+                    origin_description=None,
+                )
+            return ResolvedOrigin(
+                correspondence_type=CORRESPONDENCE_TYPE_EXTERNAL,
+                origin_employee_id=None,
+                origin_unit_id=None,
+                sender_name=body.sender_name.strip(),
+                sender_document=self._normalize_optional_text(body.sender_document),
+                sender_contact=self._normalize_optional_text(body.sender_contact),
+                origin_description=self._normalize_optional_text(
+                    body.origin_description
+                ),
+            )
         if is_internal_content_profile(profile):
             self._reject_external_sender_fields(body)
             employee = self._require_active_employee(
                 body.origin_employee_id
-                or (user.employee_id if profile != DocumentFormProfile.REPORT else None)
+                or (user.employee_id if profile != DocumentBehavior.REPORT else None)
             )
             return ResolvedOrigin(
                 correspondence_type=CORRESPONDENCE_TYPE_INTERNAL,
@@ -1131,7 +1202,7 @@ class CorrespondenceService:
                 origin_description=None,
             )
 
-        if profile == DocumentFormProfile.CHAINING:
+        if profile == DocumentBehavior.LEGACY_CHAINING:
             if body.correspondence_type == CORRESPONDENCE_TYPE_EXTERNAL:
                 sender_name = self._normalize_optional_text(body.sender_name)
                 if not sender_name:
@@ -1197,7 +1268,7 @@ class CorrespondenceService:
     def _resolve_subject(
         self,
         body: CreateCorrespondenceRequest,
-        profile: DocumentFormProfile,
+        profile: DocumentBehavior,
     ) -> str:
         subject = self._normalize_optional_text(body.subject)
         description = self._normalize_optional_text(body.description)
@@ -1210,9 +1281,9 @@ class CorrespondenceService:
                     detail="La descripción es obligatoria para este tipo de documento",
                 )
             if profile in {
-                DocumentFormProfile.INTERNAL_COMMUNICATION,
-                DocumentFormProfile.MEMORANDUM,
-                DocumentFormProfile.CIRCULAR,
+                DocumentBehavior.INTERNAL_COMMUNICATION,
+                DocumentBehavior.MEMORANDUM,
+                DocumentBehavior.CIRCULAR,
             } and not (subject or reference):
                 raise HTTPException(
                     status_code=422, detail="El asunto o la referencia es obligatorio"
@@ -1221,7 +1292,7 @@ class CorrespondenceService:
                 return (subject or reference)[:500]
             return description[:500]
 
-        if profile == DocumentFormProfile.CHAINING:
+        if profile in {DocumentBehavior.ROUTE_SHEET, DocumentBehavior.LEGACY_CHAINING}:
             if subject:
                 return subject[:500]
             if reference:
@@ -1503,7 +1574,7 @@ class CorrespondenceService:
             created_by_user_id=created_by_user_id,
         )
         self._db.add(movement)
-        if movement_type in {MOVEMENT_DERIVED, MOVEMENT_REOPENED}:
+        if movement_type in {MOVEMENT_DERIVED, MOVEMENT_CONCLUDED, MOVEMENT_REOPENED}:
             from app.modules.notifications.service import notify_movement
 
             self._db.flush()
@@ -1589,6 +1660,11 @@ class CorrespondenceService:
             document_year=correspondence.document_year,
             correspondence_type=correspondence.correspondence_type,
             document_type_code=doc_type.code,
+            document_behavior=DocumentBehavior(
+                (correspondence.document_snapshot or {}).get(
+                    "behavior", doc_type.behavior
+                )
+            ),
             document_type_name=doc_type.name,
             subject=correspondence.subject,
             reference=correspondence.reference,
@@ -1641,6 +1717,12 @@ class CorrespondenceService:
             can_operate=can_operate,
             can_derive=can_derive,
             has_document_pdf=bool(correspondence.document_snapshot),
+            emission_date=correspondence.emission_date,
+            emission_time=correspondence.emission_time,
+            page_count=correspondence.page_count,
+            para_label=(correspondence.institutional_authority_snapshot or {}).get(
+                "para_label"
+            ),
             **base.model_dump(),
             description=correspondence.description,
             sender_name=correspondence.sender_name,

@@ -4,6 +4,7 @@ class UpsertCorrespondenceState extends Equatable implements StatusState {
   const UpsertCorrespondenceState({
     this.documentTypes = const [],
     this.isIntake = false,
+    this.routeSheetAuthority,
     this.organizationalUnits = const [],
     this.employees = const [],
     this.unitUsers = const [],
@@ -24,6 +25,7 @@ class UpsertCorrespondenceState extends Equatable implements StatusState {
   final List<repo.UnitUser> unitUsers;
   final bool catalogLoaded;
   final bool isIntake;
+  final String? routeSheetAuthority;
   final bool unitUsersLoading;
   final String? defaultDocumentTypeId;
   final List<repo.InstitutionalMayor> firstRecipients;
@@ -37,7 +39,7 @@ class UpsertCorrespondenceState extends Equatable implements StatusState {
       organizationalUnits.isNotEmpty;
 
   bool isCatalogReadyFor({
-    required DocumentFormProfile profile,
+    required DocumentBehavior profile,
     required bool isExternal,
   }) {
     if (!hasBaseCatalog) return false;
@@ -63,6 +65,8 @@ class UpsertCorrespondenceState extends Equatable implements StatusState {
     List<repo.UnitUser>? unitUsers,
     bool? catalogLoaded,
     bool? isIntake,
+    String? routeSheetAuthority,
+    bool clearRouteSheetAuthority = false,
     bool? unitUsersLoading,
     String? defaultDocumentTypeId,
     List<repo.InstitutionalMayor>? firstRecipients,
@@ -82,6 +86,9 @@ class UpsertCorrespondenceState extends Equatable implements StatusState {
       unitUsers: clearUnitUsers ? const [] : (unitUsers ?? this.unitUsers),
       catalogLoaded: catalogLoaded ?? this.catalogLoaded,
       isIntake: isIntake ?? this.isIntake,
+      routeSheetAuthority: clearRouteSheetAuthority
+          ? null
+          : (routeSheetAuthority ?? this.routeSheetAuthority),
       unitUsersLoading: unitUsersLoading ?? this.unitUsersLoading,
       defaultDocumentTypeId:
           defaultDocumentTypeId ?? this.defaultDocumentTypeId,
@@ -106,6 +113,7 @@ class UpsertCorrespondenceState extends Equatable implements StatusState {
         unitUsers,
         catalogLoaded,
         isIntake,
+        routeSheetAuthority,
         unitUsersLoading,
         defaultDocumentTypeId,
         firstRecipients,

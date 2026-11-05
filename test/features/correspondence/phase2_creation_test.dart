@@ -89,8 +89,10 @@ UpsertCorrespondenceCubit createCubit(CreationRepository repository) =>
         correspondenceRepository: repository, organizationRepository: Units());
 
 void main() {
-  test('legacy permission alone does not enable creation, new grants do', () {
-    expect(canCreateCorrespondence(['correspondence.create']), isFalse);
+  test(
+      'route-sheet permission and specific document grants enable creation form',
+      () {
+    expect(canCreateCorrespondence(['correspondence.create']), isTrue);
     for (final permission in correspondenceCreationPermissions) {
       expect(canCreateCorrespondence([permission]), isTrue);
     }

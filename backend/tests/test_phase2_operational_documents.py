@@ -150,10 +150,12 @@ def test_specific_permission_required_no_legacy_runtime_bypass(
         json=body(db, code, employee, second_org_unit),
     )
     assert response.status_code == 403
-    assert (
-        client.get("/document-types/available-for-create", headers=headers(user)).json()
-        == []
-    )
+    assert {
+        item["code"]
+        for item in client.get(
+            "/document-types/available-for-create", headers=headers(user)
+        ).json()
+    } == {"HOJA_RUTA"}
 
 
 @pytest.mark.parametrize(
@@ -476,6 +478,12 @@ def test_seed_idempotent_preserves_existing_ids_and_document_references(
         )
         == 4
     )
+    # The historical j1 seed predates Hoja de Ruta. Restore its later state;
+    # do not let a migration unit test change the current catalog for other tests.
+    route = db.scalar(select(DocumentType).where(DocumentType.code == "HOJA_RUTA"))
+    if route:
+        route.is_active = route.is_operational = True
+        db.commit()
 
 
 @pytest.mark.parametrize("code", list(OPERATIONAL_DOCUMENTS))

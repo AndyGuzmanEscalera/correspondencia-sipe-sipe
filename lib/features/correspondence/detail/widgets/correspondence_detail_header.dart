@@ -20,8 +20,8 @@ class CorrespondenceDetailHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final showChainingPdf =
-        item.hasDocumentPdf || supportsEncadenamientoPdf(item.documentTypeCode);
+    final showChainingPdf = item.hasDocumentPdf ||
+        item.documentBehavior == DocumentBehavior.legacyChaining;
 
     return LayoutBuilder(
       builder: (context, constraints) {

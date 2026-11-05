@@ -27,6 +27,15 @@ void main() {
             roleIds: null,
             directPermissionIds: []).toUpdateRequest().directPermissionIds,
         isEmpty);
+    expect(
+        const UserUpdateInput(
+                username: 'u',
+                employeeId: 'e',
+                roleIds: null,
+                newPassword: 'NewSecret123!')
+            .toUpdateRequest()
+            .newPassword,
+        'NewSecret123!');
   });
   test('position mapper preserves hierarchy and independent scope flag', () {
     final dto = api.PositionAdminResponse(

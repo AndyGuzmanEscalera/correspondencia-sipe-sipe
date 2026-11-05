@@ -10,7 +10,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, KeepTogethe
 from app.core.branding import OFFICIAL_CREST, PRIMARY_HEX
 
 
-def generate_operational_document_pdf(snapshot):
+def generate_operational_document_pdf(snapshot, *, story_builder=None):
     if snapshot.get("template") != "institutional-document-v1":
         raise ValueError("Unsupported document snapshot version")
     out = BytesIO()
@@ -66,7 +66,9 @@ def generate_operational_document_pdf(snapshot):
         p("FECHA: " + issued.strftime("%d/%m/%Y %H:%M")),
         p("ASUNTO: " + snapshot["subject"]),
     ]
-    if snapshot.get("reference"):
+    if story_builder:
+        story = story_builder(snapshot, p, heading)
+    elif snapshot.get("reference"):
         story.append(p("REFERENCIA: " + snapshot["reference"]))
     story.append(Spacer(1, 12))
     # Separate paragraphs preserve multipage flow without putting long content in

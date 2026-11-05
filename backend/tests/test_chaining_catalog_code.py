@@ -26,7 +26,11 @@ def test_pdf_for_full_catalog_code(
     from tests.visibility_helpers import route_to
 
     document_type = DocumentType(
-        id=uuid.uuid4(), code=CATALOG_CODE, name=CATALOG_CODE, is_active=True
+        id=uuid.uuid4(),
+        code=CATALOG_CODE,
+        name=CATALOG_CODE,
+        is_active=True,
+        behavior="LEGACY_CHAINING",
     )
     db.add(document_type)
     db.commit()

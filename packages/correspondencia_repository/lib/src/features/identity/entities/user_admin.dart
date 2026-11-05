@@ -83,6 +83,7 @@ class UserUpdateInput extends Equatable {
     required this.employeeId,
     required this.roleIds,
     this.directPermissionIds,
+    this.newPassword,
     this.email,
   });
 
@@ -91,10 +92,11 @@ class UserUpdateInput extends Equatable {
   final String employeeId;
   final List<String>? roleIds;
   final List<String>? directPermissionIds;
+  final String? newPassword;
 
   @override
   List<Object?> get props =>
-      [username, email, employeeId, roleIds, directPermissionIds];
+      [username, email, employeeId, roleIds, directPermissionIds, newPassword];
 }
 
 class RoleOption extends Equatable {
@@ -121,6 +123,39 @@ class PermissionOption extends Equatable {
   final String code;
   final String? description;
   bool get isDeprecated => code == 'correspondence.create';
+
+  String get displayName =>
+      const {
+        'correspondence.read.own': 'Ver correspondencia propia',
+        'correspondence.read.unit': 'Ver correspondencia de su unidad',
+        'correspondence.read.all': 'Ver toda la correspondencia',
+        'correspondence.create': 'Crear Hoja de Ruta',
+        'correspondence.create.internal_communication':
+            'Crear comunicado interno',
+        'correspondence.create.report': 'Crear informe',
+        'correspondence.create.memorandum': 'Crear memorándum',
+        'correspondence.create.circular': 'Crear circular',
+        'correspondence.derive': 'Derivar correspondencia',
+        'correspondence.conclude': 'Concluir correspondencia',
+        'correspondence.reopen': 'Reabrir correspondencia',
+        'correspondence.attachments.manage': 'Gestionar adjuntos',
+        'reports.view': 'Ver reportes',
+        'master_data.users.read': 'Ver usuarios',
+        'master_data.users.manage': 'Administrar usuarios',
+        'master_data.employees.read': 'Ver funcionarios',
+        'master_data.employees.manage': 'Administrar funcionarios',
+        'master_data.positions.read': 'Ver cargos',
+        'master_data.positions.manage': 'Administrar cargos',
+        'master_data.organizational_units.read': 'Ver unidades',
+        'master_data.organizational_units.manage': 'Administrar unidades',
+        'master_data.document_types.read': 'Ver tipos documentales',
+        'master_data.document_types.manage': 'Administrar tipos documentales',
+        'master_data.roles.assign': 'Asignar roles',
+        'system.settings.read': 'Ver configuración institucional',
+        'system.settings.manage': 'Modificar configuración institucional',
+      }[code] ??
+      description ??
+      'Permiso institucional';
 
   String get category {
     if (code.startsWith('master_data.')) return 'Administración';

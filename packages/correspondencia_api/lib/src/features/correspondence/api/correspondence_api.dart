@@ -20,6 +20,12 @@ class CorrespondenceApi {
 
   final ApiMethod _mainApi;
 
+  Future<String> getRouteSheetAuthority() async {
+    final json = await _mainApi.get('/route-sheet-authority',
+        operation: 'correspondence.routeSheetAuthority');
+    return json['para_label'] as String;
+  }
+
   Future<bool> getCreationPolicy() async {
     final json = await _mainApi.get(Endpoints.correspondenceCreationPolicy,
         operation: 'correspondence.creationPolicy');

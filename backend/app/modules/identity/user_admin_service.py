@@ -164,6 +164,8 @@ class UserAdminService:
         row.username = username
         row.email = email
         row.employee_id = employee.id
+        if body.new_password:
+            row.password_hash = hash_password(body.new_password)
         apply_audit(row, actor.id)
         if roles_changed:
             self._replace_roles(row.id, body.role_ids, actor.id)
