@@ -490,11 +490,17 @@ def test_revoked_scope_does_not_get_access_from_notification(
         client.post(path + "/reopen", headers=headers(second_user), json={}).status_code
         == 200
     )
-    assert client.get("/notifications", headers=headers(scoped)).json()["total"] == 1
+    notifications = client.get("/notifications", headers=headers(scoped)).json()
+    assert notifications["total"] == 2
+    assert {item["type"] for item in notifications["items"]} == {
+        "CONCLUDED", "REOPENED"
+    }
     position.can_view_unit_correspondence = False
     set_position_scope(db, position, False)
     db.commit()
     assert client.get(path, headers=headers(scoped)).status_code == 404
+    hidden = client.get("/notifications", headers=headers(scoped)).json()
+    assert hidden["total"] == 0 and hidden["unread"] == 0
 
 
 def test_notification_and_document_creation_rollback_together(
