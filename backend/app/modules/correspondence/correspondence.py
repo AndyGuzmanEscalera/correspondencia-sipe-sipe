@@ -69,6 +69,8 @@ class Correspondence(Base):
     status: Mapped[str] = mapped_column(String(30), nullable=False)
     sender_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
     sender_document: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    origin_external_document_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    origin_external_document_last4: Mapped[str | None] = mapped_column(String(4), nullable=True)
     sender_contact: Mapped[str | None] = mapped_column(String(50), nullable=True)
     origin_description: Mapped[str | None] = mapped_column(String(300), nullable=True)
     origin_unit_id: Mapped[uuid.UUID | None] = mapped_column(

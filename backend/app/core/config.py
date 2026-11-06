@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     app_name: str = Field(default="correspondencia-api")
     app_version: str = Field(default="0.1.0")
     api_prefix: str = Field(default="")
+    public_tracking_hmac_secret: str = Field(default="", repr=False)
 
     postgres_db: str = Field(default="correspondencia_sipe")
     postgres_user: str = Field(default="sipe_app")

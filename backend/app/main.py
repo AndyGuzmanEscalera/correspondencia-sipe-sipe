@@ -9,6 +9,7 @@ from app.core.error_middleware import SafeErrorMiddleware
 from app.modules.auth.router import router as auth_router
 from app.modules.correspondence.router import catalog_router as correspondence_catalog_router
 from app.modules.correspondence.router import router as correspondence_router
+from app.modules.correspondence.public_tracking_router import router as public_tracking_router
 from app.modules.correspondence.admin_router import router as document_types_admin_router
 from app.modules.identity.admin_router import router as identity_admin_router
 from app.modules.organization.admin_router import (
@@ -48,6 +49,7 @@ app.include_router(notifications_router)
 app.include_router(auth_router)
 app.include_router(correspondence_catalog_router)
 app.include_router(correspondence_router)
+app.include_router(public_tracking_router)
 app.include_router(organization_router)
 app.include_router(admin_units_router)
 app.include_router(admin_positions_router)

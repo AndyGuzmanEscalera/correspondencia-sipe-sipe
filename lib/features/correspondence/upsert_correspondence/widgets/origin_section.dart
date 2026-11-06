@@ -8,6 +8,7 @@ import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_corresp
 import 'package:correspondencia_sipe_sipe/shared/widgets/form/app_dropdown.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/form/app_text_field.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class OriginSection extends StatelessWidget {
   const OriginSection({
@@ -101,8 +102,22 @@ class OriginSection extends StatelessWidget {
             ),
             AppTextField(
               controller: inherited.senderDocument,
-              label: 'Documento del remitente (opcional)',
+              label: profile == DocumentBehavior.routeSheet
+                  ? 'C.I. / Documento (para consulta pública)'
+                  : 'Documento del remitente (opcional)',
+              maxLength: 30,
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9.\s-]'))
+              ],
+              validators: profile == DocumentBehavior.routeSheet
+                  ? [PublicDocumentValid()]
+                  : null,
             ),
+            if (profile == DocumentBehavior.routeSheet)
+              const Padding(
+                  padding: EdgeInsets.only(bottom: 12),
+                  child: Text(
+                      'Ingrese el documento para habilitar la consulta pública. Si lo deja vacío, el trámite no podrá consultarse en línea.')),
             AppTextField(
               controller: inherited.senderContact,
               label: 'Contacto del remitente (opcional)',
@@ -116,5 +131,15 @@ class OriginSection extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class PublicDocumentValid extends AbstractValid {
+  @override
+  String? valid(String? value) {
+    if (value == null || value.trim().isEmpty) return null;
+    return RegExp(r'^[a-zA-Z0-9.\s-]{4,30}$').hasMatch(value.trim())
+        ? null
+        : 'Ingrese un número de documento válido.';
   }
 }

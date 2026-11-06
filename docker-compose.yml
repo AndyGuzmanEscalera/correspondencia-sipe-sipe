@@ -44,6 +44,7 @@ services:
       # Startup validation in app.core.config.Settings enforces >=32 chars.
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?JWT_ACCESS_SECRET must be set}
       JWT_ISSUER: ${JWT_ISSUER:-correspondencia-api}
+      PUBLIC_TRACKING_HMAC_SECRET: ${PUBLIC_TRACKING_HMAC_SECRET:-}
       JWT_AUDIENCE: ${JWT_AUDIENCE:-correspondencia-web}
       ACCESS_TOKEN_TTL_MINUTES: ${ACCESS_TOKEN_TTL_MINUTES:-15}
       REFRESH_TOKEN_TTL_DAYS: ${REFRESH_TOKEN_TTL_DAYS:-7}

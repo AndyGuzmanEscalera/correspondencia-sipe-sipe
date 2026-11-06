@@ -12,6 +12,7 @@ class CreateCorrespondenceRequest {
     this.originEmployeeId,
     this.senderName,
     this.senderDocument,
+    this.enablePublicTracking = false,
     this.senderContact,
     this.originDescription,
     this.firstRecipientEmployeeId,
@@ -32,6 +33,7 @@ class CreateCorrespondenceRequest {
   final String? originEmployeeId;
   final String? senderName;
   final String? senderDocument;
+  final bool enablePublicTracking;
   final String? senderContact;
   final String? originDescription;
   final String? firstRecipientEmployeeId;
@@ -52,6 +54,7 @@ class CreateCorrespondenceRequest {
         if (originEmployeeId != null) 'origin_employee_id': originEmployeeId,
         if (senderName != null) 'sender_name': senderName,
         if (senderDocument != null) 'sender_document': senderDocument,
+        if (enablePublicTracking) 'enable_public_tracking': true,
         if (senderContact != null) 'sender_contact': senderContact,
         if (originDescription != null) 'origin_description': originDescription,
         if (firstRecipientEmployeeId != null)

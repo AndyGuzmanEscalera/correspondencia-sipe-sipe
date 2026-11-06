@@ -16,7 +16,11 @@ void main() {
     'secret',
     'initialPassword',
     'CURRENT-PASSWORD',
-    'client_secret'
+    'client_secret',
+    'document_number',
+    'sender_document',
+    'origin_external_document_hash',
+    'public_tracking_hmac_secret'
   ];
   for (final key in keys) {
     test('API request/response hides complete value of $key', () {

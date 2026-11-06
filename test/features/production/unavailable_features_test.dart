@@ -41,13 +41,13 @@ void main() {
     expect(find.text('Total correspondencias'), findsNothing);
   });
   testWidgets(
-      'consulta pública no solicita datos ni entrega resultados simulados',
+      'consulta pública solicita solo HR y documento sin resultados simulados',
       (tester) async {
     await tester.pumpWidget(MaterialApp(
         builder: ResponsiveBreakpointsConfig.builder,
         home: const PublicConsultPage()));
-    expect(find.text('Consulta pública no disponible'), findsOneWidget);
-    expect(find.byType(TextFormField), findsNothing);
+    expect(find.text('Consulta de Hoja de Ruta'), findsWidgets);
+    expect(find.byType(TextFormField), findsNWidgets(2));
     expect(find.text('Resultado encontrado'), findsNothing);
     expect(tester.takeException(), isNull);
   });

@@ -15,6 +15,7 @@ _settings = get_settings()
 engine = create_engine(
     _settings.effective_database_url,
     pool_pre_ping=True,
+    hide_parameters=True,  # SQL exceptions must not log applicant documents.
     future=True,
 )
 

@@ -12,6 +12,7 @@ class CreateCorrespondenceInput {
     this.originEmployeeId,
     this.senderName,
     this.senderDocument,
+    this.enablePublicTracking = false,
     this.senderContact,
     this.originDescription,
     this.firstRecipientEmployeeId,
@@ -32,6 +33,7 @@ class CreateCorrespondenceInput {
   final String? originEmployeeId;
   final String? senderName;
   final String? senderDocument;
+  final bool enablePublicTracking;
   final String? senderContact;
   final String? originDescription;
   final String? firstRecipientEmployeeId;

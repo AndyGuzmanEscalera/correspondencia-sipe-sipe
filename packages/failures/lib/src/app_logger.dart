@@ -65,6 +65,10 @@ class AppLogger {
     'set-cookie',
     'jwt',
     'secret',
+    'document_number',
+    'sender_document',
+    'origin_external_document_hash',
+    'public_tracking_hmac_secret',
   };
 
   static bool isSensitiveKey(Object? key) {

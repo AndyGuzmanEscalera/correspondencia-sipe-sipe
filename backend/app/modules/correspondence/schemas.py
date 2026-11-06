@@ -67,6 +67,7 @@ class InstitutionalMayorResponse(BaseModel):
 
 
 class CreateCorrespondenceRequest(BaseModel):
+    enable_public_tracking: bool = False
     emission_date: date | None = None
     emission_time: time | None = None
     page_count: int | None = Field(default=None, gt=0, le=2147483647, strict=True)

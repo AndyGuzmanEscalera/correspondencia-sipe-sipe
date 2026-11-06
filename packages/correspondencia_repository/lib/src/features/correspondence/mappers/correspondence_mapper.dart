@@ -141,6 +141,7 @@ extension CorrespondenceAttachmentResponseMapper
 
 extension CreateCorrespondenceInputMapper on CreateCorrespondenceInput {
   CreateCorrespondenceRequest toRequest() => CreateCorrespondenceRequest(
+        enablePublicTracking: enablePublicTracking,
         correspondenceType: correspondenceType,
         documentTypeId: documentTypeId,
         subject: subject,

@@ -442,6 +442,21 @@ class CorrespondenceService:
                     unit_name=mayor.unit_name,
                 )
 
+        tracking_hash = tracking_last4 = None
+        if body.enable_public_tracking:
+            from app.core.config import get_settings
+            from app.modules.correspondence.public_tracking_service import normalize_document, document_digest
+            if profile != DocumentBehavior.ROUTE_SHEET or origin.correspondence_type != "EXTERNAL" or origin.origin_employee_id:
+                raise HTTPException(422, "La consulta pública corresponde a hojas de ruta de solicitantes externos.")
+            document = normalize_document(body.sender_document or "")
+            if not document:
+                raise HTTPException(422, "Ingrese un número de documento válido para habilitar la consulta pública.")
+            secret = get_settings().public_tracking_hmac_secret
+            if len(secret.encode()) < 32:
+                raise HTTPException(503, "La consulta pública requiere configuración institucional.")
+            tracking_hash = document_digest(document, secret)
+            tracking_last4 = document[-4:]
+
         route_year, route_sequence, route_number = self._allocate_route_number()
         doc_year, doc_sequence, doc_number = self._allocate_document_number(
             body.document_type_id
@@ -473,6 +488,8 @@ class CorrespondenceService:
             status=STATUS_ACTIVE,
             sender_name=origin.sender_name,
             sender_document=origin.sender_document,
+            origin_external_document_hash=tracking_hash,
+            origin_external_document_last4=tracking_last4,
             sender_contact=origin.sender_contact,
             origin_description=origin.origin_description,
             origin_unit_id=origin.origin_unit_id,

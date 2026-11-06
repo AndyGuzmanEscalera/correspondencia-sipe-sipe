@@ -7,6 +7,7 @@
 ///   * `refreshDio` — no Authorization, no refresh interceptor; used only for
 ///     login / refresh / logout so a 401 there cannot trigger another refresh.
 library correspondencia_api;
+export 'src/features/public_tracking/public_tracking_api.dart';
 
 export 'src/features/correspondence/models/document_behavior.dart';
 

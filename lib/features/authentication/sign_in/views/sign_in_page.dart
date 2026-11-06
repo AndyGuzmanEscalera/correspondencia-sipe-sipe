@@ -108,7 +108,7 @@ class SignInBody extends StatelessWidget {
               const SizedBox(height: 8),
               TextButton(
                 onPressed: () => context.go(Routes.publicConsult),
-                child: const Text('Volver a consulta pública'),
+                child: const Text('Consultar Hoja de Ruta'),
               ),
             ],
           ),

@@ -15,6 +15,7 @@ final GoRouter router = GoRouter(
   routerNeglect: true,
   initialLocation: Routes.initial,
   routes: [
+    GoRoute(path: '/consulta-publica', redirect: (context, state) => Routes.publicConsult),
     GoRoute(
       path: Routes.initial,
       builder: (context, state) => const SplashPage(),

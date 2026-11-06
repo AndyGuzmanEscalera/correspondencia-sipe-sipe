@@ -4,6 +4,7 @@
 /// (employees, units, correspondence, etc.) will follow the same pattern
 /// under their own sub-package directory.
 library correspondencia_repository;
+export 'src/features/public_tracking/public_tracking_repository.dart';
 
 export 'package:correspondencia_api/correspondencia_api.dart'
     show DocumentBehavior;

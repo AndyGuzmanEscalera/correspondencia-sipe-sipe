@@ -9,7 +9,7 @@ class Routes {
   static const bootstrap = '/correspondencia';
 
   /// Consulta pública de trámites (ciudadanos).
-  static const publicConsult = '/consulta-publica';
+  static const publicConsult = '/correspondencia/consulta';
 
   /// Login de funcionarios.
   static const signIn = '/correspondencia/login';

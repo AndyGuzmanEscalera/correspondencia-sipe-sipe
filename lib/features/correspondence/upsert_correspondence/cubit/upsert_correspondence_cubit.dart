@@ -293,6 +293,7 @@ class UpsertCorrespondenceCubit extends Cubit<UpsertCorrespondenceState> {
                 profile == DocumentBehavior.routeSheet) &&
             !isExternal);
     return repo.CreateCorrespondenceInput(
+      enablePublicTracking: profile == DocumentBehavior.routeSheet && isExternal && _optional(senderDocument) != null,
       correspondenceType:
           isContent ? 'INTERNAL' : correspondenceTypeCodeFromUi(type),
       documentTypeId: documentTypeId,
