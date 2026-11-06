@@ -49,9 +49,6 @@ class UpsertCorrespondenceInherited extends InheritedWidget {
   final subject = ControllerFieldPro();
   final reference = ControllerFieldPro();
   final description = ControllerFieldPro();
-  final emissionDate = ControllerFieldPro();
-  final emissionTime = ControllerFieldPro();
-  final pageCount = ControllerFieldPro();
   final senderName = ControllerFieldPro();
   final senderDocument = ControllerFieldPro();
   final senderContact = ControllerFieldPro();
@@ -103,9 +100,6 @@ class UpsertCorrespondenceInherited extends InheritedWidget {
     subject.textEditingController.clear();
     reference.textEditingController.clear();
     description.textEditingController.clear();
-    emissionDate.textEditingController.clear();
-    emissionTime.textEditingController.clear();
-    pageCount.textEditingController.clear();
     senderName.textEditingController.clear();
     senderDocument.textEditingController.clear();
     senderContact.textEditingController.clear();
@@ -147,9 +141,6 @@ class UpsertCorrespondenceInherited extends InheritedWidget {
         fieldKeys.addAll([
           reference.fieldKey,
           description.fieldKey,
-          emissionDate.fieldKey,
-          emissionTime.fieldKey,
-          pageCount.fieldKey,
           isExternal ? senderName.fieldKey : originEmployee.fieldKey
         ]);
       case DocumentBehavior.legacyChaining:
@@ -211,9 +202,6 @@ class UpsertCorrespondenceInherited extends InheritedWidget {
       if (profile == DocumentBehavior.routeSheet) ...[
         (key: reference.fieldKey, focusNode: reference.focusNode),
         (key: description.fieldKey, focusNode: description.focusNode),
-        (key: emissionDate.fieldKey, focusNode: emissionDate.focusNode),
-        (key: emissionTime.fieldKey, focusNode: emissionTime.focusNode),
-        (key: pageCount.fieldKey, focusNode: pageCount.focusNode),
         if (isExternal)
           (key: senderName.fieldKey, focusNode: senderName.focusNode)
         else
@@ -259,9 +247,6 @@ class UpsertCorrespondenceInherited extends InheritedWidget {
     subject.dispose();
     reference.dispose();
     description.dispose();
-    emissionDate.dispose();
-    emissionTime.dispose();
-    pageCount.dispose();
     senderName.dispose();
     senderDocument.dispose();
     senderContact.dispose();

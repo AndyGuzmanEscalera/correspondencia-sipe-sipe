@@ -174,9 +174,6 @@ class UpsertCorrespondenceCubit extends Cubit<UpsertCorrespondenceState> {
     String? subject,
     String? reference,
     String? description,
-    String? emissionDate,
-    String? emissionTime,
-    int? pageCount,
     String? originEmployeeId,
     String? firstRecipientEmployeeId,
     String? initialToUserId,
@@ -208,9 +205,6 @@ class UpsertCorrespondenceCubit extends Cubit<UpsertCorrespondenceState> {
       subject: subject,
       reference: reference,
       description: description,
-      emissionDate: emissionDate,
-      emissionTime: emissionTime,
-      pageCount: pageCount,
       originEmployeeId: originEmployeeId,
       firstRecipientEmployeeId: firstRecipientEmployeeId,
       initialToUserId: initialToUserId,
@@ -274,9 +268,6 @@ class UpsertCorrespondenceCubit extends Cubit<UpsertCorrespondenceState> {
     String? subject,
     String? reference,
     String? description,
-    String? emissionDate,
-    String? emissionTime,
-    int? pageCount,
     String? originEmployeeId,
     String? firstRecipientEmployeeId,
     String? initialToUserId,
@@ -305,13 +296,6 @@ class UpsertCorrespondenceCubit extends Cubit<UpsertCorrespondenceState> {
       description: isContent || profile == DocumentBehavior.routeSheet
           ? _required(description)
           : null,
-      emissionDate: profile == DocumentBehavior.routeSheet
-          ? _required(emissionDate)
-          : null,
-      emissionTime: profile == DocumentBehavior.routeSheet
-          ? _required(emissionTime)
-          : null,
-      pageCount: profile == DocumentBehavior.routeSheet ? pageCount : null,
       originEmployeeId: isExternal
           ? null
           : requiresOrigin

@@ -320,8 +320,7 @@ class _UpsertCorrespondenceBodyState extends State<UpsertCorrespondenceBody> {
                   const TechnicalReportFields(),
                 if (_profile == DocumentBehavior.legacyInternalNote)
                   const InternalNoteFields(),
-                if (_profile == DocumentBehavior.generic)
-                  const GenericFields(),
+                if (_profile == DocumentBehavior.generic) const GenericFields(),
                 if (!state.isIntake)
                   SwitchListTile(
                       title: const Text(
@@ -437,9 +436,6 @@ class _UpsertCorrespondenceBodyState extends State<UpsertCorrespondenceBody> {
       subject: inherited.subject.getValue(),
       reference: inherited.reference.getValue(),
       description: inherited.description.getValue(),
-      emissionDate: inherited.emissionDate.getValue(),
-      emissionTime: inherited.emissionTime.getValue(),
-      pageCount: int.tryParse(inherited.pageCount.getValue()),
       originEmployeeId: inherited.originEmployee.get(),
       type: type,
       priorityLabel: priority,

@@ -39,7 +39,8 @@ class AppTextField extends StatelessWidget {
   final Iterable<String>? autofillHints;
 
   String? _validate(String? value) {
-    return Validator.validation(value, validators ?? <AbstractValid>[]);
+    return Validator.validation(value, validators ?? <AbstractValid>[],
+        fieldLabel: label);
   }
 
   @override

@@ -3,7 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('public tracking POST has only the two lookup fields, without JWT',
+  test('public tracking POST has only the HR lookup field, without JWT',
       () async {
     final dio = Dio();
     dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
@@ -12,15 +12,14 @@ void main() {
       expect(options.headers.containsKey('Authorization'), isFalse);
       expect(options.queryParameters, isEmpty);
       expect(options.data, {
-        'route_sheet_number': 'HR-2026-000123',
-        'document_number': '12345678'
+        'route_sheet_number': 'HR-2026-000123'
       });
       handler.resolve(Response(
           requestOptions: options, statusCode: 200, data: {'found': false}));
     }));
     final response = await PublicTrackingApi(api: ApiMethod(dio: dio))
         .trackRouteSheet(
-            const PublicTrackingRequest(' hr-2026-000123 ', ' 12345678 '));
+            const PublicTrackingRequest(' hr-2026-000123 '));
     expect(response.found, isFalse);
     expect(response.movements, isEmpty);
   });

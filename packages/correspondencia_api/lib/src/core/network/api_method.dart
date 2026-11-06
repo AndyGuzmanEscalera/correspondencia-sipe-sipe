@@ -493,6 +493,10 @@ class ApiMethod {
     const labels = <String, String>{
       'username': 'Usuario',
       'password': 'Contraseña',
+      'initial_password': 'Contraseña inicial',
+      'new_password': 'Nueva contraseña',
+      'current_password': 'Contraseña actual',
+      'confirm_password': 'Confirmación de contraseña',
       'email': 'Correo',
       'first_name': 'Nombre',
       'last_name': 'Apellido',
@@ -511,24 +515,85 @@ class ApiMethod {
       'name': 'Nombre',
       'role_codes': 'Roles',
       'mayor_display_name': 'Nombre del titular ejecutivo',
+      'institutional_email': 'Correo institucional',
+      'sender_document': 'Documento del solicitante',
+      'sender_contact': 'Contacto del solicitante',
+      'origin_description': 'Descripción del origen',
+      'description': 'Descripción',
+      'content': 'Contenido',
+      'instruction': 'Instrucción',
+      'initial_instruction': 'Instrucción inicial',
+      'observation': 'Observación',
+      'unit_id': 'Unidad',
+      'position_id': 'Cargo',
+      'hierarchy_id': 'Jerarquía',
+      'role_ids': 'Roles',
+      'direct_permission_ids': 'Permisos',
+      'first_recipient_employee_id': 'Receptor inicial',
+      'initial_recipient_employee_ids': 'Receptores iniciales',
+      'intake_unit_id': 'Unidad de Ventanilla',
+      'page_count': 'Número de hojas',
+      'emission_date': 'Fecha de emisión',
+      'emission_time': 'Hora de emisión',
+      'route_sheet_number': 'Número de Hoja de Ruta',
+      'priority': 'Prioridad',
+      'correspondence_type': 'Tipo de correspondencia',
     };
     final location = error['loc'];
-    final field =
-        location is List && location.isNotEmpty ? labels[location.last] : null;
+    final field = location is List
+        ? location.reversed
+            .map((key) => labels[key])
+            .whereType<String>()
+            .firstOrNull
+        : null;
+    final context = error['ctx'];
+    num? limit(String key) {
+      final value = context is Map ? context[key] : null;
+      return value is num && value.isFinite ? value : null;
+    }
+
+    final minimum = limit('min_length');
+    final maximum = limit('max_length');
+    String characters(num count) => count == 1 ? 'carácter' : 'caracteres';
     final message = switch (error['type']) {
       'missing' => 'Este campo es obligatorio.',
-      'string_too_long' => 'El texto supera la longitud permitida.',
-      'string_too_short' => 'El texto es demasiado corto.',
+      'string_too_long' => maximum != null
+          ? 'Debe tener como máximo $maximum ${characters(maximum)}.'
+          : 'Reduzca el contenido a la longitud máxima permitida.',
+      'string_too_short' => minimum != null
+          ? 'Debe tener al menos $minimum ${characters(minimum)}.'
+          : 'Complete el campo con la longitud mínima requerida.',
+      'too_short' => minimum != null
+          ? 'Seleccione al menos $minimum ${minimum == 1 ? 'opción' : 'opciones'}.'
+          : 'Seleccione las opciones requeridas.',
+      'too_long' => maximum != null
+          ? 'Seleccione como máximo $maximum ${maximum == 1 ? 'opción' : 'opciones'}.'
+          : 'Reduzca la cantidad de opciones seleccionadas.',
       'uuid_parsing' || 'uuid_type' => 'Seleccione una opción válida.',
+      'literal_error' || 'enum' => 'Seleccione una opción válida.',
+      'string_type' => 'Ingrese un texto válido.',
+      'date_parsing' ||
+      'date_from_datetime_parsing' =>
+        'Ingrese una fecha válida.',
+      'time_parsing' => 'Ingrese una hora válida.',
       'int_parsing' ||
       'int_type' ||
       'float_parsing' =>
         'Ingrese un número válido.',
-      'greater_than' ||
-      'greater_than_equal' ||
-      'less_than' ||
-      'less_than_equal' =>
-        'El número está fuera del rango permitido.',
+      'greater_than' => limit('gt') != null
+          ? 'Debe ser mayor que ${limit('gt')}.'
+          : 'Ingrese un número mayor al mínimo permitido.',
+      'greater_than_equal' => limit('ge') != null
+          ? 'Debe ser mayor o igual a ${limit('ge')}.'
+          : 'Ingrese un número igual o mayor al mínimo permitido.',
+      'less_than' => limit('lt') != null
+          ? 'Debe ser menor que ${limit('lt')}.'
+          : 'Ingrese un número menor al máximo permitido.',
+      'less_than_equal' => limit('le') != null
+          ? 'Debe ser menor o igual a ${limit('le')}.'
+          : 'Ingrese un número igual o menor al máximo permitido.',
+      'value_error' when field == 'Correo' || field == 'Correo institucional' =>
+        'Ingrese un correo electrónico válido.',
       _ => 'Revise el valor ingresado.',
     };
     return '${field ?? 'Datos'}: $message';

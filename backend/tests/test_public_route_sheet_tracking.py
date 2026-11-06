@@ -52,8 +52,8 @@ def sheet(client, db, org_unit, second_org_unit):
     return row, user, payload
 
 
-def track(client, number, document='12345678'):
-    return client.post(URL, json=dict(route_sheet_number=number, document_number=document))
+def track(client, number, document=None):
+    return client.post(URL, json=dict(route_sheet_number=number))
 
 
 def test_public_success_without_jwt_and_safe_allowlist(client, db, sheet):
@@ -79,21 +79,25 @@ def test_document_normalization(client, sheet, document):
     assert track(client, ' ' + sheet[0].route_number.lower() + ' ', document).json()['found']
 
 
-@pytest.mark.parametrize('number,document', [
-    ('HR-1900-999999', '12345678'), ('existing', '87654321'),
-    ('existing', ''), ('existing', "' OR 1=1 --"), ('%' * 15, '12345678'),
-    ('existing', '1' * 100), ('x' * 100, '12345678'),
-])
-def test_failures_indistinguishable_and_inputs_never_echoed(client, sheet, number, document):
-    response = track(client, sheet[0].route_number if number == 'existing' else number, document)
+@pytest.mark.parametrize('number', ['HR-1900-999999', '', "' OR 1=1 --", '%' * 15, 'x' * 100])
+def test_failures_indistinguishable_and_inputs_never_echoed(client, sheet, number):
+    response = track(client, number)
     assert response.status_code == 200
     assert response.json() == NOT_FOUND
 
 
-@pytest.mark.parametrize('change', ['legacy', 'internal', 'other_behavior', 'deleted'])
+def test_existing_external_route_without_document_can_be_consulted(client, db, sheet):
+    row, _, _ = sheet
+    row.origin_external_document_hash = None
+    row.origin_external_document_last4 = None
+    row.sender_document = None
+    db.commit()
+    assert track(client, row.route_number).json()['found']
+
+
+@pytest.mark.parametrize('change', ['internal', 'other_behavior', 'deleted'])
 def test_tracking_requires_eligible_external_route(client, db, sheet, change):
     row, _, _ = sheet
-    if change == 'legacy': row.origin_external_document_hash = None
     if change == 'internal': row.correspondence_type = 'INTERNAL'
     if change == 'other_behavior': row.document_snapshot = {'behavior': 'MEMORANDUM'}
     if change == 'deleted': row.is_active = False
@@ -145,9 +149,9 @@ def test_limiter_window_ip_isolation():
     rate.check('a')
 
 
-def test_missing_secret_fails_closed(client, monkeypatch):
+def test_public_lookup_does_not_require_document_secret(client, monkeypatch, sheet):
     monkeypatch.setattr(get_settings(), 'public_tracking_hmac_secret', '')
-    assert track(client, 'HR-1900-999999').status_code == 503
+    assert track(client, sheet[0].route_number).json()['found']
 
 
 def test_distinct_sheets_cannot_share_identity_accidentally(client, db, sheet):
@@ -155,7 +159,7 @@ def test_distinct_sheets_cannot_share_identity_accidentally(client, db, sheet):
     payload['sender_document'] = '87654321'
     response = client.post('/correspondences', headers=headers(user), json=payload)
     assert response.status_code == 201, response.text
-    assert track(client, response.json()['route_number']).json() == NOT_FOUND
+    assert track(client, response.json()['route_number']).json()['route_sheet_number'] == response.json()['route_number']
     assert track(client, row.route_number).json()['found']
 
 

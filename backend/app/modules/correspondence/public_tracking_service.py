@@ -10,7 +10,6 @@ from fastapi import HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 
-from app.core.config import get_settings
 from app.modules.correspondence.correspondence import Correspondence
 from app.modules.correspondence.correspondence_movement import CorrespondenceMovement
 from app.modules.organization.organizational_unit import OrganizationalUnit
@@ -34,7 +33,8 @@ def document_digest(value: str, secret: str) -> str:
 class PublicTrackingRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", hide_input_in_errors=True)
     route_sheet_number: str = Field(max_length=60, repr=False)
-    document_number: str = Field(max_length=30, repr=False)
+    # Accepted for older clients only; never used for public lookup.
+    document_number: str | None = Field(default=None, max_length=30, repr=False)
 
 
 class PublicTrackingMovement(BaseModel):
@@ -93,20 +93,13 @@ class PublicTrackingService:
 
     def track(self, body: PublicTrackingRequest):
         number = body.route_sheet_number.strip().upper()
-        document = normalize_document(body.document_number)
-        secret = get_settings().public_tracking_hmac_secret
-        if len(secret.encode()) < 32:
-            raise HTTPException(503, "La consulta pública no está disponible temporalmente.")
-        digest = document_digest(document, secret)
-        valid = bool(re.fullmatch(r"HR-\d{4}-\d{6,10}", number)) and bool(document)
+        valid = bool(re.fullmatch(r"HR-\d{4}-\d{6,10}", number))
         row = self.db.scalar(select(Correspondence).where(
             Correspondence.route_number == (number if valid else ""),
             Correspondence.is_active.is_(True), Correspondence.deleted_at.is_(None),
         ))
-        stored = row.origin_external_document_hash if row else None
-        matches = hmac.compare_digest(stored or "0" * 64, digest)
         snapshot = (row.document_snapshot or {}) if row else {}
-        if not (valid and matches and row and row.correspondence_type == "EXTERNAL"
+        if not (valid and row and row.correspondence_type == "EXTERNAL"
                 and row.origin_employee_id is None and snapshot.get("behavior") == "ROUTE_SHEET"):
             return NOT_FOUND
         movements = self.db.scalars(select(CorrespondenceMovement).where(

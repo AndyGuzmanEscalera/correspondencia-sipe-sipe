@@ -13,7 +13,3 @@ def validate_route_sheet(body):
         raise HTTPException(422, "La referencia es obligatoria para Hoja de Ruta")
     if not (body.description or "").strip():
         raise HTTPException(422, "El contenido es obligatorio para Hoja de Ruta")
-    if body.emission_date is None or body.emission_time is None:
-        raise HTTPException(422, "La fecha y hora de emisión son obligatorias")
-    if body.page_count is None:
-        raise HTTPException(422, "El número de hojas es obligatorio")

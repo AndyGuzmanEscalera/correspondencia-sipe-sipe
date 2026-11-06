@@ -45,7 +45,7 @@ def party(db, employee_id=None, unit_id=None, user_id=None):
     }
 
 
-def freeze_document(db, actor, row, document_type):
+def freeze_document(db, actor, row, document_type, *, issued_at=None):
     return {
         "version": 1,
         "template": "institutional-document-v1",
@@ -57,7 +57,7 @@ def freeze_document(db, actor, row, document_type):
         "emission_date": row.emission_date.isoformat() if row.emission_date else None,
         "emission_time": row.emission_time.isoformat() if row.emission_time else None,
         "page_count": row.page_count,
-        "issued_at": datetime.now(timezone.utc).isoformat(),
+        "issued_at": (issued_at or datetime.now(timezone.utc)).isoformat(),
         "document_number": row.document_number,
         "document_year": row.document_year,
         "route_number": row.route_number,

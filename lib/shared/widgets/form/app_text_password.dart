@@ -12,6 +12,7 @@ class AppTextPassword extends StatefulWidget {
     required this.label,
     super.key,
     this.title,
+    this.helperText,
     this.validators,
     this.onSubmitted,
     this.autofillHints,
@@ -20,6 +21,7 @@ class AppTextPassword extends StatefulWidget {
   final ControllerFieldPro controller;
   final String label;
   final String? title;
+  final String? helperText;
   final List<AbstractValid>? validators;
   final void Function(String)? onSubmitted;
   final Iterable<String>? autofillHints;
@@ -32,7 +34,8 @@ class _AppTextPasswordState extends State<AppTextPassword> {
   bool _obscure = true;
 
   String? _validate(String? value) {
-    return Validator.validation(value, widget.validators ?? <AbstractValid>[]);
+    return Validator.validation(value, widget.validators ?? <AbstractValid>[],
+        fieldLabel: widget.label);
   }
 
   @override
@@ -69,7 +72,7 @@ class _AppTextPasswordState extends State<AppTextPassword> {
                   size: 20,
                 ),
               ),
-            ),
+            ).copyWith(helperText: widget.helperText),
           ),
         ],
       ),

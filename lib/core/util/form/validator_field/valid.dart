@@ -4,6 +4,27 @@ abstract class AbstractValid {
   String? valid(String? value);
 }
 
+class PasswordValid extends AbstractValid {
+  PasswordValid({this.optional = false});
+  final bool optional;
+  static const minLength = 8;
+  static const maxLength = 255;
+
+  @override
+  String? valid(String? value) {
+    final text = value ?? '';
+    if (text.isEmpty && optional) return null;
+    if (text.trim().isEmpty) return 'Ingrese una contraseña.';
+    if (text.runes.length < minLength) {
+      return 'La contraseña debe tener al menos $minLength caracteres.';
+    }
+    if (text.runes.length > maxLength) {
+      return 'La contraseña debe tener como máximo $maxLength caracteres.';
+    }
+    return null;
+  }
+}
+
 class RequiredValid extends AbstractValid {
   RequiredValid({this.error});
 

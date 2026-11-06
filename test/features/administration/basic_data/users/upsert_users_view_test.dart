@@ -178,6 +178,22 @@ void main() {
       expect(listCubit.getCallCount, 1);
     });
 
+    testWidgets('contraseña corta se explica antes de enviar la creación',
+        (tester) async {
+      await pumpUpsertDialog(tester,
+          typeOperation: TypeOperation.create, canAssignRoles: false);
+      await tester.enterText(find.byType(TextFormField).at(0), 'nuevo');
+      await tester.enterText(find.byType(TextFormField).at(2), '123');
+      await _selectDropdownOption(tester, optionText: 'Juan Pérez');
+      await tester.tap(find.text('Registrar'));
+      await tester.pumpAndSettle();
+      expect(
+          find.textContaining(
+              'La contraseña debe tener al menos 8 caracteres.'),
+          findsWidgets);
+      expect(usersRepository.lastCreateInput, isNull);
+    });
+
     testWidgets('create dialog muestra formulario vacío con password',
         (tester) async {
       await pumpUpsertDialog(tester, typeOperation: TypeOperation.create);

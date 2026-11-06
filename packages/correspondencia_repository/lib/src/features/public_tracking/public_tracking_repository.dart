@@ -43,8 +43,7 @@ class PublicTrackingRepository {
       : _api = api ?? PublicTrackingApi();
   final PublicTrackingApi _api;
   Future<PublicRouteSheetTracking> trackRouteSheet(
-          String routeSheetNumber, String documentNumber) async =>
-      (await _api.trackRouteSheet(
-              PublicTrackingRequest(routeSheetNumber, documentNumber)))
+          String routeSheetNumber) async =>
+      (await _api.trackRouteSheet(PublicTrackingRequest(routeSheetNumber)))
           .toEntity();
 }

@@ -1,6 +1,7 @@
 """DocumentBehavior contract, route sheets and compatibility, on isolated DB only."""
 
 import uuid
+from datetime import datetime, timezone
 from io import BytesIO
 import pytest
 from pydantic import ValidationError
@@ -34,9 +35,7 @@ def test_invalid_behavior_rejected(value):
 
 
 def route_body(db, employee, unit):
-    payload = body(db, "HOJA_RUTA", employee, unit)
-    payload.update(emission_date="2026-10-20", emission_time="09:13:27", page_count=3)
-    return payload
+    return body(db, "HOJA_RUTA", employee, unit)
 
 
 def route_actor(db, unit):
@@ -45,8 +44,16 @@ def route_actor(db, unit):
 
 @pytest.mark.parametrize("external", [False, True])
 def test_route_sheet_complete_snapshot_pdf_and_movements(
-    client, db, org_unit, second_org_unit, external
+    client, db, org_unit, second_org_unit, external, monkeypatch
 ):
+    import app.modules.correspondence.service as service
+
+    class IssuanceClock(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return datetime(2026, 11, 6, 2, 3, 4, tzinfo=timezone.utc).astimezone(tz)
+
+    monkeypatch.setattr(service, "datetime", IssuanceClock)
     user, employee, _ = route_actor(db, org_unit)
     payload = route_body(db, employee, second_org_unit)
     if external:
@@ -58,9 +65,9 @@ def test_route_sheet_complete_snapshot_pdf_and_movements(
     assert response.status_code == 201, response.text
     result = response.json()
     assert result["document_behavior"] == "ROUTE_SHEET"
-    assert result["emission_date"] == "2026-10-20"
-    assert result["emission_time"] == "09:13:27"
-    assert result["page_count"] == 3
+    assert result["emission_date"] == "2026-11-05"
+    assert result["emission_time"] == "22:03:04"
+    assert result["page_count"] == 1
     assert result["reference"] == payload["reference"]
     assert result["description"] == payload["description"]
     assert result["para_label"] == "Autoridad documental"
@@ -69,7 +76,7 @@ def test_route_sheet_complete_snapshot_pdf_and_movements(
     assert snapshot["behavior"] == "ROUTE_SHEET"
     assert row.institutional_authority_snapshot["para_label"] == result["para_label"]
     assert "authority" not in snapshot  # one existing institutional snapshot
-    assert snapshot["page_count"] == 3
+    assert snapshot["page_count"] == result["page_count"]
     assert snapshot["emission_date"] != snapshot["issued_at"][:10]
     assert snapshot["origin"]["employee_name"] == (
         "Solicitante externo"
@@ -86,14 +93,22 @@ def test_route_sheet_complete_snapshot_pdf_and_movements(
         "HOJA DE RUTA",
         "PARA:",
         "DE:",
-        "2026-10-20",
-        "09:13:27",
+        "05 / 11 / 2026",
+        "22:03",
         "Autoridad documental",
         payload["reference"],
         "Contenido",
-        "3",
+        "N° HOJAS: 1",
+        "PRIMER DESTINATARIO",
+        "SEGUNDO DESTINATARIO",
+        "CUARTO DESTINATARIO",
+        "SELLO DE RECEPCIÓN",
+        "INSTRUCTIVO / PROVEÍDO",
     ]:
         assert value in text
+    for page in PdfReader(BytesIO(pdf.content)).pages:
+        assert tuple(float(value) for value in page.mediabox) == (0, 0, 612, 1008)
+        assert len(page.images) >= 1
     movements = client.get(path + "/movements", headers=headers(user)).json()
     assert [m["movement_type"] for m in movements] == ["CREATED", "DERIVED"]
     assert sum(m["movement_type"] == "DERIVED" for m in movements) == 1
@@ -114,9 +129,6 @@ def test_route_sheet_complete_snapshot_pdf_and_movements(
         {"sender_name": "Ambos orígenes"},
         {"reference": " "},
         {"description": " "},
-        {"emission_date": None},
-        {"emission_time": None},
-        {"page_count": None},
         {"page_count": 0},
         {"page_count": -1},
         {"page_count": 1.5},
@@ -134,6 +146,63 @@ def test_route_sheet_missing_or_invalid_content_rejected_atomically(
     response = client.post("/correspondences", headers=headers(user), json=payload)
     assert response.status_code == 422, response.text
     assert db.scalar(select(func.count()).select_from(Correspondence)) == before
+
+
+@pytest.mark.parametrize("manual_values", [False, True])
+def test_route_sheet_counts_actual_pdf_pages_and_ignores_manual_values(
+    client, db, org_unit, second_org_unit, manual_values
+):
+    user, employee, _ = route_actor(db, org_unit)
+    payload = route_body(db, employee, second_org_unit)
+    payload["description"] = "\n".join(
+        "Contenido de prueba para verificar las páginas automáticas." for _ in range(130)
+    )
+    if manual_values:
+        payload.update(emission_date="2000-01-01", emission_time="00:00:00", page_count=999)
+    else:
+        payload.update(emission_date=None, emission_time=None, page_count=None)
+    response = client.post("/correspondences", headers=headers(user), json=payload)
+    assert response.status_code == 201, response.text
+    result = response.json()
+    pdf = client.get("/correspondences/" + result["id"] + "/document.pdf", headers=headers(user))
+    assert pdf.status_code == 200
+    pages = PdfReader(BytesIO(pdf.content)).pages
+    assert result["page_count"] == len(pages) > 1
+    assert result["emission_date"] != "2000-01-01"
+    snapshot = db.get(Correspondence, uuid.UUID(result["id"])).document_snapshot
+    assert snapshot["page_count"] == len(pages)
+    assert "N° HOJAS: " + str(len(pages)) in pages[0].extract_text()
+
+
+def test_route_sheet_form_shows_only_real_derivations_without_changing_snapshot(
+    client, db, org_unit, second_org_unit
+):
+    from app.modules.correspondence.pdf.encadenamiento_pdf import EncadenamientoMovementRow
+    from app.modules.correspondence.pdf.document_renderer import generate_document_pdf
+
+    user, employee, _ = route_actor(db, org_unit)
+    created = client.post('/correspondences', headers=headers(user),
+                          json=route_body(db, employee, second_org_unit))
+    assert created.status_code == 201
+    row = db.get(Correspondence, uuid.UUID(created.json()['id']))
+    snapshot = dict(row.document_snapshot)
+    movements = [EncadenamientoMovementRow(
+        sequence_number=index + 2, movement_type='DERIVED', movement_type_label='Derivación',
+        from_unit='Origen', from_user=None, to_unit='Unidad ' + str(index + 1),
+        to_user=None, instruction='Proveído real ' + str(index + 1),
+        created_at=datetime.now(timezone.utc), is_cancelled=False, cancellation_reason=None,
+    ) for index in range(7)]
+    pdf = PdfReader(BytesIO(generate_document_pdf(
+        snapshot, authority_snapshot=row.institutional_authority_snapshot,
+        movement_rows=movements,
+    )))
+    text = '\n'.join(page.extract_text() for page in pdf.pages)
+    assert len(pdf.pages) > 1
+    assert 'SÉPTIMO DESTINATARIO' in text
+    assert 'Proveído real 7' in text
+    assert 'Funcionario real' not in text
+    assert 'N° HOJAS: ' + str(len(pdf.pages)) in pdf.pages[0].extract_text()
+    assert row.document_snapshot == snapshot
 
 
 def test_route_origin_never_grants_actor_permission(

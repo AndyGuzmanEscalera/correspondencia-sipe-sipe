@@ -45,7 +45,8 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
     if (widget.validators == null || widget.validators!.isEmpty) return null;
     final text =
         widget.controller.isExist() ? widget.controller.value.text : '';
-    return Validator.validation(text, widget.validators!);
+    return Validator.validation(text, widget.validators!,
+        fieldLabel: widget.label);
   }
 
   bool _defaultMatch(FormOption<T> item, String query) {

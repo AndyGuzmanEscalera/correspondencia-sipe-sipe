@@ -259,6 +259,7 @@ def download_operational_pdf(
     service: Annotated[CorrespondenceService, Depends(_service)],
 ):
     from app.modules.correspondence.pdf.document_renderer import generate_document_pdf
+    from app.modules.correspondence.document_behavior import DocumentBehavior
 
     row = service._get_correspondence_or_404(correspondence_id, active_only=True)
     if not row.document_snapshot:
@@ -268,8 +269,14 @@ def download_operational_pdf(
             status_code=422,
             detail="Este documento no dispone de snapshot institucional generado",
         )
+    snapshot = row.document_snapshot
+    is_route_sheet = (
+        snapshot.get("behavior") or snapshot.get("profile")
+    ) == DocumentBehavior.ROUTE_SHEET.value
     payload = generate_document_pdf(
-        row.document_snapshot, authority_snapshot=row.institutional_authority_snapshot
+        snapshot, authority_snapshot=row.institutional_authority_snapshot,
+        movement_rows=(service._load_encadenamiento_movements(correspondence_id)
+                       if is_route_sheet else None),
     )
     return StreamingResponse(
         io.BytesIO(payload),

@@ -260,7 +260,7 @@ class _UpsertUsersBodyState extends State<UpsertUsersBody> {
                   controller: inherited.username,
                   label: 'Nombre de usuario',
                   validators: [
-                    RequiredValid(error: 'Campo requerido'),
+                    RequiredValid(error: 'Ingrese el nombre de usuario.'),
                   ],
                 ),
                 AppTextField(
@@ -272,15 +272,18 @@ class _UpsertUsersBodyState extends State<UpsertUsersBody> {
                   AppTextPassword(
                     controller: inherited.password,
                     label: 'Contraseña inicial',
+                    helperText: 'Mínimo ${PasswordValid.minLength} caracteres.',
                     validators: [
-                      RequiredValid(error: 'Campo requerido'),
+                      PasswordValid(),
                     ],
                   ),
                 if (!isCreate) ...[
                   AppTextPassword(
                     controller: inherited.password,
                     label: 'Nueva contraseña (opcional)',
-                    validators: [_OptionalPasswordValid()],
+                    helperText:
+                        'Mínimo ${PasswordValid.minLength} caracteres; deje vacío para conservar la actual.',
+                    validators: [PasswordValid(optional: true)],
                   ),
                   AppTextPassword(
                     controller: inherited.confirmPassword,
@@ -320,17 +323,6 @@ class _UpsertUsersBodyState extends State<UpsertUsersBody> {
         );
       },
     );
-  }
-}
-
-class _OptionalPasswordValid extends AbstractValid {
-  @override
-  String? valid(String? value) {
-    final text = value?.trim() ?? '';
-    if (text.isNotEmpty && text.length < 8) {
-      return 'La contraseña debe tener al menos 8 caracteres';
-    }
-    return null;
   }
 }
 

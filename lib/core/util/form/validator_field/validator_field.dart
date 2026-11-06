@@ -12,10 +12,15 @@ class InputValidators {
 }
 
 class Validator {
-  static String? validation(String? value, List<AbstractValid> validators) {
+  static String? validation(String? value, List<AbstractValid> validators,
+      {String? fieldLabel}) {
     for (final element in validators) {
       final error = element.valid(value);
-      if (error != null) return error;
+      if (error != null) {
+        return error == 'Campo requerido' && fieldLabel != null
+            ? '$fieldLabel: Este campo es obligatorio.'
+            : error;
+      }
     }
     return null;
   }

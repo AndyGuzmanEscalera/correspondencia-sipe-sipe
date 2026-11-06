@@ -57,11 +57,17 @@ void main() {
         for (final label in [
           'Referencia',
           'Texto / contenido',
-          'Número de hojas',
-          'Fecha de emisión (AAAA-MM-DD)',
-          'Hora de emisión (HH:MM)'
         ]) {
           expect(find.text(label), findsOneWidget);
+        }
+        expect(find.byKey(const Key('route-sheet-automatic-issuance')),
+            findsOneWidget);
+        for (final label in [
+          'Número de hojas',
+          'Fecha de emisión (AAAA-MM-DD)',
+          'Hora de emisión (HH:MM)',
+        ]) {
+          expect(find.text(label), findsNothing);
         }
       } else if (behavior == repo.DocumentBehavior.generic) {
         expect(find.byType(TechnicalReportFields), findsNothing);
@@ -115,29 +121,15 @@ void main() {
           subject: 'Referencia',
           reference: 'REF',
           description: ' Contenido ',
-          emissionDate: '2026-10-20',
-          emissionTime: '09:03',
-          pageCount: 3,
           originEmployeeId: 'e',
           senderName: ' Ciudadano ');
       final input = repository.input!;
       expect(input.originEmployeeId, external ? null : 'e');
       expect(input.senderName, external ? 'Ciudadano' : null);
       expect(input.description, 'Contenido');
-      expect(input.emissionDate, '2026-10-20');
-      expect(input.emissionTime, '09:03');
-      expect(input.pageCount, 3);
+      expect(input.emissionDate, isNull);
+      expect(input.emissionTime, isNull);
+      expect(input.pageCount, isNull);
     });
   }
-  test('strict date/time and positive page validation', () {
-    final pages = RouteSheetPagesValid();
-    for (final invalid in ['', '0', '-1', '1.5', 'texto']) {
-      expect(pages.valid(invalid), isNotNull);
-    }
-    expect(pages.valid('2'), isNull);
-    expect(RouteSheetDateValid().valid('2026-02-30'), isNotNull);
-    expect(RouteSheetDateValid().valid('2026-10-20'), isNull);
-    expect(RouteSheetTimeValid().valid('24:01'), isNotNull);
-    expect(RouteSheetTimeValid().valid('09:03'), isNull);
-  });
 }

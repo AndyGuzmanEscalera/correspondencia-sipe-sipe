@@ -9,6 +9,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
+from app.core.institutional_time import institutional_datetime
 from app.modules.correspondence.visibility import (
     operational_visibility_filter,
     resolve_visibility_context,
@@ -462,6 +463,8 @@ class CorrespondenceService:
             body.document_type_id
         )
 
+        issued_at = datetime.now(timezone.utc)
+        local_issued_at = institutional_datetime(issued_at)
         correspondence = Correspondence(
             route_number=route_number,
             route_sequence=route_sequence,
@@ -473,13 +476,14 @@ class CorrespondenceService:
             document_type_id=body.document_type_id,
             subject=subject,
             emission_date=(
-                body.emission_date if profile == DocumentBehavior.ROUTE_SHEET else None
+                local_issued_at.date() if profile == DocumentBehavior.ROUTE_SHEET else None
             ),
             emission_time=(
-                body.emission_time if profile == DocumentBehavior.ROUTE_SHEET else None
+                local_issued_at.time().replace(microsecond=0)
+                if profile == DocumentBehavior.ROUTE_SHEET else None
             ),
             page_count=(
-                body.page_count if profile == DocumentBehavior.ROUTE_SHEET else None
+                1 if profile == DocumentBehavior.ROUTE_SHEET else None
             ),
             institutional_authority_snapshot=authority_snapshot,
             reference=self._normalize_optional_text(body.reference),
@@ -504,8 +508,24 @@ class CorrespondenceService:
             from app.modules.correspondence.document_snapshot import freeze_document
 
             correspondence.document_snapshot = freeze_document(
-                self._db, user, correspondence, doc_type
+                self._db, user, correspondence, doc_type, issued_at=issued_at
             )
+            if profile == DocumentBehavior.ROUTE_SHEET:
+                from app.modules.correspondence.pdf.route_sheet_pdf import (
+                    count_route_sheet_pages,
+                )
+
+                correspondence.document_snapshot = {
+                    **correspondence.document_snapshot,
+                    "initial_instruction": self._normalize_optional_text(body.initial_instruction),
+                }
+                correspondence.page_count = count_route_sheet_pages(
+                    correspondence.document_snapshot, authority_snapshot
+                )
+                correspondence.document_snapshot = {
+                    **correspondence.document_snapshot,
+                    "page_count": correspondence.page_count,
+                }
         self._db.add(correspondence)
         self._db.flush()
 

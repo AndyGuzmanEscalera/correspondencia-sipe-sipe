@@ -2,11 +2,10 @@ import '../../core/network/api_client.dart';
 import '../../core/network/api_method.dart';
 
 class PublicTrackingRequest {
-  const PublicTrackingRequest(this.routeSheetNumber, this.documentNumber);
-  final String routeSheetNumber, documentNumber;
+  const PublicTrackingRequest(this.routeSheetNumber);
+  final String routeSheetNumber;
   Map<String, dynamic> toJson() => {
         'route_sheet_number': routeSheetNumber.trim().toUpperCase(),
-        'document_number': documentNumber.trim(),
       };
 }
 

@@ -19,6 +19,70 @@ class _Adapter implements HttpClientAdapter {
 }
 
 void main() {
+  final cases = [
+    (
+      'initial_password',
+      'string_too_short',
+      {'min_length': 8},
+      'Contraseña inicial: Debe tener al menos 8 caracteres.'
+    ),
+    (
+      'new_password',
+      'string_too_long',
+      {'max_length': 255},
+      'Nueva contraseña: Debe tener como máximo 255 caracteres.'
+    ),
+    (
+      'username',
+      'string_too_long',
+      {'max_length': 50},
+      'Usuario: Debe tener como máximo 50 caracteres.'
+    ),
+    (
+      'name',
+      'string_too_short',
+      {'min_length': 1},
+      'Nombre: Debe tener al menos 1 carácter.'
+    ),
+    (
+      'page_count',
+      'greater_than',
+      {'gt': 0},
+      'Número de hojas: Debe ser mayor que 0.'
+    ),
+    (
+      'email',
+      'value_error',
+      {},
+      'Correo: Ingrese un correo electrónico válido.'
+    ),
+    (
+      'role_ids',
+      'too_short',
+      {'min_length': 1},
+      'Roles: Seleccione al menos 1 opción.'
+    ),
+  ];
+  for (final (field, type, context, expected) in cases) {
+    test('mensaje de $field incluye su regla sin exponer input', () async {
+      final dio = Dio(BaseOptions(baseUrl: 'http://localhost'))
+        ..httpClientAdapter = _Adapter(422, {
+          'detail': [
+            {
+              'loc': ['body', field],
+              'type': type,
+              'ctx': context,
+              'input': 'PRIVATE_INPUT',
+              'msg': 'PRIVATE_MESSAGE',
+            }
+          ]
+        });
+      final result =
+          await handleExceptions(() => ApiMethod(dio: dio).post('/validation'));
+      expect(result.failureOrNull()?.message, expected);
+      dio.close();
+    });
+  }
   test('500 HTTP con CORS se interpreta como ServerFailure', () async {
     final dio = Dio(BaseOptions(baseUrl: 'http://localhost'))
       ..httpClientAdapter = _Adapter(500, {'detail': 'PRIVATE_TRACE'});
@@ -59,7 +123,7 @@ void main() {
       final failure = result.failureOrNull();
       expect(failure, isA<ValidationFailure>());
       expect(FailureGeneric.message(failure: failure!),
-          'Usuario: Este campo es obligatorio.\nContraseña: El texto es demasiado corto.');
+          'Usuario: Este campo es obligatorio.\nContraseña: Debe tener al menos 12 caracteres.');
       dio.close();
     });
   }
