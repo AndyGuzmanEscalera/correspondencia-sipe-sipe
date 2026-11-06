@@ -93,8 +93,9 @@ class AppSessionCubit extends Cubit<AppSessionState> {
   }
 
   Future<void> logout() async {
+    // Stop session-bound polling before waiting for the logout HTTP request.
+    onAuthCleared();
     final result = await _authRepository.logout();
     result.when(ok: (_) {}, err: (_) {});
-    onAuthCleared();
   }
 }

@@ -16,7 +16,7 @@ class NotificationsMonitor extends StatefulWidget {
     required this.child,
     super.key,
   });
-  static const pollInterval = Duration(seconds: 60);
+  static const pollInterval = Duration(seconds: 10);
   final NotificationsCubit cubit;
   final AppSessionCubit session;
   final GlobalKey<ScaffoldMessengerState> messengerKey;

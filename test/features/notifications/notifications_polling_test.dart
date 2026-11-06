@@ -20,6 +20,12 @@ class _Notifications extends FakeNotifications {
   }
 }
 
+class _SlowLogout extends FakeAuth {
+  final pending = Completer<Result<void, Failure>>();
+  @override
+  Future<Result<void, Failure>> logout() => pending.future;
+}
+
 repo.NotificationsPage _page(List<repo.InternalNotification> items) =>
     repo.NotificationsPage(
         items: items,
@@ -97,6 +103,36 @@ void main() {
     await first;
   });
 
+  test('manual refresh shares an ongoing poll instead of duplicating HTTP',
+      () async {
+    final pending = Completer<Result<repo.NotificationsPage, Failure>>();
+    repository.pendingList = pending.future;
+    final poll = cubit.poll();
+    final refresh = cubit.refresh();
+    await cubit.poll();
+    expect(repository.listCalls, 1);
+    pending.complete(Ok(_page([notification()])));
+    await Future.wait([poll, refresh]);
+    expect(cubit.state.data!.items.single.id, 'n1');
+  });
+
+  test('poll updates the visible list after scope revocation', () async {
+    await cubit.refresh();
+    repository.items = [];
+    await cubit.poll();
+    expect(cubit.state.unread, 0);
+    expect(cubit.state.data!.items, isEmpty);
+  });
+
+  test('read notification does not return as a new arrival', () async {
+    await cubit.poll();
+    await cubit.markRead('n1');
+    await cubit.poll();
+    expect(cubit.state.unread, 0);
+    expect(cubit.state.incoming, isEmpty);
+    expect(cubit.state.data!.items.single.isRead, isTrue);
+  });
+
   test('session reset discards pending poll and resets the baseline', () async {
     await cubit.poll();
     final pending = Completer<Result<repo.NotificationsPage, Failure>>();
@@ -153,20 +189,20 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('checks at 60 seconds and shows a dismissible screen notice',
+  testWidgets('checks at 10 seconds and shows a dismissible screen notice',
       (tester) async {
     await mount(tester);
     expect(repository.listCalls, 1);
     expect(find.byType(SnackBar), findsNothing);
     repository.items.insert(0, notification(id: 'n2'));
-    await tester.pump(const Duration(seconds: 59));
+    await tester.pump(const Duration(seconds: 9));
     expect(repository.listCalls, 1);
     await tester.pump(const Duration(seconds: 1));
     await tester.pumpAndSettle();
     expect(repository.listCalls, 2);
     expect(find.byType(SnackBar), findsOneWidget);
     expect(find.text('Recibida HR-QA'), findsOneWidget);
-    await tester.pump(const Duration(seconds: 60));
+    await tester.pump(const Duration(seconds: 10));
     await tester.pumpAndSettle();
     expect(find.byType(SnackBar), findsNothing);
     expect(cubit.state.alertVersion, 1);
@@ -176,7 +212,7 @@ void main() {
       (tester) async {
     await mount(tester);
     repository.items.insert(0, notification(id: 'n2'));
-    await tester.pump(const Duration(seconds: 60));
+    await tester.pump(const Duration(seconds: 10));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Ver'));
     await tester.pumpAndSettle();
@@ -191,7 +227,7 @@ void main() {
       (tester) async {
     await mount(tester);
     repository.items.insert(0, notification(id: 'n2'));
-    await tester.pump(const Duration(seconds: 60));
+    await tester.pump(const Duration(seconds: 10));
     await tester.pumpAndSettle();
     session.onAuthCleared();
     await tester.pumpAndSettle();
@@ -226,5 +262,67 @@ void main() {
     await tester.pump(const Duration(seconds: 120));
     expect(repository.listCalls, 0);
     expect(find.byType(SnackBar), findsNothing);
+  });
+
+  testWidgets('network failure keeps the timer and the next tick recovers',
+      (tester) async {
+    await mount(tester);
+    repository.failure = const NetworkFailure('Offline');
+    await tester.pump(const Duration(seconds: 10));
+    await tester.pumpAndSettle();
+    expect(session.state.isAuthenticated, isTrue);
+    expect(cubit.state.unread, 1);
+    repository.failure = null;
+    repository.items.insert(0, notification(id: 'recovered'));
+    await tester.pump(const Duration(seconds: 10));
+    await tester.pumpAndSettle();
+    expect(repository.listCalls, 3);
+    expect(cubit.state.unread, 2);
+    expect(find.byType(SnackBar), findsOneWidget);
+  });
+
+  testWidgets('logout stops polling before the server responds',
+      (tester) async {
+    await session.close();
+    final auth = _SlowLogout();
+    session = AppSessionCubit(authRepository: auth);
+    await mount(tester);
+    final logout = session.logout();
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 30));
+    expect(repository.listCalls, 1);
+    expect(cubit.state.unread, isNull);
+    expect(session.state.isAuthenticated, isFalse);
+    auth.pending.complete(const Ok(null));
+    await logout;
+  });
+
+  testWidgets('repeated session sync creates only one 10-second timer',
+      (tester) async {
+    await mount(tester);
+    session.onSessionRestored(
+        const repo.UserSession(id: 'qa', username: 'qa', isActive: true));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 10));
+    await tester.pumpAndSettle();
+    expect(repository.listCalls, 2);
+    expect(NotificationsMonitor.pollInterval, const Duration(seconds: 10));
+  });
+
+  testWidgets('open panel receives arrivals without closing or manual refresh',
+      (tester) async {
+    await mount(tester);
+    repository.items.insert(0, notification(id: 'n2'));
+    await tester.pump(const Duration(seconds: 10));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Ver'));
+    await tester.pumpAndSettle();
+    repository.items.insert(0, notification(id: 'n3'));
+    await tester.pump(const Duration(seconds: 10));
+    await tester.pumpAndSettle();
+    expect(find.byType(Dialog), findsOneWidget);
+    expect(cubit.state.data!.items.map((n) => n.id), ['n3', 'n2', 'n1']);
+    expect(cubit.state.unread, 3);
+    expect(tester.takeException(), isNull);
   });
 }

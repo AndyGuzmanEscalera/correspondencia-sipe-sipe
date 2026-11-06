@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:correspondencia_repository/correspondencia_repository.dart'
     as repo;
 import 'package:correspondencia_sipe_sipe/core/helpers/dialog_message.dart';
@@ -63,6 +65,33 @@ class NotificationsCubit extends Cubit<NotificationsState> {
   bool _hasBaseline = false;
   Object? _pollToken;
   int _pollGeneration = 0;
+  Future<void>? _listTail;
+  Future<Result<repo.NotificationsPage, Failure>?>? _activeList;
+  int? _activeListPage, _activeListEpoch;
+
+  // Share identical reads and serialize page changes, including manual refresh.
+  Future<Result<repo.NotificationsPage, Failure>?> _fetchList(
+      int page, int epoch) {
+    if (_activeList != null &&
+        _activeListPage == page &&
+        _activeListEpoch == epoch) {
+      return _activeList!;
+    }
+    final previous = _listTail;
+    final request = () async {
+      if (previous != null) await previous;
+      if (isClosed || epoch != _epoch) return null;
+      return repository.list(page: page);
+    }();
+    _activeList = request;
+    _activeListPage = page;
+    _activeListEpoch = epoch;
+    _listTail =
+        request.then<void>((_) {}, onError: (Object _, StackTrace __) {});
+    return request.whenComplete(() {
+      if (identical(_activeList, request)) _activeList = null;
+    });
+  }
 
   /// Discard an in-flight background response without clearing the badge/list.
   void cancelPoll() {
@@ -72,14 +101,33 @@ class NotificationsCubit extends Cubit<NotificationsState> {
 
   /// One silent request: actual IDs detect arrivals even when unread stays equal.
   Future<void> poll() async {
-    if (isClosed || state.busy || _pollToken != null) return;
+    if (isClosed ||
+        state.busy ||
+        state.generalStatus == GeneralStatus.loading ||
+        _pollToken != null) return;
     final token = Object();
     _pollToken = token;
     final epoch = _epoch, generation = _pollGeneration;
     final countRequest = ++_countRequest;
     try {
-      final result = await repository.list(page: 1);
+      final result = await _fetchList(1, epoch);
       if (isClosed || epoch != _epoch || generation != _pollGeneration) return;
+      if (result == null) return;
+      final visiblePage = state.data?.page ?? 1;
+      repo.NotificationsPage? visible;
+      if (visiblePage > 1) {
+        final current = await _fetchList(visiblePage, epoch);
+        if (isClosed || epoch != _epoch || generation != _pollGeneration)
+          return;
+        current?.when(ok: (page) => visible = page, err: (_) {});
+        if (visible == null) return;
+        if (visible!.page > visible!.totalPages && visible!.totalPages > 0) {
+          final last = await _fetchList(visible!.totalPages, epoch);
+          if (isClosed || epoch != _epoch || generation != _pollGeneration)
+            return;
+          last?.when(ok: (page) => visible = page, err: (_) {});
+        }
+      }
       result.when(
           ok: (page) {
             final incoming = _hasBaseline
@@ -93,7 +141,7 @@ class NotificationsCubit extends Cubit<NotificationsState> {
             if (canUpdateCount) ++_countRequest;
             emit(state.copyWith(
               unread: canUpdateCount ? page.unread : null,
-              data: state.data?.page == 1 ? page : null,
+              data: visible ?? page,
               incoming: List.unmodifiable(incoming),
               alertVersion: incoming.isEmpty
                   ? state.alertVersion
@@ -135,11 +183,13 @@ class NotificationsCubit extends Cubit<NotificationsState> {
     emit(state.copyWith(
         generalStatus: GeneralStatus.loading,
         dialogMessage: const DialogMessage.empty()));
-    final result = await repository.list(page: page ?? state.data?.page ?? 1);
+    final result = await _fetchList(page ?? state.data?.page ?? 1, epoch);
     if (isClosed || epoch != _epoch || request != _listRequest) return;
+    if (result == null) return;
     result.when(
         ok: (value) {
           _seenIds.addAll(value.items.map((n) => n.id));
+          _hasBaseline = true;
           ++_countRequest;
           emit(state.copyWith(
               data: value,
