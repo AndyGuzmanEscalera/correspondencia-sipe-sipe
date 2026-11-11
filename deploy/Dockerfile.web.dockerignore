@@ -1,0 +1,27 @@
+# Context is the development repository root; Website is never sent.
+**
+!pubspec.yaml
+!pubspec.lock
+!lib/
+!lib/**
+!assets/
+!assets/**
+!web/
+!web/**
+!packages/
+!packages/*/
+!packages/*/pubspec.yaml
+!packages/*/pubspec.lock
+!packages/*/lib/
+!packages/*/lib/**
+!deploy/
+!deploy/Dockerfile.web
+!deploy/apache/
+!deploy/apache/correspondencia.image.conf
+**/.dart_tool/
+**/build/
+**/.git/
+**/test/
+**/.env*
+**/*.pem
+**/*.key

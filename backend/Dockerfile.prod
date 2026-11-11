@@ -1,0 +1,28 @@
+# syntax=docker/dockerfile:1
+ARG PYTHON_IMAGE=python:3.12-slim-bookworm@sha256:935c3c5b12357a7e10caa9c1e6ca5692344d97cf229832ef584be2cec9fc03df
+FROM ${PYTHON_IMAGE} AS runtime
+ARG SOURCE_REVISION
+ARG RELEASE_VERSION=local-test
+ARG SOURCE_DIRTY=true
+LABEL org.opencontainers.image.source="https://github.com/AndyGuzmanEscalera/correspondencia-sipe-sipe" \
+      org.opencontainers.image.revision="${SOURCE_REVISION}" \
+      org.opencontainers.image.version="${RELEASE_VERSION}" \
+      municipal.source.dirty="${SOURCE_DIRTY}"
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    STORAGE_ROOT=/app/storage
+WORKDIR /app
+COPY requirements.txt requirements-biometric.txt ./
+RUN test -n "$SOURCE_REVISION" \
+    && pip install --no-cache-dir -r requirements.txt \
+    && groupadd --gid 10001 app \
+    && useradd --uid 10001 --gid 10001 --no-create-home --home-dir /tmp app \
+    && install -d -o 10001 -g 10001 -m 0750 /app/storage
+COPY app ./app
+COPY alembic ./alembic
+COPY alembic.ini ./
+USER 10001:10001
+EXPOSE 8000
+# Compose supplies its explicit trusted proxy IP. Never trust every forwarded peer.
+# No startup migrations, seeds, administrators or development reload.
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-proxy-headers"]

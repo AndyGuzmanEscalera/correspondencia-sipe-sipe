@@ -1,0 +1,50 @@
+# syntax=docker/dockerfile:1
+ARG FLUTTER_BUILDER_IMAGE=debian:bookworm-slim@sha256:734a72b3d6142a71993b4bc580ca01d8ca687f77a2c422d96a961d3376b179bc
+ARG HTTPD_IMAGE=httpd:2.4-bookworm@sha256:fbc12199ccad031d8047e9c789d65aceee2d14f99ba90664cd3a3996867a5582
+FROM ${FLUTTER_BUILDER_IMAGE} AS flutter-build
+# Same SDK as development. Verify the immutable upstream commit, not only a tag.
+ARG FLUTTER_VERSION=3.22.3
+ARG FLUTTER_REVISION=b0850beeb25f6d5b10426284f506557f66181b36
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl git unzip xz-utils libglu1-mesa \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --gid 10001 builder \
+    && useradd --uid 10001 --gid 10001 --create-home builder \
+    && install -d -o builder -g builder /opt/flutter /src
+USER builder
+RUN git clone --depth 1 --branch "$FLUTTER_VERSION" https://github.com/flutter/flutter.git /opt/flutter \
+    && test "$(git -C /opt/flutter rev-parse HEAD)" = "$FLUTTER_REVISION"
+ENV PATH="/opt/flutter/bin:${PATH}" CI=true
+RUN flutter config --no-analytics --enable-web && flutter precache --web
+WORKDIR /src
+COPY --chown=10001:10001 pubspec.yaml pubspec.lock ./
+COPY --chown=10001:10001 packages ./packages
+RUN flutter pub get --enforce-lockfile
+COPY --chown=10001:10001 lib ./lib
+COPY --chown=10001:10001 assets ./assets
+COPY --chown=10001:10001 web ./web
+RUN flutter build web --release --no-pub --dart-define=APP_ENV=production --base-href=/ --pwa-strategy=none
+
+FROM ${HTTPD_IMAGE} AS runtime
+ARG SOURCE_REVISION
+ARG RELEASE_VERSION=local-test
+ARG SOURCE_DIRTY=true
+LABEL org.opencontainers.image.source="https://github.com/AndyGuzmanEscalera/correspondencia-sipe-sipe" \
+      org.opencontainers.image.revision="${SOURCE_REVISION}" \
+      org.opencontainers.image.version="${RELEASE_VERSION}" \
+      municipal.source.dirty="${SOURCE_DIRTY}"
+RUN test -n "$SOURCE_REVISION" \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends curl ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --gid 10001 app \
+    && useradd --uid 10001 --gid 10001 --no-create-home --home-dir /tmp app \
+    && sed -ri 's/^Listen 80$/# Listen supplied by correspondencia.conf/; s/^User .*/User app/; s/^Group .*/Group app/; s/^#(LoadModule (proxy|proxy_http|rewrite|headers|remoteip)_module .*)/\1/' /usr/local/apache2/conf/httpd.conf \
+    && printf '\nInclude conf/extra/correspondencia.conf\n' >> /usr/local/apache2/conf/httpd.conf \
+    && rm -rf /usr/local/apache2/htdocs/* \
+    && chown 10001:10001 /usr/local/apache2/logs
+COPY deploy/apache/correspondencia.image.conf /usr/local/apache2/conf/extra/correspondencia.conf
+COPY --from=flutter-build /src/build/web/ /usr/local/apache2/htdocs/
+USER 10001:10001
+EXPOSE 8080
+CMD ["httpd-foreground"]
