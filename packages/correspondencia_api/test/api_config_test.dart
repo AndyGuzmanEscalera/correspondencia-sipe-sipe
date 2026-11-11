@@ -4,17 +4,23 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/foundation.dart';
 
 void main() {
-  const sameOrigin = kIsWeb &&
-      (!kDebugMode ||
-          ApiConfig.environment == 'qa' ||
-          ApiConfig.environment == 'production');
-  const expectedBaseUrl = sameOrigin
-      ? '/api'
-      : String.fromEnvironment('API_BASE_URL',
-          defaultValue: 'http://localhost:8000');
+  const expectedBaseUrl = String.fromEnvironment('API_BASE_URL',
+      defaultValue: ApiConfig.environment == 'production'
+          ? ApiConfig.productionBaseUrl
+          : kIsWeb && ApiConfig.environment == 'qa'
+              ? '/api'
+              : 'http://localhost:8000');
 
-  test('ApiConfig selecciona DEV configurable o web QA/PROD same-origin', () {
+  test('ApiConfig permite API separada en producción y override explícito', () {
     expect(ApiConfig.baseUrl, expectedBaseUrl);
+  });
+
+  test('producción usa URL pública HTTPS con prefijo único /api', () {
+    final uri = Uri.parse(ApiConfig.productionBaseUrl);
+    expect(uri.scheme, 'https');
+    expect(uri.host, 'api-correspondencia.sipesipe.gob.bo');
+    expect(uri.path, '/api');
+    expect(uri.userInfo, isEmpty);
   });
 
   test('clientes principal y refresh conservan la base y credenciales', () {

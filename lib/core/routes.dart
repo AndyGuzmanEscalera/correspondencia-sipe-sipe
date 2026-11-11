@@ -9,10 +9,17 @@ class Routes {
   static const bootstrap = '/correspondencia';
 
   /// Consulta pública de trámites (ciudadanos).
-  static const publicConsult = '/correspondencia/consulta';
+  static const publicConsult = '/consulta';
 
   /// Login de funcionarios.
-  static const signIn = '/correspondencia/login';
+  static const signIn = '/login';
+
+  /// Temporary redirects; canonical pages are registered exactly once.
+  static const legacyRedirects = <String, String>{
+    '/correspondencia/login': signIn,
+    '/correspondencia/consulta': publicConsult,
+    '/consulta-publica': publicConsult,
+  };
 
   /// Panel administrativo autenticado.
   static const home = '/correspondencia/home';

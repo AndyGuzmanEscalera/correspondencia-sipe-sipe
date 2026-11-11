@@ -23,7 +23,7 @@ RUN flutter pub get --enforce-lockfile
 COPY --chown=10001:10001 lib ./lib
 COPY --chown=10001:10001 assets ./assets
 COPY --chown=10001:10001 web ./web
-RUN flutter build web --release --no-pub --dart-define=APP_ENV=production --base-href=/ --pwa-strategy=none
+RUN flutter build web --release --no-pub --dart-define=APP_ENV=production --dart-define=API_BASE_URL=/api --base-href=/ --pwa-strategy=none
 
 FROM ${HTTPD_IMAGE} AS runtime
 ARG SOURCE_REVISION

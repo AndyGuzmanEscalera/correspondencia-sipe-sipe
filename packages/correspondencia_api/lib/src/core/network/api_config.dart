@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-/// Single source of truth for both main and refresh clients.
-/// Release web builds always use Apache's same-origin /api proxy.
+/// Shared configuration for the main client and the refresh client.
 class ApiConfig {
   ApiConfig._();
 
@@ -10,15 +9,18 @@ class ApiConfig {
     defaultValue: kDebugMode ? 'development' : 'production',
   );
 
-  static const bool _sameOrigin = kIsWeb &&
-      (!kDebugMode || environment == 'qa' || environment == 'production');
+  /// Public endpoint only. No credentials or backend secrets belong here.
+  static const String productionBaseUrl =
+      'https://api-correspondencia.sipesipe.gob.bo/api';
 
-  /// API_BASE_URL only overrides development (or native clients).
-  /// A release web build cannot accidentally ship a development/LAN address.
-  static const String baseUrl = _sameOrigin
-      ? '/api'
-      : String.fromEnvironment(
-          'API_BASE_URL',
-          defaultValue: 'http://localhost:8000',
-        );
+  /// Pages uses the separate API host. Debian recovery builds explicitly pass
+  /// API_BASE_URL=/api; local development can select its own backend.
+  static const String baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: environment == 'production'
+        ? productionBaseUrl
+        : kIsWeb && environment == 'qa'
+            ? '/api'
+            : 'http://localhost:8000',
+  );
 }

@@ -15,7 +15,8 @@ final GoRouter router = GoRouter(
   routerNeglect: true,
   initialLocation: Routes.initial,
   routes: [
-    GoRoute(path: '/consulta-publica', redirect: (context, state) => Routes.publicConsult),
+    for (final entry in Routes.legacyRedirects.entries)
+      GoRoute(path: entry.key, redirect: (context, state) => entry.value),
     GoRoute(
       path: Routes.initial,
       builder: (context, state) => const SplashPage(),
@@ -70,8 +71,7 @@ class _ProtectedHomePageState extends State<_ProtectedHomePage> {
     if (!mounted) return;
 
     if (restored) {
-      final permissions =
-          appSession.state.userSession?.permissions ?? const [];
+      final permissions = appSession.state.userSession?.permissions ?? const [];
       context.read<SideMenuCubit>().init(permissions: permissions);
       setState(() => _checking = false);
       return;
