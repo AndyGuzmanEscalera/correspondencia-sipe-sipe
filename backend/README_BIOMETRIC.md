@@ -1,5 +1,24 @@
 # Integración biométrica RRHH
 
+## Arquitectura vigente
+
+```text
+Flutter RRHH
+    ↓  (endpoints /rrhh/... existentes)
+Backend RRHH
+    ↓  HTTPS + Bearer token
+Biometric API  (https://biometric.sipesipe.gob.bo)
+    ↓  Cloudflare Tunnel
+Biometric Reader API
+    ↓
+Reloj biométrico real
+```
+
+El backend RRHH es el **único** consumidor de la Biometric API. Flutter no conoce el
+dominio ni el token. La conexión directa `pyzk`/TCP 4370 ya no forma parte del camino
+de ejecución; el código del lector se conserva solo como referencia y para pruebas de
+protocolo en loopback. Las fuentes de persistencia son `SOURCE_API` y `SOURCE_FILE`.
+
 La etapa del 27 de octubre agrega evaluación diaria reproducible y reporte individual:
 ver [README_ATTENDANCE_EVALUATION.md](README_ATTENDANCE_EVALUATION.md). Su inspección física
 confirma tablas históricas de turnos que no aparecen en el ORM vigente; no se duplican.
@@ -23,7 +42,8 @@ python -m app.modules.rrhh.worker
 
 La migración `h1b2c3d4e5f6` sucede a `g2b3c4d5e6f7`. No ejecuta consultas al reloj.
 Para una instalación nueva hay que aplicar también las migraciones existentes del backend.
-El worker debe desplegarse como servicio supervisado, con acceso de red al reloj y PostgreSQL.
+El worker debe desplegarse como servicio supervisado, con salida a Internet hacia la
+Biometric API (o acceso al tunnel) y PostgreSQL. Ya no requiere LAN al reloj.
 Si no está activo, las solicitudes permanecen en estado `queued`; la API sigue respondiendo.
 `--once` procesa como máximo una tarea y es útil para un planificador externo.
 
@@ -35,19 +55,37 @@ docker compose up -d --build --no-deps backend
 
 El Dockerfile debe copiar **ambos** archivos `requirements.txt` y
 `requirements-biometric.txt` antes de ejecutar pip; el instalador aplica este ajuste.
-El conector carga pyzk al usarse, de modo que su ausencia produce un error controlado
-en RRHH y no impide arrancar autenticación, salud ni el resto de módulos.
+El cliente HTTPS (`httpx`) se carga al usarse: su ausencia produce
+`biometric_dependency_missing` sin impedir arrancar autenticación, salud ni el resto.
 Si Flutter muestra un error XMLHttpRequest con sugerencia CORS, comprobar primero
 `GET /health`: una conexión sin respuesta también produce ese mensaje del navegador.
-Las pruebas de arranque `python -m pytest tests_startup -q` simulan pyzk ausente
-y verifican salud, preflight con credenciales y refresh sin cookie (401 normal), sin DB.
+Las pruebas de arranque `python -m pytest tests_startup -q` simulan `httpx` ausente
+y configuración API incompleta; verifican salud, preflight y refresh sin cookie (401), sin DB.
 
-Copiar las claves de `.env.biometric.example` al entorno del backend y completar IP,
-clave de comunicación y un `device_id` estable. No copiar `.env` del ZIP.
-La configuración conserva las validaciones del lector: IPv4, puerto válido, clave numérica,
-timeout por operación hasta 300 segundos, transporte `auto|tcp|udp`, encoding válido.
-La clave no figura en modelos persistentes, respuestas ni mensajes de error.
-No activar SQLAlchemy `echo` con entradas sensibles ni trazas locales de pyzk en producción.
+## Desarrollo local / QA
+
+Copiar `.env.biometric.example` (o las claves equivalentes de `.env.example`) al `.env`
+del backend compartido. Completar:
+
+```env
+BIOMETRIC_API_URL=https://biometric.sipesipe.gob.bo
+BIOMETRIC_API_TOKEN=<token real local, nunca versionar>
+BIOMETRIC_API_TIMEOUT=60
+BIOMETRIC_DEVICE_ID=alcaldia-central
+```
+
+`BIOMETRIC_DEVICE_ID` debe coincidir con el `device_id` que informa la API; si difieren,
+el `record_id` local no coincidiría con el histórico y reaparecerían duplicados.
+El token no se imprime en logs ni se expone en respuestas. Desde esta PC se puede
+desarrollar con datos reales vía HTTPS sin acceso LAN al reloj.
+
+Prueba manual controlada (solo lectura, con token válido):
+
+1. `GET /health` de la Biometric API
+2. `GET /rrhh/biometric/status` y `GET /rrhh/biometric/users` del backend RRHH
+3. Lectura de un rango pequeño o un CI concreto vía sincronización / cliente
+
+No modificar el biométrico, no borrar datos, no ejecutar escritura remota.
 
 Los endpoints utilizan el Bearer token y `require_permission` existentes:
 
@@ -57,9 +95,9 @@ En desarrollo directo usar `http://localhost:8000/rrhh/...`, igual que `/auth` y
 
 | Método y ruta bajo `/api/rrhh` | Permiso | Comportamiento |
 | --- | --- | --- |
-| GET `/biometric/status` | `rrhh.read` | Consulta breve del dispositivo; no descarga marcaciones ni expone IP/clave |
+| GET `/biometric/status` | `rrhh.read` | Distingue `api_available` y `device_connected`; no descarga marcaciones ni expone token |
 | GET `/biometric/users` | `rrhh.read` | Identificador, UID y nombre; sin contraseña, tarjeta ni plantillas |
-| POST `/biometric/sync` | `rrhh.manage` | Fechas obligatorias; devuelve 202 con tarea persistente |
+| POST `/biometric/sync` | `rrhh.manage` | Fechas obligatorias; descarga filtrada `from`/`to` vía API; 202 con tarea |
 | GET `/biometric/syncs/{id}` | `rrhh.read` | Progreso y resultado de la tarea |
 | POST `/biometric/import` | `rrhh.manage` | JSON normalizado procedente de TXT/DAT, máximo 10.000 registros por petición |
 | PUT `/biometric/devices/{device_id}/links/{user_id}` | `rrhh.manage` | Vínculo explícito; actualiza también marcaciones históricas |
@@ -80,9 +118,9 @@ Ejemplo de sincronización:
 {"start_date":"2026-09-25","end_date":"2026-10-24"}
 ```
 
-El rango máximo es 367 días inclusivos. **Cada sincronización explícita descarga todo
-el histórico**: el equipo no ofrece filtrado remoto confirmado. Se persiste todo, incluso
-lo que queda fuera del rango solicitado, para evitar nuevas descargas por otras pantallas.
+El rango máximo es 367 días inclusivos. **Cada sincronización descarga solo el período
+solicitado** mediante `GET /attendance?from=&to=` en la Biometric API (y `ci` si aplica).
+La paginación del cliente usa `limit`/`offset` hasta cubrir `total`, con tope de páginas.
 Abrir marcaciones, consultar funcionarios o generar una preparación nunca inicia una descarga.
 No hay actualización automática por cada apertura ni temporizador de descargas repetidas.
 La frescura depende de la última sincronización solicitada por un usuario autorizado.
@@ -91,11 +129,11 @@ La frescura depende de la última sincronización solicitada por un usuario auto
 
 Una cola PostgreSQL conserva solicitudes tras reinicios. Un índice parcial único impide
 dos tareas `queued/running` del mismo dispositivo. Otro bloqueo, advisory de sesión por
-IP/puerto, serializa el acceso físico entre procesos API y workers. Las consultas de estado
-y usuarios reciben 409 si el equipo está ocupado. PostgreSQL debe conectarse directamente
-o mediante pooling de sesión; el pooling transaccional de PgBouncer no admite este contrato.
-No cambiar IP/device_id mientras exista una tarea activa; las tareas se atienden con la
-configuración vigente del worker y debe ser idéntica a la de la API.
+URL de la Biometric API, serializa descargas entre procesos API y workers. Las consultas
+de estado y usuarios reciben 409 si hay otra operación activa. PostgreSQL debe conectarse
+directamente o mediante pooling de sesión; el pooling transaccional de PgBouncer no admite
+este contrato. No cambiar `BIOMETRIC_API_URL`/`device_id` mientras exista una tarea activa;
+API y worker deben compartir la misma configuración.
 
 Si el worker cae, la conexión libera el bloqueo. La siguiente ejecución marca la tarea
 `running` huérfana como fallida, sin descargar automáticamente otra vez. El usuario puede
@@ -103,20 +141,23 @@ solicitar una nueva tarea. No se descartan registros descargados por una sincron
 exitosa anterior. Una descarga incompleta o un lote inválido revierte todos los nuevos
 registros y registra un error seguro en la tarea. No se devuelven excepciones originales.
 
-Se reutiliza `Reader`, su guardia de comandos `_BoundedZK`, limpieza de sockets,
-fallback TCP/UDP y `attendance_record`. `record_id` conserva exactamente el SHA-256 de
-JSON compacto `[device_id,user_id,timestamp,status,punch]`, con Unicode original.
-`uid` no participa. PostgreSQL usa UNIQUE + `ON CONFLICT DO NOTHING` en lotes de 1.000.
-API y archivo normalizado usan la misma función y la misma tabla. `source` indica la
-primera fuente que incorporó la marca; una segunda fuente idéntica no cambia ese valor.
-Dos eventos indistinguibles en esos cinco campos y el mismo segundo se colapsan,
-limitación heredada y documentada del identificador del lector.
+La deduplicación **no** cambia al adoptar la Biometric API: se sigue calculando el
+`record_id` local con SHA-256 de JSON compacto `[device_id,user_id,timestamp,status,punch]`
+(`attendance_record`). El `record_id` externo de la API se ignora a propósito para no
+duplicar el histórico ya persistido vía pyzk. `uid` no participa. PostgreSQL usa UNIQUE +
+`ON CONFLICT DO NOTHING` en lotes de 1.000. `SOURCE_API` y `SOURCE_FILE` comparten la
+misma función y tabla. `status`/`punch` se guardan crudos (p. ej. 15/25/1 y punch 255);
+la interpretación de entrada/salida sigue en evaluación institucional.
 
-La descarga completa se mantiene en memoria por el contrato actual de pyzk/Reader;
-no se presenta como streaming ni descarga incremental. Los timestamps del dispositivo
-son locales, sin zona (`TIMESTAMP WITHOUT TIME ZONE`), con precisión de segundos.
-Solo los tiempos operativos de las tareas usan UTC. Los filtros incluyen ambos días
-mediante límites `[inicio 00:00, día siguiente al fin 00:00)`.
+El cliente HTTPS pagina en memoria el resultado filtrado del período; no descarga el
+histórico completo del reloj. Los timestamps del dispositivo son locales, sin zona
+(`TIMESTAMP WITHOUT TIME ZONE`), con precisión de segundos. Solo los tiempos operativos
+de las tareas usan UTC. Los filtros de consulta RRHH incluyen ambos días mediante
+límites `[inicio 00:00, día siguiente al fin 00:00)`.
+
+Errores de la Biometric API: `401/403` → token/configuración; `502` → API reachable pero
+dispositivo no; `504`/timeout HTTP → timeout; fallos DNS/Cloudflare/red → API unreachable.
+La sincronización queda en `failed` sin persistir el lote.
 
 ## Funcionarios, turnos y contratos: hallazgos y pendientes
 
@@ -179,12 +220,11 @@ python -m pip check
 ```
 
 La suite exige una base desechable cuyo nombre contenga `rrhh_biometric_test` y vacía
-sus tablas. Nunca apuntarla a la base compartida. Usa mocks y sockets de loopback, nunca
-el equipo físico ni `.env` del ZIP. Incluye las pruebas originales adaptadas solo en sus
-imports, más PostgreSQL real para deduplicación, fuentes, vínculos, fechas, seguridad,
-parámetros, atomicidad, concurrencia, recuperación de tareas y períodos.
+sus tablas. Nunca apuntarla a la base compartida. El cliente HTTP se prueba con
+`httpx.MockTransport`; nunca contra `https://biometric.sipesipe.gob.bo` en CI.
+Incluye paginación, filtros, 401/502/timeout/red, deduplicación, worker, sync y
+recuperación de tareas, además de evaluación y arranque.
 
-El monitor y SQLite originales se conservan como referencia; producción usa el worker
-y PostgreSQL. La CLI `main.py` no se convierte en router ni se ejecuta desde HTTP.
-La guardia del lector depende de detalles privados de `pyzk==0.9`; no actualizar sin
-revisar la lista de comandos y repetir las pruebas de solo lectura.
+El monitor/SQLite/`pyzk` originales se conservan bajo `reader/` como referencia retirada
+del camino de ejecución. Producción usa el worker, PostgreSQL y `api_client`.
+La CLI histórica del lector no se convierte en router ni se ejecuta desde HTTP.

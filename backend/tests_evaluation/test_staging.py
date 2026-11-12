@@ -69,26 +69,25 @@ def test_database_and_period_must_match_exactly():
     assert source.contracts(db).items[0].name.startswith("[PRUEBA STAGING]")
 
 
-def test_preflight_only_requests_basic_metadata_and_sizes():
+def test_preflight_only_calls_health_and_device():
     calls = []
-    class Connection:
-        users = 2
-        def __getattr__(self, name):
-            # Fails if clock, users, attendance, disable/enable or write requested.
-            assert name in {"get_device_name", "get_serialnumber", "get_platform", "get_firmware_version", "read_sizes"}
-            def call():
-                calls.append(name)
-                return "synthetic metadata"
-            return call
-    class Reader:
-        last_transport = "TCP"
-        @contextmanager
-        def session(self):
-            calls.append("connect")
-            try:
-                yield Connection()
-            finally:
-                calls.append("disconnect")
+
+    class Client:
+        def health(self):
+            calls.append("health")
+            return {"status": "ok"}
+
+        def get_device(self):
+            calls.append("get_device")
+            return {"connected": True, "device_name": "uFace", "serial_number": "synthetic",
+                    "platform": "ZK", "firmware_version": "1", "transport": "https"}
+
+        def get_users(self):
+            raise AssertionError("preflight must not list users")
+
+        def download_attendance(self, **_kwargs):
+            raise AssertionError("preflight must not download attendance")
+
     @contextmanager
     def device_lock(engine):
         calls.append("lock")
@@ -96,9 +95,12 @@ def test_preflight_only_requests_basic_metadata_and_sizes():
             yield
         finally:
             calls.append("unlock")
-    service = SimpleNamespace(reader=Reader(), device_lock=device_lock,
-        config=SimpleNamespace(device_id="test-clock"))
+
+    service = SimpleNamespace(client=Client(), device_lock=device_lock,
+                              config=SimpleNamespace(device_id="test-clock",
+                                                     url="https://biometric.example.test"))
     result = preflight(service, None)
-    assert result["read_only"] and result["users_count"] == 2
-    assert calls == ["lock", "connect", "get_device_name", "get_serialnumber", "get_platform",
-                     "get_firmware_version", "read_sizes", "disconnect", "unlock"]
+    assert result["read_only"] is True
+    assert result["api_available"] is True and result["device_connected"] is True
+    assert result["model"] == "uFace" and result["serial"] == "synthetic"
+    assert calls == ["lock", "health", "get_device", "unlock"]

@@ -17,11 +17,11 @@ from app.modules.identity.role_permission import RolePermission
 from app.modules.identity.user import User
 from app.modules.identity.user_role import UserRole
 from app.modules.organization.employee import Employee
+from app.modules.rrhh.api_client.config import ApiConfig
+from app.modules.rrhh.api_client.errors import BiometricApiError
 from app.modules.rrhh.biometric_service import BiometricService
 from app.modules.rrhh.models import ContractPolicy, Device, EmployeeLink, Record, Sync
 from app.modules.rrhh.periods import period_for
-from app.modules.rrhh.reader.config import Config
-from app.modules.rrhh.reader.connection import DeviceError
 from app.modules.rrhh.reader.records import attendance_record
 from app.modules.rrhh.schemas import DateRange, NormalizedRecord
 from app.modules.rrhh.storage import employee_lookup, persist_records
@@ -58,12 +58,25 @@ def row(user="007", stamp="2026-10-01T08:00:00", status=4, punch=9):
                                              status=status, punch=punch, uid=23), "test-clock")
 
 
+def api_config():
+    return ApiConfig(url="https://biometric.example.test", token="test-token",
+                     timeout=5, device_id="test-clock")
+
+
 def fake_service(rows=None, error=None):
-    reader = Mock(config=Config("127.0.0.1", device_id="test-clock"))
-    reader.attendance.return_value = [row()] if rows is None else rows
+    client = Mock(config=api_config())
+    client.download_attendance.return_value = [row()] if rows is None else rows
     if error:
-        reader.attendance.side_effect = error
-    return BiometricService(reader)
+        client.download_attendance.side_effect = error
+    client.health.return_value = {"status": "ok"}
+    client.get_device.return_value = {
+        "connected": True, "device_id": "test-clock", "device_name": "uFace802 Plus",
+        "platform": "ZK", "serial_number": "synthetic", "firmware_version": "1",
+        "transport": "https",
+    }
+    client.get_users.return_value = [{"user_id": "007", "uid": 1, "name": "Test",
+                                      "card": 123, "password": "secret", "privilege": 14}]
+    return BiometricService(client)
 
 
 def worker(service):
@@ -139,13 +152,14 @@ def test_authenticated_user_without_rrhh_permission_is_denied(client, db):
         service.assert_not_called()
 
 
-def test_invalid_configuration_never_uses_reader_defaults(monkeypatch):
-    monkeypatch.setenv("BIOMETRIC_IP", "")
-    with patch("app.modules.rrhh.biometric_service.Reader") as reader:
+def test_invalid_configuration_never_opens_api_client(monkeypatch):
+    monkeypatch.setenv("BIOMETRIC_API_URL", "")
+    monkeypatch.setenv("BIOMETRIC_API_TOKEN", "")
+    with patch("app.modules.rrhh.biometric_service.ApiClient") as api_client:
         with pytest.raises(HTTPException) as error:
             BiometricService()
         assert error.value.detail["code"] == "biometric_invalid_configuration"
-        reader.assert_not_called()
+        api_client.assert_not_called()
 
 
 @pytest.mark.parametrize("payload", [{}, {"start_date": "2026-10-01"},
@@ -158,19 +172,23 @@ def test_sync_date_validation(client, db, payload):
         service.assert_not_called()
 
 
-def test_queue_repeat_sync_full_history_and_status(client, db):
+def test_queue_repeat_sync_filtered_range_and_status(client, db):
     headers = auth(db)
     payload = {"start_date": "2026-10-01", "end_date": "2026-10-02"}
     response = client.post("/rrhh/biometric/sync", headers=headers, json=payload)
     assert response.status_code == 202
+    assert response.json()["full_history_download"] is False
     job_id = response.json()["id"]
     repeat = client.post("/rrhh/biometric/sync", headers=headers, json=payload)
     assert repeat.status_code == 409 and repeat.json()["detail"]["sync_id"] == job_id
-    service = fake_service([row(), row(stamp="2025-01-01T09:00:00")])
+    service = fake_service([row(), row(stamp="2026-10-02T09:00:00")])
     assert worker(service)
+    service.client.download_attendance.assert_called_once()
+    kwargs = service.client.download_attendance.call_args.kwargs
+    assert kwargs["from_date"] == "2026-10-01" and kwargs["to_date"] == "2026-10-02"
     status = client.get("/rrhh/biometric/syncs/" + job_id, headers=headers).json()
     assert status["status"] == "completed" and status["new_records"] == 2
-    assert db.scalar(select(func.count()).select_from(Record)) == 2  # Not only requested dates.
+    assert db.scalar(select(func.count()).select_from(Record)) == 2
     assert client.post("/rrhh/biometric/sync", headers=headers, json=payload).status_code == 202
     assert worker(service)
     assert db.scalar(select(func.count()).select_from(Record)) == 2
@@ -200,9 +218,11 @@ def test_failed_download_is_controlled_and_atomic(client, db):
     headers = auth(db)
     result = client.post("/rrhh/biometric/sync", headers=headers,
                          json={"start_date": "2026-10-01", "end_date": "2026-10-02"})
-    assert worker(fake_service(error=DeviceError("timeout password=secret")))
+    assert worker(fake_service(error=BiometricApiError(
+        "biometric_api_timeout", "La API biométrica no respondió dentro del tiempo configurado.",
+        detail="password=secret")))
     status = client.get("/rrhh/biometric/syncs/" + result.json()["id"], headers=headers).json()
-    assert status["status"] == "failed" and status["error_code"] == "biometric_timeout"
+    assert status["status"] == "failed" and status["error_code"] == "biometric_api_timeout"
     assert "secret" not in str(status)
     assert db.scalar(select(func.count()).select_from(Record)) == 0
 
@@ -224,7 +244,7 @@ def test_orphaned_running_job_recovered_without_redownload(db):
     db.commit()
     service = fake_service()
     assert worker(service)
-    service.reader.attendance.assert_not_called()
+    service.client.download_attendance.assert_not_called()
     db.expire_all()
     assert db.scalar(select(Sync)).error_code == "biometric_interrupted"
 
@@ -277,25 +297,37 @@ def test_normalized_file_import_uses_same_hash(client, db):
     assert persist_records(db, "test-clock", [row()], "SOURCE_API") == 0
 
 
-def test_status_safe_and_device_error_controlled(client, db):
+def test_status_safe_and_separates_api_from_device(client, db):
     headers = auth(db)
     service = fake_service()
-    service.reader.info.return_value = {"nombre_modelo": "uFace802 Plus", "serial": "synthetic", "transporte": "TCP"}
     with patch("app.modules.rrhh.router.BiometricService", return_value=service):
         result = client.get("/rrhh/biometric/status", headers=headers)
-        assert result.status_code == 200 and result.json()["connected"] is True
-        assert "password" not in result.text and "ip" not in result.json()
-        service.reader.info.side_effect = DeviceError("Autenticación rechazada: secret")
+        body = result.json()
+        assert result.status_code == 200 and body["connected"] is True
+        assert body["api_available"] is True and body["device_connected"] is True
+        assert "password" not in result.text and "token" not in result.text
+        assert "ip" not in body
+        service.client.get_device.side_effect = BiometricApiError(
+            "biometric_device_unreachable",
+            "La API biométrica no pudo contactar con el dispositivo.",
+            detail="secret-token")
+        result = client.get("/rrhh/biometric/status", headers=headers)
+        body = result.json()
+        assert result.status_code == 200
+        assert body["api_available"] is True and body["device_connected"] is False
+        assert body["connected"] is False and "secret" not in result.text
+        service.client.health.side_effect = BiometricApiError(
+            "biometric_api_unreachable", "No fue posible contactar la API biométrica.")
         result = client.get("/rrhh/biometric/status", headers=headers)
         assert result.status_code == 503 and "secret" not in result.text
-        assert result.json()["detail"]["connected"] is False
+        assert result.json()["detail"]["api_available"] is False
+        assert result.json()["detail"]["device_connected"] is False
 
 
 def test_device_users_have_minimal_fields_and_hide_secrets():
     service = fake_service()
-    service.reader.users.return_value = [{"user_id": "007", "uid": 1, "name": "Test", "card": 123,
-                                          "password": "secret", "privilege": 14, "template": "secret"}]
     assert service.users() == [{"user_id": "007", "uid": 1, "name": "Test"}]
+    assert "password" not in str(service.users())
 
 
 def test_generation_reports_real_missing_configuration(client, db):

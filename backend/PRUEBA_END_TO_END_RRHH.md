@@ -42,17 +42,14 @@ Editar los dos archivos con valores reales de staging. No cargar `.env` con `sou
 | `CORS_ALLOW_ORIGINS` | Vacío con frontend/API del mismo origen; orígenes exactos si se sirve Flutter desde otro origen |
 | `CORS_ALLOW_CREDENTIALS` | `true`; nunca combinar con origen `*` |
 | `STORAGE_ROOT` | Directorio exclusivo de staging |
-| `BIOMETRIC_IP` | IPv4 privada real accesible desde Ubuntu; no se incorpora al build Flutter |
-| `BIOMETRIC_PORT` | Puerto real, normalmente 4370 |
-| `BIOMETRIC_PASSWORD` | Clave de comunicación real, entero; usar 0 solo si el equipo está configurado sin clave |
-| `BIOMETRIC_TIMEOUT` | Segundos, máximo 300; ejemplo 30 |
-| `BIOMETRIC_TRANSPORT` | `auto`, `tcp` o `udp`, según conectividad real |
-| `BIOMETRIC_ENCODING` | Codificación del dispositivo; ejemplo UTF-8 |
-| `BIOMETRIC_DEVICE_ID` | Identificador estable del dispositivo; mismo valor en archivo temporal/API/worker |
+| `BIOMETRIC_API_URL` | `https://biometric.sipesipe.gob.bo` (o URL de QA); no se incorpora al build Flutter |
+| `BIOMETRIC_API_TOKEN` | Token Bearer real; nunca versionar ni pegar en tickets |
+| `BIOMETRIC_API_TIMEOUT` | Segundos por llamada HTTPS; ejemplo 60 |
+| `BIOMETRIC_DEVICE_ID` | Debe coincidir con el `device_id` de la API (p. ej. `alcaldia-central`) |
 | `BIOMETRIC_MATCH_DOCUMENT_NUMBER` | Mantener `false` |
 | `RRHH_STAGING_CONFIG` | Ruta absoluta al JSON privado temporal |
 
-El worker usa cola PostgreSQL y espera fija de 5 segundos cuando no procesa trabajo; `--once` procesa como máximo un trabajo. `BIOMETRIC_POLL_INTERVAL` corresponde al monitor original del lector y **no configura este worker**. No ejecutar ese monitor paralelo.
+El worker usa cola PostgreSQL y espera fija de 5 segundos cuando no procesa trabajo; `--once` procesa como máximo un trabajo. Ya no requiere LAN al reloj: descarga el período vía Biometric API. `BIOMETRIC_POLL_INTERVAL` pertenece al monitor retirado del lector y **no configura este worker**.
 
 En `attendance.json`:
 
@@ -74,9 +71,9 @@ cd /srv/rrhh-staging/backend
 .venv/bin/python -m app.modules.rrhh.staging_check preflight
 ```
 
-**Este comando sí contacta el equipo cuando el operador lo ejecuta.** Adquiere el mismo bloqueo PostgreSQL por IP/puerto que API/worker, establece sesión y consulta modelo, serial, plataforma, firmware y cantidad de usuarios mediante contadores. No consulta la hora del reloj, ni usuarios completos, ni marcaciones; no descarga histórico y no desactiva, cambia hora, escribe ni borra. La política de comandos de solo lectura del lector se conserva. Un error devuelve código de salida 1 sin imprimir secretos; éxito devuelve JSON. Modelo/serial pueden depender del soporte del firmware.
+**Este comando contacta la Biometric API (y a través de ella el dispositivo) solo cuando el operador lo ejecuta.** Adquiere el mismo bloqueo PostgreSQL por URL de API que API/worker, consulta health/device y no lista usuarios ni descarga marcaciones; no escribe ni borra en el reloj. Un error devuelve código de salida 1 sin imprimir secretos; éxito devuelve JSON con `api_available` y `device_connected`.
 
-No usar para esta comprobación el botón de estado de Flutter ni `GET /biometric/status`: la operación existente `info` también lee la hora. Ese comportamiento anterior no se ha cambiado.
+`GET /rrhh/biometric/status` del backend RRHH también distingue API vs dispositivo y es adecuado para comprobaciones equivalentes desde Flutter.
 
 ## 4. Iniciar backend y comprobar esquema
 

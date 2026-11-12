@@ -9,9 +9,10 @@ if not url or "rrhh_biometric_test" not in url.rsplit("/", 1)[-1]:
     raise RuntimeError("Set RRHH_TEST_DATABASE_URL to a disposable rrhh_biometric_test database")
 os.environ["DATABASE_URL"] = url
 os.environ["JWT_ACCESS_SECRET"] = "rrhh-test-only-secret-32-characters-minimum"
-os.environ["BIOMETRIC_IP"] = "127.0.0.1"
+os.environ["BIOMETRIC_API_URL"] = "https://biometric.example.test"
+os.environ["BIOMETRIC_API_TOKEN"] = "test-token-not-for-production"
+os.environ["BIOMETRIC_API_TIMEOUT"] = "5"
 os.environ["BIOMETRIC_DEVICE_ID"] = "test-clock"
-os.environ["BIOMETRIC_PASSWORD"] = "0"
 os.environ["BIOMETRIC_MATCH_DOCUMENT_NUMBER"] = "false"
 
 import pytest
@@ -19,13 +20,15 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
 
-# When testing the overlay before installation, extend only app.modules' search path.
-# The target backend remains the authoritative source for auth and shared models.
+# Shared backend supplies auth/core; the local overlay supplies the RRHH module
+# under test (api_client, worker, router) without installing into Correspondencia.
 shared = os.environ.get("RRHH_SHARED_BACKEND")
 if shared:
     sys.path.insert(0, shared)
-    import app.modules
-    app.modules.__path__.append(str(Path(__file__).resolve().parents[1] / "app/modules"))
+import app.modules.rrhh as rrhh_pkg
+overlay_rrhh = str(Path(__file__).resolve().parents[1] / "app/modules/rrhh")
+if overlay_rrhh not in rrhh_pkg.__path__:
+    rrhh_pkg.__path__.insert(0, overlay_rrhh)
 
 from app.main import app
 from app.core.database import Base, get_db
