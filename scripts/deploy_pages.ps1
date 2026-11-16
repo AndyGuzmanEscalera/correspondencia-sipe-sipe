@@ -28,9 +28,9 @@ try {
         $ApiBaseUrl = $match.Groups[1].Value
     }
     $uri = [Uri]$ApiBaseUrl
-    if (-not $uri.IsAbsoluteUri -or $uri.Scheme -ne 'https' -or $uri.AbsolutePath -ne '/api' -or
+    if (-not $uri.IsAbsoluteUri -or $uri.Scheme -ne 'https' -or $uri.AbsolutePath -ne '/' -or
         $uri.Query -or $uri.Fragment -or $uri.UserInfo -or $uri.IsLoopback) {
-        throw 'Pages requiere una URL HTTPS pública, sin credenciales y terminada en /api.'
+        throw 'Pages requiere una URL HTTPS pública, sin credenciales ni prefijo de ruta (/api).'
     }
     if (-not $DryRun) {
         if (-not $env:CLOUDFLARE_API_TOKEN -or -not $env:CLOUDFLARE_ACCOUNT_ID) {
@@ -55,6 +55,7 @@ try {
     $html = [IO.File]::ReadAllText((Join-Path $build 'index.html'))
     $js = [IO.File]::ReadAllText((Join-Path $build 'main.dart.js'))
     if (-not $html.Contains('<base href="/">') -or -not $js.Contains($ApiBaseUrl)) { throw 'Base href o endpoint compilado incorrectos.' }
+    if ($js.Contains('https://api-correspondencia.sipesipe.gob.bo/api')) { throw 'Build Pages conserva el prefijo /api obsoleto.' }
     if ($js.Contains('http://localhost:8000') -or $js.Contains('/correspondencia/correspondencia/')) { throw 'Build no productivo.' }
     $redirects = @(Get-Content -LiteralPath (Join-Path $build '_redirects') | Where-Object { $_.Trim() -and -not $_.StartsWith('#') })
     $expected = @('/correspondencia/login /login 301','/correspondencia/consulta /consulta 301','/consulta-publica /consulta 301')

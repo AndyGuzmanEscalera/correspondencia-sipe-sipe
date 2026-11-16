@@ -7,19 +7,15 @@ conserva backend, PostgreSQL y el web container de recuperación.
 ## Arquitectura
 
 Frontend: Flutter Web compilado en PC -> Pages -> https://correspondencia.sipesipe.gob.bo.
-API: https://api-correspondencia.sipesipe.gob.bo/api -> túnel
-sipe-sipe-correspondencia -> http://127.0.0.1:8080 -> proxy Apache /api/
--> FastAPI backend:8000 -> PostgreSQL interno.
-Frontend se sirve íntegramente desde Pages; API y datos permanecen en Debian.
-No se publica PostgreSQL ni se necesita exponer backend:8000 al host.
+API: https://api-correspondencia.sipesipe.gob.bo -> Cloudflare Tunnel
+-> http://127.0.0.1:8100 -> FastAPI backend:8000 -> PostgreSQL interno.
+No hay Apache entre el Tunnel y FastAPI: las rutas públicas son /auth/login,
+/auth/me, /correspondences, etc., sin /api. No agregar ese prefijo a endpoints.
+Frontend se sirve desde Pages; API y datos permanecen en Debian.
 
-Recomendación inicial: reutilizar el gateway Apache probado de 8080 para la API,
-sin cambiar puertos, paths, proxy confiable ni cookies durante esta transición.
-El origen del túnel es http://127.0.0.1:8080, sin duplicar /api en el service URL.
-El path /api está en la URL que consume Flutter y Apache lo elimina una vez.
-Después puede sustituirse el contenedor web por un gateway solo API. Un túnel
-directo al backend requeriría preparar /api en FastAPI o reescritura equivalente:
-hoy sus rutas internas son /auth, /admin, etc. No apuntarlo directamente sin eso.
+Contingencia Debian separada: web Apache -> /api -> backend:8000. Ese build
+conserva API_BASE_URL=/api y Apache elimina el prefijo. No reemplazarlo con
+el artefacto de Pages ni cambiar Tunnel, DNS o puertos desde este script.
 
 ## Rutas y SPA
 
@@ -52,7 +48,7 @@ http://localhost:8000 configurable; QA/recovery puede usar /api explícitamente.
 
 ```powershell
 flutter pub get --enforce-lockfile
-flutter build web --release --base-href=/ --pwa-strategy=none --dart-define=APP_ENV=production --dart-define=API_BASE_URL=https://api-correspondencia.sipesipe.gob.bo/api
+flutter build web --release --base-href=/ --pwa-strategy=none --dart-define=APP_ENV=production --dart-define=API_BASE_URL=https://api-correspondencia.sipesipe.gob.bo
 ./scripts/deploy_pages.ps1 -DryRun
 ```
 
@@ -90,9 +86,9 @@ credenciales en URLs y credentials=false.
 Ambos subdominios finales HTTPS pertenecen al mismo sitio; Lax puede conservarse
 aunque sean distintos orígenes. Dio habilita credentials en ambos clientes.
 La cookie es HttpOnly, Secure y host-only de la API, sin Domain=.sipesipe.gob.bo.
-FastAPI conserva Path=/auth; Apache reescribe Set-Cookie a /api/auth y lo mismo
-para logout. El frontend no lee la cookie; access token permanece en memoria.
-La API conserva Cache-Control no-store mediante su gateway.
+FastAPI conserva Path=/auth, que coincide con la API directa. Solo en la
+contingencia Apache reescribe Set-Cookie a /api/auth, también para logout.
+El frontend no lee la cookie; access token permanece en memoria.
 Referencia: [cookies SameSite](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie).
 
 IMPORTANTE pages.dev: es un sitio diferente a sipesipe.gob.bo. No declarar como
@@ -153,7 +149,7 @@ no publica proyecto ni ejecuta login y no solicita datos a la API.
 Comprueba rutas directas/refresh SPA, tres redirects 301 sin loops y bytes de
 assets reales. Termina únicamente el proceso creado por la prueba.
 
-## Transición sin cortar el dominio activo
+## Transición histórica del dominio (no ejecutar para este cambio de API)
 
 1. Revisar/aprobar los archivos; no hay commit/push automático.
 2. Publicar Pages y validar primero assets, /login, /consulta y redirects en

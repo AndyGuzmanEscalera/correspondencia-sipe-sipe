@@ -15,12 +15,30 @@ void main() {
     expect(ApiConfig.baseUrl, expectedBaseUrl);
   });
 
-  test('producción usa URL pública HTTPS con prefijo único /api', () {
+  test('producción usa API directa HTTPS sin prefijo /api', () {
     final uri = Uri.parse(ApiConfig.productionBaseUrl);
     expect(uri.scheme, 'https');
     expect(uri.host, 'api-correspondencia.sipesipe.gob.bo');
-    expect(uri.path, '/api');
+    expect(ApiConfig.productionBaseUrl,
+        'https://api-correspondencia.sipesipe.gob.bo');
+    expect(uri.path, isEmpty);
     expect(uri.userInfo, isEmpty);
+  });
+
+  test('login y sesión de producción apuntan directamente a FastAPI', () {
+    final client = Dio(BaseOptions(baseUrl: ApiConfig.productionBaseUrl));
+    addTearDown(() => client.close(force: true));
+    for (final entry in {
+      Endpoints.authLogin: 'POST',
+      Endpoints.authMe: 'GET',
+    }.entries) {
+      final request =
+          Options(method: entry.value).compose(client.options, entry.key);
+      expect(request.method, entry.value);
+      expect(request.uri.toString(),
+          'https://api-correspondencia.sipesipe.gob.bo${entry.key}');
+      expect(request.uri.path, isNot(startsWith('/api/')));
+    }
   });
 
   test('clientes principal y refresh conservan la base y credenciales', () {

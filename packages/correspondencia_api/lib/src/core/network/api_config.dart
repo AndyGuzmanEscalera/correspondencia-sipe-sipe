@@ -11,7 +11,7 @@ class ApiConfig {
 
   /// Public endpoint only. No credentials or backend secrets belong here.
   static const String productionBaseUrl =
-      'https://api-correspondencia.sipesipe.gob.bo/api';
+      'https://api-correspondencia.sipesipe.gob.bo';
 
   /// Pages uses the separate API host. Debian recovery builds explicitly pass
   /// API_BASE_URL=/api; local development can select its own backend.
