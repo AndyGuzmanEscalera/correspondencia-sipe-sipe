@@ -21,6 +21,7 @@ import 'package:correspondencia_sipe_sipe/features/home/side_menu/cubit/side_men
 import 'package:correspondencia_sipe_sipe/injection/injection_bloc.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/app_form_dialog.dart';
 import 'package:flutter/material.dart';
+import '../widgets/attachments_section.dart';
 import '../widgets/route_sheet_fields.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -112,6 +113,7 @@ class UpsertCorrespondenceView extends StatelessWidget {
                 }
               case GeneralStatus.success:
                 context.popDialog();
+                if (state.attachmentUploadFailures.isNotEmpty) return;
                 final created = state.createdCorrespondence;
                 _closeCreateDialog();
                 final owner = ownerContext;
@@ -262,6 +264,25 @@ class _UpsertCorrespondenceBodyState extends State<UpsertCorrespondenceBody> {
               ]));
         }
 
+        if (state.createdCorrespondence != null && state.attachmentUploadFailures.isNotEmpty) {
+          final loading = state.generalStatus == GeneralStatus.loading;
+          return AppFormDialog(
+            title: 'Correspondencia registrada',
+            subtitle: state.createdCorrespondence!.routeNumber,
+            isLoading: loading,
+            submitLabel: 'Reintentar',
+            cancelLabel: 'Cerrar',
+            onSubmit: loading ? null : upsertCubit.retryFailedAttachments,
+            onCancel: loading ? null : () => Navigator.pop(context),
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start,
+              children: [Text(state.dialogMessage.message),
+                const SizedBox(height: 12),
+                ...state.attachmentUploadFailures.map((error) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8), child: Text(error))),
+                const Text('El registro y los adjuntos exitosos se conservan. Solo se reintentarán los fallidos.'),
+              ]),
+          );
+        }
         _applyDefaultDocumentType(state);
 
         final isLoading = state.generalStatus == GeneralStatus.loading;
@@ -351,10 +372,9 @@ class _UpsertCorrespondenceBodyState extends State<UpsertCorrespondenceBody> {
                     unitUsers: state.unitUsers,
                     unitUsersLoading: state.unitUsersLoading,
                   ),
-                const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 12),
-                    child: Text(
-                        'El responsable actual puede gestionar los adjuntos desde el detalle después del registro.')),
+                if (const {DocumentBehavior.routeSheet, DocumentBehavior.internalCommunication,
+                  DocumentBehavior.report, DocumentBehavior.memorandum, DocumentBehavior.circular}.contains(_profile))
+                  const AttachmentsSection(),
               ],
             ),
           ),
@@ -450,6 +470,9 @@ class _UpsertCorrespondenceBodyState extends State<UpsertCorrespondenceBody> {
       senderDocument: inherited.senderDocument.getValue(),
       senderContact: inherited.senderContact.getValue(),
       originDescription: inherited.originDescription.getValue(),
+      pendingAttachments: const {DocumentBehavior.routeSheet, DocumentBehavior.internalCommunication,
+        DocumentBehavior.report, DocumentBehavior.memorandum, DocumentBehavior.circular}.contains(_profile)
+          ? List.of(inherited.pendingAttachments) : const [],
     );
   }
 }

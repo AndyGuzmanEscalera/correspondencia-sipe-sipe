@@ -19,6 +19,7 @@ class CreateCorrespondenceInput {
     required this.initialToUnitId,
     this.initialToUserId,
     this.initialInstruction,
+    this.initialAttachments = const [],
   });
 
   final String correspondenceType;
@@ -40,6 +41,7 @@ class CreateCorrespondenceInput {
   final String initialToUnitId;
   final String? initialToUserId;
   final String? initialInstruction;
+  final List<Map<String, dynamic>> initialAttachments;
 }
 
 class DeriveCorrespondenceInput {

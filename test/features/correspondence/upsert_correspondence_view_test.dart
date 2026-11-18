@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/models/pending_attachment.dart';
 
 import 'package:correspondencia_repository/correspondencia_repository.dart'
     as repo;
@@ -40,7 +41,18 @@ class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
   Completer<void>? createGate;
   int createCalls = 0;
   repo.CreateCorrespondenceInput? receivedInput;
+  @override
+  Future<Result<String, Failure>> getRouteSheetAuthority() async => const Ok('Secretaria');
+  bool failUpload = false;
+  @override
+  Future<Result<repo.CorrespondenceAttachment, Failure>> uploadAttachment({
+    required String correspondenceId, required repo.UploadAttachmentInput input}) async {
+    if (failUpload) return const Err(ServerFailure('Upload failed'));
+    return Ok(repo.CorrespondenceAttachment(id: 'a', correspondenceId: correspondenceId,
+      originalFilename: input.filename, isActive: true, createdByUserId: 'u', createdAt: DateTime(2026)));
+  }
   bool missingAuthority = false;
+  repo.DocumentBehavior? selectedBehavior;
 
   @override
   Future<Result<repo.Correspondence, Failure>> createCorrespondence(
@@ -72,7 +84,7 @@ class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
   @override
   Future<Result<List<repo.DocumentType>, Failure>> listDocumentTypes() async {
     return Ok([
-      repo.DocumentType(id: 'dt-edie', code: 'EDIE', name: 'Encadenamiento'),
+      repo.DocumentType(id: 'dt-edie', code: 'EDIE', name: 'Encadenamiento', behavior: selectedBehavior),
     ]);
   }
 
@@ -317,6 +329,39 @@ void main() {
 
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
+    }
+
+    testWidgets('partial success retains dialog and retry action without recreating', (tester) async {
+      correspondenceRepository.failUpload = true;
+      await pumpCreateDialog(tester);
+      final context = tester.element(find.byType(UpsertCorrespondenceBody));
+      final cubit = context.read<UpsertCorrespondenceCubit>();
+      await cubit.create(profile: repo.DocumentBehavior.routeSheet, type: CorrespondenceTypeCode.ce,
+        documentTypeId: 'dt', priorityLabel: 'Media', initialToUnitId: 'unit',
+        description: 'Test', senderName: 'Sender', pendingAttachments: const [
+          PendingAttachment(filename: 'failed.pdf', bytes: [1]),
+        ]);
+      await tester.pumpAndSettle();
+      expect(find.text('Correspondencia registrada'), findsOneWidget);
+      expect(find.textContaining('failed.pdf'), findsOneWidget);
+      expect(find.text('Reintentar'), findsOneWidget);
+      expect(correspondenceRepository.createCalls, 1);
+      correspondenceRepository.failUpload = false;
+      await tester.tap(find.text('Reintentar'));
+      await tester.pumpAndSettle();
+      expect(correspondenceRepository.createCalls, 1);
+      expect(find.text('Correspondencia registrada'), findsNothing);
+    });
+
+    for (final behavior in [repo.DocumentBehavior.routeSheet,
+      repo.DocumentBehavior.internalCommunication, repo.DocumentBehavior.report,
+      repo.DocumentBehavior.memorandum, repo.DocumentBehavior.circular]) {
+      testWidgets('selector integrated for $behavior', (tester) async {
+        correspondenceRepository.selectedBehavior = behavior;
+        await pumpCreateDialog(tester);
+        expect(find.text('Agregar archivos'), findsOneWidget);
+        expect(find.text('Adjuntos'), findsOneWidget);
+      });
     }
 
     testWidgets('create abre formulario con catálogos', (tester) async {

@@ -20,12 +20,16 @@ class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
   Result<repo.CorrespondenceAttachment, Failure>? uploadResult;
   repo.CreateCorrespondenceInput? lastCreateInput;
   int uploadCalls = 0;
+  int createCalls = 0;
+  final List<String> uploadedNames = [];
+  String? failFilename;
   bool isIntake = false;
 
   @override
   Future<Result<repo.Correspondence, Failure>> createCorrespondence(
     repo.CreateCorrespondenceInput input,
   ) async {
+    createCalls++;
     lastCreateInput = input;
     return createResult ??
         Ok(
@@ -88,6 +92,8 @@ class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
     required repo.UploadAttachmentInput input,
   }) async {
     uploadCalls++;
+    uploadedNames.add(input.filename);
+    if (input.filename == failFilename) return const Err(ServerFailure('upload failed'));
     return uploadResult ??
         Ok(
           repo.CorrespondenceAttachment(
@@ -133,6 +139,29 @@ class _FakeOrganizationRepository implements repo.OrganizationRepository {
 }
 
 void main() {
+  test('retry uploads only failed files and never recreates correspondence', () async {
+    final repository = _FakeCorrespondenceRepository()..failFilename = 'b.pdf';
+    final cubit = UpsertCorrespondenceCubit(correspondenceRepository: repository,
+      organizationRepository: _FakeOrganizationRepository());
+    await cubit.create(profile: DocumentBehavior.routeSheet, type: CorrespondenceTypeCode.ce,
+      documentTypeId: 'dt', priorityLabel: 'Media', initialToUnitId: 'unit',
+      description: 'Test', senderName: 'Sender', pendingAttachments: const [
+        PendingAttachment(filename: 'a.pdf', bytes: [1]),
+        PendingAttachment(filename: 'b.pdf', bytes: [2]),
+      ]);
+    expect(cubit.state.generalStatus, GeneralStatus.success);
+    expect(cubit.state.attachmentUploadFailures.single, contains('b.pdf'));
+    expect(repository.lastCreateInput!.initialAttachments, hasLength(2));
+    repository.failFilename = null;
+    await cubit.retryFailedAttachments();
+    expect(repository.createCalls, 1);
+    expect(repository.uploadedNames, ['a.pdf', 'b.pdf', 'b.pdf']);
+    expect(cubit.state.createdCorrespondence!.id, 'corr-1');
+    expect(cubit.state.attachmentUploadFailures, isEmpty);
+    await cubit.retryFailedAttachments();
+    expect(repository.uploadCalls, 3);
+    await cubit.close();
+  });
   for (final profile in DocumentFormProfile.values) {
     for (final isIntake in [false, true]) {
       for (final selected in [false, true]) {

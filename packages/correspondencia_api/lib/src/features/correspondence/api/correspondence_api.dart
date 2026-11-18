@@ -1,4 +1,6 @@
 import 'package:dio/dio.dart';
+import 'package:mime/mime.dart';
+import 'package:http_parser/http_parser.dart';
 
 import '../../../core/network/api_method.dart';
 import '../../../core/network/endpoints.dart';
@@ -16,6 +18,7 @@ import '../models/employee_option_response.dart';
 import '../models/institutional_mayor_response.dart';
 
 class CorrespondenceApi {
+  final Map<String, String> _initialAttachmentTokens = {};
   CorrespondenceApi({required ApiMethod mainApi}) : _mainApi = mainApi;
 
   final ApiMethod _mainApi;
@@ -156,6 +159,10 @@ class CorrespondenceApi {
       data: request.toJson(),
       operation: 'correspondence.create',
     );
+    final token = json['initial_attachment_token'];
+    if (token is String && token.isNotEmpty) {
+      _initialAttachmentTokens[json['id'] as String] = token;
+    }
     return CorrespondenceResponse.fromJson(json);
   }
 
@@ -220,9 +227,15 @@ class CorrespondenceApi {
     String? mimeType,
   }) async {
     final formData = FormData.fromMap({
+      if (_initialAttachmentTokens[correspondenceId] case final String token)
+        'initial_token': token,
       'file': MultipartFile.fromBytes(
         bytes,
         filename: filename,
+        contentType: MediaType.parse(
+          lookupMimeType(filename, headerBytes: bytes.take(32).toList()) ??
+              (mimeType != null && mimeType.contains('/') ? mimeType : 'application/octet-stream'),
+        ),
       ),
     });
     final json = await _mainApi.uploadMultipart(

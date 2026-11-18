@@ -7,6 +7,7 @@ import 'package:correspondencia_sipe_sipe/features/correspondence/domain/documen
 import 'package:correspondencia_sipe_sipe/features/correspondence/domain/mappers/correspondence_entity_mapper.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/models/pending_attachment.dart';
 import 'package:equatable/equatable.dart';
+import 'package:crypto/crypto.dart';
 import 'package:failures/failures.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -22,6 +23,9 @@ class UpsertCorrespondenceCubit extends Cubit<UpsertCorrespondenceState> {
 
   final repo.CorrespondenceRepository _correspondenceRepository;
   final repo.OrganizationRepository _organizationRepository;
+
+  List<PendingAttachment> _failedAttachments = [];
+  int _uploadedCount = 0;
 
   Future<void> init() async {
     if (state.generalStatus == GeneralStatus.loading) return;
@@ -184,7 +188,8 @@ class UpsertCorrespondenceCubit extends Cubit<UpsertCorrespondenceState> {
     String? originDescription,
     List<PendingAttachment> pendingAttachments = const [],
   }) async {
-    if (state.generalStatus == GeneralStatus.loading) return;
+    if (state.generalStatus == GeneralStatus.loading || state.createdCorrespondence != null) return;
+    _uploadedCount = 0;
     emit(
       state.copyWith(
         generalStatus: GeneralStatus.loading,
@@ -197,6 +202,7 @@ class UpsertCorrespondenceCubit extends Cubit<UpsertCorrespondenceState> {
     );
 
     final input = _buildInput(
+      pendingAttachments: pendingAttachments,
       profile: profile,
       type: type,
       priorityLabel: priorityLabel,
@@ -243,7 +249,7 @@ class UpsertCorrespondenceCubit extends Cubit<UpsertCorrespondenceState> {
     final successMessage = uploadFailures.isEmpty
         ? 'La correspondencia fue registrada correctamente. ${created.routeNumber}'
         : 'La correspondencia fue registrada (${created.routeNumber}), '
-            'pero ${uploadFailures.length} adjunto(s) no se pudieron subir.';
+            '$_uploadedCount adjunto(s) subidos; ${uploadFailures.length} fallido(s).';
 
     emit(
       state.copyWith(
@@ -260,6 +266,7 @@ class UpsertCorrespondenceCubit extends Cubit<UpsertCorrespondenceState> {
   }
 
   repo.CreateCorrespondenceInput _buildInput({
+    List<PendingAttachment> pendingAttachments = const [],
     required DocumentBehavior profile,
     required CorrespondenceTypeCode type,
     required String priorityLabel,
@@ -284,6 +291,10 @@ class UpsertCorrespondenceCubit extends Cubit<UpsertCorrespondenceState> {
                 profile == DocumentBehavior.routeSheet) &&
             !isExternal);
     return repo.CreateCorrespondenceInput(
+      initialAttachments: pendingAttachments.map((a) => <String, dynamic>{
+        'filename': a.filename, 'size': a.bytes.length,
+        'sha256': sha256.convert(a.bytes).toString(),
+      }).toList(),
       enablePublicTracking: profile == DocumentBehavior.routeSheet && isExternal && _optional(senderDocument) != null,
       correspondenceType:
           isContent ? 'INTERNAL' : correspondenceTypeCodeFromUi(type),
@@ -319,6 +330,7 @@ class UpsertCorrespondenceCubit extends Cubit<UpsertCorrespondenceState> {
     if (attachments.isEmpty) return const [];
 
     final failures = <String>[];
+    final failed = <PendingAttachment>[];
     for (final attachment in attachments) {
       final result = await _correspondenceRepository.uploadAttachment(
         correspondenceId: correspondenceId,
@@ -329,12 +341,30 @@ class UpsertCorrespondenceCubit extends Cubit<UpsertCorrespondenceState> {
         ),
       );
       if (result case Err(:final failure)) {
+        failed.add(attachment);
         failures.add(
           '${attachment.filename}: ${FailureGeneric.message(failure: failure)}',
         );
+      } else {
+        _uploadedCount++;
       }
     }
+    _failedAttachments = failed;
     return failures;
+  }
+
+  Future<void> retryFailedAttachments() async {
+    final created = state.createdCorrespondence;
+    if (created == null || _failedAttachments.isEmpty || state.generalStatus == GeneralStatus.loading) return;
+    emit(state.copyWith(generalStatus: GeneralStatus.loading,
+      dialogMessage: const DialogMessage(message: 'Reintentando adjuntos...')));
+    final failures = await _uploadPendingAttachments(
+      correspondenceId: created.id, attachments: List.of(_failedAttachments));
+    if (isClosed) return;
+    emit(state.copyWith(generalStatus: GeneralStatus.success,
+      attachmentUploadFailures: failures,
+      dialogMessage: DialogMessage(title: failures.isEmpty ? 'Registro exitoso' : 'Registro parcial',
+        message: '${created.routeNumber}: $_uploadedCount adjunto(s) subidos; ${failures.length} fallido(s).')));
   }
 
   String? _optional(String? value) {

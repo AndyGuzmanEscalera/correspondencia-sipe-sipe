@@ -19,6 +19,7 @@ class CreateCorrespondenceRequest {
     required this.initialToUnitId,
     this.initialToUserId,
     this.initialInstruction,
+    this.initialAttachments = const [],
   });
 
   final String correspondenceType;
@@ -40,8 +41,10 @@ class CreateCorrespondenceRequest {
   final String initialToUnitId;
   final String? initialToUserId;
   final String? initialInstruction;
+  final List<Map<String, dynamic>> initialAttachments;
 
   Map<String, dynamic> toJson() => {
+        if (initialAttachments.isNotEmpty) 'initial_attachments': initialAttachments,
         'correspondence_type': correspondenceType,
         'document_type_id': documentTypeId,
         if (subject != null) 'subject': subject,

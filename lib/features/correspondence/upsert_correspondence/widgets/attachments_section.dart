@@ -2,6 +2,7 @@ import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_corresp
 import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/models/pending_attachment.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/widgets/upsert_form_section.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:mime/mime.dart';
 import 'package:flutter/material.dart';
 
 class AttachmentsSection extends StatefulWidget {
@@ -28,7 +29,7 @@ class _AttachmentsSectionState extends State<AttachmentsSection> {
         PendingAttachment(
           filename: file.name,
           bytes: bytes,
-          mimeType: file.extension,
+          mimeType: lookupMimeType(file.name, headerBytes: bytes.take(32).toList()) ?? 'application/octet-stream',
         ),
       );
     }
