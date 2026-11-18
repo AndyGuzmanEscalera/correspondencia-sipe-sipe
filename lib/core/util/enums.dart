@@ -31,6 +31,7 @@ enum MenuEnum {
   basicData,
   adminUnits,
   adminPositions,
+  adminHierarchies,
   adminEmployees,
   adminUsers,
   adminDocumentTypes,

@@ -57,9 +57,43 @@ void main() {
       await cubit.close();
     });
 
+    test('update transmite nuevo código normalizado', () async {
+      final cubit = UpsertPositionsCubit(repository);
+      await cubit.update(
+          entity: _entity, code: ' nuevo-123 ', name: _entity.name);
+      expect(repository.lastUpdateInput?.code, 'NUEVO-123');
+      expect(repository.lastUpdateId, _entity.id);
+      await cubit.close();
+    });
+    test('editar código conserva jerarquía y alcance del cargo', () async {
+      final cubit = UpsertPositionsCubit(repository);
+      final current = PositionAdmin(
+          id: _entity.id,
+          code: 'OLD',
+          name: 'Cargo',
+          hierarchyId: 'existing-hierarchy',
+          canViewUnitCorrespondence: true,
+          isActive: false,
+          createdAt: _entity.createdAt,
+          updatedAt: _entity.updatedAt);
+      await cubit.update(entity: current, code: ' new ', name: current.name);
+      expect(repository.lastUpdateInput?.code, 'NEW');
+      expect(repository.lastUpdateInput?.hierarchyId, 'existing-hierarchy');
+      expect(repository.lastUpdateInput?.canViewUnitCorrespondence, true);
+      expect(repository.lastUpdateId, current.id);
+      await cubit.close();
+    });
+
+    test('update rechaza código vacío antes del repository', () async {
+      final cubit = UpsertPositionsCubit(repository);
+      await cubit.update(entity: _entity, code: '   ', name: _entity.name);
+      expect(cubit.state.generalStatus, GeneralStatus.error);
+      expect(repository.lastUpdateInput, isNull);
+      await cubit.close();
+    });
+
     test('save conflict 409 emite error con mensaje funcional', () async {
-      const conflictMessage =
-          'Ya existe un cargo con el código indicado.';
+      const conflictMessage = 'Ya existe un cargo con el código indicado.';
       repository.createResult = const Err(
         ValidationFailure(conflictMessage),
       );

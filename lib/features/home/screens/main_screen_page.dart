@@ -16,6 +16,7 @@ import 'package:correspondencia_sipe_sipe/features/home/widgets/admin_app_bar.da
 import 'package:correspondencia_sipe_sipe/features/inbox/views/inbox_page.dart';
 import 'package:correspondencia_sipe_sipe/features/reports/views/reports_page.dart';
 import 'package:flutter/material.dart';
+import 'package:correspondencia_sipe_sipe/features/administration/basic_data/hierarchies/list_hierarchies/views/hierarchies_page.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class MainScreenPage extends StatelessWidget {
@@ -117,6 +118,8 @@ class _ContentArea extends StatelessWidget {
           permission: Permissions.organizationalUnitsRead,
           child: const UnitsPage(),
         ),
+      MenuEnum.adminHierarchies => const PermissionGuard(
+          permission: Permissions.positionsRead, child: HierarchiesPage()),
       MenuEnum.adminPositions => PermissionGuard(
           permission: Permissions.positionsRead,
           child: const PositionsPage(),

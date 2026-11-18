@@ -136,6 +136,9 @@ Future<void> registerRepositories() async {
     ),
   );
 
+  getIt.registerLazySingleton<HierarchiesAdminRepository>(
+    () => HierarchiesAdminRepository(api: getIt<PositionsAdminApi>()),
+  );
   getIt.registerLazySingleton<PositionsAdminRepository>(
     () => PositionsAdminRepository(api: getIt<PositionsAdminApi>()),
   );

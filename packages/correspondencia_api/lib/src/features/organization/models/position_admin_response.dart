@@ -117,3 +117,12 @@ class PositionHierarchyResponse {
           rank: json['rank'] as int,
           isActive: json['is_active'] as bool? ?? true);
 }
+
+class HierarchyRequest {
+  const HierarchyRequest(
+      {required this.code, required this.name, required this.rank});
+  final String code;
+  final String name;
+  final int rank;
+  Map<String, dynamic> toJson() => {'code': code, 'name': name, 'rank': rank};
+}

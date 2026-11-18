@@ -101,6 +101,22 @@ void main() {
       await cubit.close();
     });
 
+    test('update transmite nuevo código normalizado', () async {
+      final cubit = UpsertUnitsCubit(repository);
+      await cubit.update(
+          entity: _entity, code: ' nuevo-123 ', name: _entity.name);
+      expect(repository.lastUpdateInput?.code, 'NUEVO-123');
+      expect(repository.lastUpdateId, _entity.id);
+      await cubit.close();
+    });
+    test('update rechaza código vacío antes del repository', () async {
+      final cubit = UpsertUnitsCubit(repository);
+      await cubit.update(entity: _entity, code: '   ', name: _entity.name);
+      expect(cubit.state.generalStatus, GeneralStatus.error);
+      expect(repository.lastUpdateInput, isNull);
+      await cubit.close();
+    });
+
     test('save conflict 409 emite error con mensaje funcional', () async {
       const conflictMessage =
           'Ya existe una unidad organizacional con el código indicado.';

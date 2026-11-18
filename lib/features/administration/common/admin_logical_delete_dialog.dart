@@ -5,6 +5,7 @@ Future<bool> confirmAdminLogicalDelete(
   BuildContext context, {
   required String title,
   required String message,
+  String confirmLabel = 'Eliminar',
 }) async {
   final confirmed = await showDialog<bool>(
     context: context,
@@ -19,7 +20,7 @@ Future<bool> confirmAdminLogicalDelete(
           ),
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Eliminar'),
+            child: Text(confirmLabel),
           ),
         ],
       );

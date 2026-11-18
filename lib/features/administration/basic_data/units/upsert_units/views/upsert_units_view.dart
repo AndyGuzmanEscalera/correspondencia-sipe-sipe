@@ -68,19 +68,19 @@ class UpsertUnitsView extends StatelessWidget {
           ),
         ],
         child: FullWidgetGeneric(
-        onInit: () {
-          if (inherited.typeOperation == TypeOperation.create) {
-            inherited.clear();
-            upsertCubit.init();
-            return;
-          }
+          onInit: () {
+            if (inherited.typeOperation == TypeOperation.create) {
+              inherited.clear();
+              upsertCubit.init();
+              return;
+            }
 
-          if (selected != null) {
-            inherited.setData(selected);
-            upsertCubit.init(editing: selected);
-          }
-        },
-        onDispose: inherited.dispose,
+            if (selected != null) {
+              inherited.setData(selected);
+              upsertCubit.init(editing: selected);
+            }
+          },
+          onDispose: inherited.dispose,
           child: const UpsertUnitsBody(),
         ),
       ),
@@ -146,6 +146,7 @@ class UpsertUnitsBody extends StatelessWidget {
               if (selected == null) return;
               upsertCubit.update(
                 entity: selected,
+                code: inherited.code.getValue(),
                 name: inherited.name.getValue(),
                 description: inherited.description.getValue(),
                 parentId: parentId,
@@ -160,7 +161,7 @@ class UpsertUnitsBody extends StatelessWidget {
                 AppTextField(
                   controller: inherited.code,
                   label: 'Código',
-                  readOnly: !isCreate,
+                  maxLength: 50,
                   validators: [
                     RequiredValid(error: 'Campo requerido'),
                   ],

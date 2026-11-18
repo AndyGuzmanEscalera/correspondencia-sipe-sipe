@@ -72,6 +72,12 @@ class MenuOptions {
         icon: Icons.work_outline,
         requiredPermission: Permissions.positionsRead,
       ),
+      const MenuItemData(
+        menu: MenuEnum.adminHierarchies,
+        title: 'Jerarquías',
+        icon: Icons.stairs_outlined,
+        requiredPermission: Permissions.positionsRead,
+      ),
       MenuItemData(
         menu: MenuEnum.adminEmployees,
         title: 'Funcionarios',

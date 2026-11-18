@@ -90,7 +90,7 @@ void main() {
       expect(codeField.readOnly, isFalse);
     });
 
-    testWidgets('update dialog precarga setData y code es readonly',
+    testWidgets('update dialog precarga setData y code es editable',
         (tester) async {
       await pumpUpsertDialog(
         tester,
@@ -105,7 +105,7 @@ void main() {
       final codeField = tester.widget<AppTextField>(
         find.byType(AppTextField).first,
       );
-      expect(codeField.readOnly, isTrue);
+      expect(codeField.readOnly, isFalse);
     });
 
     testWidgets('muestra dropdown de parent cuando catálogo carga',
@@ -119,6 +119,28 @@ void main() {
 
       expect(find.text('Sin unidad superior'), findsOneWidget);
       expect(find.text('Secretaría'), findsOneWidget);
+    });
+
+    testWidgets('editar envía código real normalizado y conserva UUID',
+        (tester) async {
+      await pumpUpsertDialog(tester,
+          typeOperation: TypeOperation.update, selected: _entity);
+      await tester.enterText(find.byType(TextFormField).first, ' nuevo-123 ');
+      await tester.ensureVisible(find.text('Guardar'));
+      await tester.tap(find.text('Guardar'));
+      await tester.pumpAndSettle();
+      expect(repository.lastUpdateInput?.code, 'NUEVO-123');
+      expect(repository.lastUpdateId, _entity.id);
+    });
+    testWidgets('editar rechaza código compuesto por espacios', (tester) async {
+      await pumpUpsertDialog(tester,
+          typeOperation: TypeOperation.update, selected: _entity);
+      await tester.enterText(find.byType(TextFormField).first, '   ');
+      await tester.ensureVisible(find.text('Guardar'));
+      await tester.tap(find.text('Guardar'));
+      await tester.pumpAndSettle();
+      expect(repository.lastUpdateInput, isNull);
+      expect(find.textContaining('obligatorio'), findsWidgets);
     });
 
     testWidgets('error 409 mantiene el formulario abierto', (tester) async {
@@ -246,6 +268,16 @@ class _FakeListRepository implements OrganizationalUnitsAdminRepository {
 
 class _FakeOrganizationalUnitsAdminRepository
     implements OrganizationalUnitsAdminRepository {
+  String? lastUpdateId;
+  OrganizationalUnitInput? lastUpdateInput;
+  @override
+  Future<Result<OrganizationalUnitAdmin, Failure>> update(
+      String id, OrganizationalUnitInput input) async {
+    lastUpdateId = id;
+    lastUpdateInput = input;
+    return Ok(_entity);
+  }
+
   Result<OrganizationalUnitAdmin, Failure>? createResult;
   Completer<void>? createGate;
 

@@ -1,6 +1,8 @@
 import '../../features/notifications/cubit/notifications_cubit.dart';
 import '../../features/reports/cubit/reports_cubit.dart';
 import 'package:get_it/get_it.dart';
+import '../../features/administration/basic_data/hierarchies/list_hierarchies/cubit/hierarchies_cubit.dart';
+import '../../features/administration/basic_data/hierarchies/upsert_hierarchies/cubit/upsert_hierarchies_cubit.dart';
 import 'package:correspondencia_repository/correspondencia_repository.dart';
 
 import '../../features/administration/basic_data/document_types/list_document_types/cubit/document_types_cubit.dart';
@@ -124,6 +126,10 @@ void registerCubits() {
     () => UpsertUnitsCubit(getIt<OrganizationalUnitsAdminRepository>()),
   );
 
+  getIt.registerFactory<HierarchiesCubit>(
+      () => HierarchiesCubit(getIt<HierarchiesAdminRepository>()));
+  getIt.registerFactory<UpsertHierarchiesCubit>(
+      () => UpsertHierarchiesCubit(getIt<HierarchiesAdminRepository>()));
   getIt.registerFactory<PositionsCubit>(
     () => PositionsCubit(getIt<PositionsAdminRepository>()),
   );

@@ -104,7 +104,7 @@ void main() {
       expect(repository.lastCreateInput!.hierarchyId, 'director');
     });
 
-    testWidgets('update dialog precarga setData y code es readonly',
+    testWidgets('update dialog precarga setData y code es editable',
         (tester) async {
       await pumpUpsertDialog(
         tester,
@@ -119,7 +119,29 @@ void main() {
       final codeField = tester.widget<AppTextField>(
         find.byType(AppTextField).first,
       );
-      expect(codeField.readOnly, isTrue);
+      expect(codeField.readOnly, isFalse);
+    });
+
+    testWidgets('editar envía código real normalizado y conserva UUID',
+        (tester) async {
+      await pumpUpsertDialog(tester,
+          typeOperation: TypeOperation.update, selected: _entity);
+      await tester.enterText(find.byType(TextFormField).first, ' nuevo-123 ');
+      await tester.ensureVisible(find.text('Guardar'));
+      await tester.tap(find.text('Guardar'));
+      await tester.pumpAndSettle();
+      expect(repository.lastUpdateInput?.code, 'NUEVO-123');
+      expect(repository.lastUpdateId, _entity.id);
+    });
+    testWidgets('editar rechaza código compuesto por espacios', (tester) async {
+      await pumpUpsertDialog(tester,
+          typeOperation: TypeOperation.update, selected: _entity);
+      await tester.enterText(find.byType(TextFormField).first, '   ');
+      await tester.ensureVisible(find.text('Guardar'));
+      await tester.tap(find.text('Guardar'));
+      await tester.pumpAndSettle();
+      expect(repository.lastUpdateInput, isNull);
+      expect(find.textContaining('obligatorio'), findsWidgets);
     });
 
     testWidgets('error 409 mantiene el formulario abierto', (tester) async {
@@ -235,6 +257,16 @@ class _FakeListRepository implements PositionsAdminRepository {
 }
 
 class _FakePositionsAdminRepository implements PositionsAdminRepository {
+  String? lastUpdateId;
+  PositionInput? lastUpdateInput;
+  @override
+  Future<Result<PositionAdmin, Failure>> update(
+      String id, PositionInput input) async {
+    lastUpdateId = id;
+    lastUpdateInput = input;
+    return Ok(_entity);
+  }
+
   PositionInput? lastCreateInput;
   @override
   Future<Result<List<PositionHierarchy>, Failure>> listHierarchies() async =>

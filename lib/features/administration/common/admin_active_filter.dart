@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 enum _Status { active, inactive, all }
 
 class AdminActiveFilter extends StatefulWidget {
-  const AdminActiveFilter({required this.onChanged, super.key});
+  const AdminActiveFilter(
+      {required this.onChanged, this.inactiveLabel = 'Eliminados', super.key});
   final ValueChanged<bool?> onChanged;
+  final String inactiveLabel;
   @override
   State<AdminActiveFilter> createState() => _AdminActiveFilterState();
 }
@@ -17,11 +19,12 @@ class _AdminActiveFilterState extends State<AdminActiveFilter> {
         child: DropdownButtonFormField<_Status>(
           value: _value,
           decoration: const InputDecoration(labelText: 'Estado'),
-          items: const [
-            DropdownMenuItem(value: _Status.active, child: Text('Activos')),
+          items: [
+            const DropdownMenuItem(
+                value: _Status.active, child: Text('Activos')),
             DropdownMenuItem(
-                value: _Status.inactive, child: Text('Eliminados')),
-            DropdownMenuItem(value: _Status.all, child: Text('Todos')),
+                value: _Status.inactive, child: Text(widget.inactiveLabel)),
+            const DropdownMenuItem(value: _Status.all, child: Text('Todos')),
           ],
           onChanged: (value) {
             if (value == null) return;

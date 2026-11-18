@@ -53,9 +53,7 @@ class UpsertUnitsCubit extends Cubit<UpsertUnitsState> {
   }
 
   List<repo.OrganizationalUnitAdmin> parentOptions({String? excludeUnitId}) {
-    return state.parentUnits
-        .where((unit) => unit.id != excludeUnitId)
-        .toList();
+    return state.parentUnits.where((unit) => unit.id != excludeUnitId).toList();
   }
 
   Future<void> save({
@@ -64,6 +62,16 @@ class UpsertUnitsCubit extends Cubit<UpsertUnitsState> {
     String? description,
     String? parentId,
   }) async {
+    final normalizedCode = code.trim().toUpperCase();
+    if (normalizedCode.isEmpty || normalizedCode.length > 50) {
+      emit(state.copyWith(
+          generalStatus: GeneralStatus.error,
+          dialogMessage: const DialogMessage(
+              title: 'Código inválido',
+              message: 'Ingrese un código de 1 a 50 caracteres.')));
+      return;
+    }
+
     emit(
       state.copyWith(
         generalStatus: GeneralStatus.loading,
@@ -75,7 +83,7 @@ class UpsertUnitsCubit extends Cubit<UpsertUnitsState> {
 
     final result = await _repository.create(
       repo.OrganizationalUnitInput(
-        code: code.trim(),
+        code: code.trim().toUpperCase(),
         name: name.trim(),
         description: _optional(description),
         parentId: _optional(parentId),
@@ -113,10 +121,21 @@ class UpsertUnitsCubit extends Cubit<UpsertUnitsState> {
 
   Future<void> update({
     required repo.OrganizationalUnitAdmin entity,
+    String? code,
     required String name,
     String? description,
     String? parentId,
   }) async {
+    final normalizedCode = (code ?? entity.code ?? '').trim().toUpperCase();
+    if (normalizedCode.isEmpty || normalizedCode.length > 50) {
+      emit(state.copyWith(
+          generalStatus: GeneralStatus.error,
+          dialogMessage: const DialogMessage(
+              title: 'Código inválido',
+              message: 'Ingrese un código de 1 a 50 caracteres.')));
+      return;
+    }
+
     emit(
       state.copyWith(
         generalStatus: GeneralStatus.loading,
@@ -129,7 +148,7 @@ class UpsertUnitsCubit extends Cubit<UpsertUnitsState> {
     final result = await _repository.update(
       entity.id,
       repo.OrganizationalUnitInput(
-        code: entity.code ?? '',
+        code: (code ?? entity.code ?? '').trim().toUpperCase(),
         name: name.trim(),
         description: _optional(description),
         parentId: _optional(parentId),

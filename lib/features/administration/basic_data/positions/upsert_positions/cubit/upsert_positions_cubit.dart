@@ -38,6 +38,16 @@ class UpsertPositionsCubit extends Cubit<UpsertPositionsState> {
     bool canViewUnitCorrespondence = false,
     String? hierarchyId,
   }) async {
+    final normalizedCode = code.trim().toUpperCase();
+    if (normalizedCode.isEmpty || normalizedCode.length > 50) {
+      emit(state.copyWith(
+          generalStatus: GeneralStatus.error,
+          dialogMessage: const DialogMessage(
+              title: 'Código inválido',
+              message: 'Ingrese un código de 1 a 50 caracteres.')));
+      return;
+    }
+
     emit(
       state.copyWith(
         generalStatus: GeneralStatus.loading,
@@ -51,7 +61,7 @@ class UpsertPositionsCubit extends Cubit<UpsertPositionsState> {
       repo.PositionInput(
         canViewUnitCorrespondence: canViewUnitCorrespondence,
         hierarchyId: hierarchyId,
-        code: code.trim(),
+        code: code.trim().toUpperCase(),
         name: name.trim(),
         description: _optional(description),
       ),
@@ -88,12 +98,23 @@ class UpsertPositionsCubit extends Cubit<UpsertPositionsState> {
 
   Future<void> update({
     required repo.PositionAdmin entity,
+    String? code,
     required String name,
     String? description,
     bool? canViewUnitCorrespondence,
     String? hierarchyId,
     bool hierarchyChanged = false,
   }) async {
+    final normalizedCode = (code ?? entity.code ?? '').trim().toUpperCase();
+    if (normalizedCode.isEmpty || normalizedCode.length > 50) {
+      emit(state.copyWith(
+          generalStatus: GeneralStatus.error,
+          dialogMessage: const DialogMessage(
+              title: 'Código inválido',
+              message: 'Ingrese un código de 1 a 50 caracteres.')));
+      return;
+    }
+
     emit(
       state.copyWith(
         generalStatus: GeneralStatus.loading,
@@ -109,7 +130,7 @@ class UpsertPositionsCubit extends Cubit<UpsertPositionsState> {
         canViewUnitCorrespondence:
             canViewUnitCorrespondence ?? entity.canViewUnitCorrespondence,
         hierarchyId: hierarchyChanged ? hierarchyId : entity.hierarchyId,
-        code: entity.code ?? '',
+        code: (code ?? entity.code ?? '').trim().toUpperCase(),
         name: name.trim(),
         description: _optional(description),
       ),

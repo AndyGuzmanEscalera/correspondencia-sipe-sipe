@@ -126,6 +126,7 @@ class UpsertPositionsBody extends StatelessWidget {
               if (selected == null) return;
               upsertCubit.update(
                 entity: selected,
+                code: inherited.code.getValue(),
                 hierarchyId: inherited.hierarchyId.value,
                 hierarchyChanged: true,
                 name: inherited.name.getValue(),
@@ -143,7 +144,7 @@ class UpsertPositionsBody extends StatelessWidget {
                 AppTextField(
                   controller: inherited.code,
                   label: 'Código',
-                  readOnly: !isCreate,
+                  maxLength: 50,
                   validators: [
                     RequiredValid(error: 'Campo requerido'),
                   ],

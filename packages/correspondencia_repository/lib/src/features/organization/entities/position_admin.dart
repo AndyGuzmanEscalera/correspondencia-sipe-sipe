@@ -78,3 +78,13 @@ class PositionHierarchy extends Equatable {
   @override
   List<Object?> get props => [id, code, name, rank, isActive];
 }
+
+class HierarchyInput extends Equatable {
+  const HierarchyInput(
+      {required this.code, required this.name, required this.rank});
+  final String code;
+  final String name;
+  final int rank;
+  @override
+  List<Object?> get props => [code, name, rank];
+}

@@ -17,6 +17,50 @@ class PositionsAdminApi {
     return PaginatedResponse.fromJson(json, PositionHierarchyResponse.fromJson);
   }
 
+  Future<PaginatedResponse<PositionHierarchyResponse>> listHierarchiesAdmin({
+    int page = 1,
+    int pageSize = 20,
+    String? search,
+    bool? isActive = true,
+  }) async {
+    final json = await _mainApi.get('/admin/positions/hierarchies',
+        queryParameters: {
+          'page': page,
+          'page_size': pageSize,
+          if (search != null && search.isNotEmpty) 'search': search,
+          if (isActive != null) 'is_active': isActive,
+          if (isActive == null) 'include_deleted': true
+        },
+        operation: 'admin.hierarchies.list');
+    return PaginatedResponse.fromJson(json, PositionHierarchyResponse.fromJson);
+  }
+
+  Future<PositionHierarchyResponse> getHierarchy(String id) async =>
+      PositionHierarchyResponse.fromJson(await _mainApi.get(
+          '/admin/positions/hierarchies/$id',
+          operation: 'admin.hierarchies.get'));
+
+  Future<PositionHierarchyResponse> createHierarchy(
+          HierarchyRequest request) async =>
+      PositionHierarchyResponse.fromJson(await _mainApi.post(
+          '/admin/positions/hierarchies',
+          data: request.toJson(),
+          operation: 'admin.hierarchies.create'));
+
+  Future<PositionHierarchyResponse> updateHierarchy(
+          String id, HierarchyRequest request) async =>
+      PositionHierarchyResponse.fromJson(await _mainApi.put(
+          '/admin/positions/hierarchies/$id',
+          data: request.toJson(),
+          operation: 'admin.hierarchies.update'));
+
+  Future<PositionHierarchyResponse> setHierarchyActive(String id,
+          {required bool isActive}) async =>
+      PositionHierarchyResponse.fromJson(await _mainApi.patch(
+          '/admin/positions/hierarchies/$id/active',
+          data: ActiveToggleRequest(isActive: isActive).toJson(),
+          operation: 'admin.hierarchies.setActive'));
+
   Future<PaginatedResponse<PositionAdminResponse>> list({
     int page = 1,
     int pageSize = 50,
