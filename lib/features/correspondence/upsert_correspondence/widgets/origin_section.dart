@@ -117,7 +117,7 @@ class OriginSection extends StatelessWidget {
               const Padding(
                   padding: EdgeInsets.only(bottom: 12),
                   child: Text(
-                      'Ingrese el documento para habilitar la consulta pública. Si lo deja vacío, el trámite no podrá consultarse en línea.')),
+                      'La consulta pública se realiza con el número completo de Hoja de Ruta.')),
             AppTextField(
               controller: inherited.senderContact,
               label: 'Contacto del remitente (opcional)',

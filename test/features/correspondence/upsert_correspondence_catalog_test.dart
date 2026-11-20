@@ -106,6 +106,14 @@ void main() {
           isTrue);
     });
 
+    test('Hoja de Ruta interna conserva seleccion de funcionario', () {
+      expect(_loadedState().isCatalogReadyFor(
+        profile: repo.DocumentBehavior.routeSheet, isExternal: false), isFalse);
+      expect(_loadedState().isCatalogReadyFor(
+        profile: repo.DocumentBehavior.routeSheet, isExternal: true), isTrue);
+      expect(_loadedState(employees: const [repo.EmployeeOption(id: 'e', fullName: 'Funcionario')])
+        .isCatalogReadyFor(profile: repo.DocumentBehavior.routeSheet, isExternal: false), isTrue);
+    });
     test('EDIE EXTERNAL funciona con employees vacío', () {
       final state = _loadedState();
 
@@ -118,7 +126,7 @@ void main() {
       );
     });
 
-    test('EDIE INTERNAL no permite continuar sin employee', () {
+    test('EDIE INTERNAL usa origen automatico sin seleccionar employee', () {
       final state = _loadedState();
 
       expect(
@@ -126,7 +134,7 @@ void main() {
           profile: DocumentFormProfile.chaining,
           isExternal: false,
         ),
-        isFalse,
+        isTrue,
       );
 
       final withEmployee = _loadedState(
@@ -143,7 +151,7 @@ void main() {
       );
     });
 
-    test('INFORME requiere employee', () {
+    test('INFORME usa origen automatico', () {
       final state = _loadedState();
 
       expect(
@@ -151,11 +159,11 @@ void main() {
           profile: DocumentFormProfile.technicalReport,
           isExternal: false,
         ),
-        isFalse,
+        isTrue,
       );
     });
 
-    test('NOTA requiere employee', () {
+    test('NOTA usa origen automatico', () {
       final state = _loadedState();
 
       expect(
@@ -163,7 +171,7 @@ void main() {
           profile: DocumentFormProfile.internalNote,
           isExternal: false,
         ),
-        isFalse,
+        isTrue,
       );
     });
   });

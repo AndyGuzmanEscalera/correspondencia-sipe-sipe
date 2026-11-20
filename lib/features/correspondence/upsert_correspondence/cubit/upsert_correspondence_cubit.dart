@@ -284,12 +284,8 @@ class UpsertCorrespondenceCubit extends Cubit<UpsertCorrespondenceState> {
     String? senderContact,
     String? originDescription,
   }) {
-    final isContent = isContentProfile(profile);
-    final isExternal = !isContent && type == CorrespondenceTypeCode.ce;
-    final requiresOrigin = isContent ||
-        ((profile == DocumentBehavior.legacyChaining ||
-                profile == DocumentBehavior.routeSheet) &&
-            !isExternal);
+    final isExternal = profile == DocumentBehavior.routeSheet && type == CorrespondenceTypeCode.ce;
+    final requiresOrigin = profile == DocumentBehavior.routeSheet && !isExternal;
     return repo.CreateCorrespondenceInput(
       initialAttachments: pendingAttachments.map((a) => <String, dynamic>{
         'filename': a.filename, 'size': a.bytes.length,
@@ -297,21 +293,13 @@ class UpsertCorrespondenceCubit extends Cubit<UpsertCorrespondenceState> {
       }).toList(),
       enablePublicTracking: profile == DocumentBehavior.routeSheet && isExternal && _optional(senderDocument) != null,
       correspondenceType:
-          isContent ? 'INTERNAL' : correspondenceTypeCodeFromUi(type),
+          isExternal ? 'EXTERNAL' : 'INTERNAL',
       documentTypeId: documentTypeId,
-      subject: profile == DocumentBehavior.generic
-          ? _required(subject)
-          : _optional(subject),
+      subject: profile == DocumentBehavior.routeSheet ? _optional(subject) : null,
       priority: priorityCodeFromLabel(priorityLabel),
       reference: _optional(reference),
-      description: isContent || profile == DocumentBehavior.routeSheet
-          ? _required(description)
-          : null,
-      originEmployeeId: isExternal
-          ? null
-          : requiresOrigin
-              ? _required(originEmployeeId)
-              : _optional(originEmployeeId),
+      description: null,
+      originEmployeeId: requiresOrigin ? _required(originEmployeeId) : null,
       senderName: isExternal ? _required(senderName) : null,
       senderDocument: isExternal ? _optional(senderDocument) : null,
       senderContact: isExternal ? _optional(senderContact) : null,

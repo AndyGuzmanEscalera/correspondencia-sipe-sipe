@@ -69,7 +69,7 @@ class CreationRepository extends Fake implements repo.CorrespondenceRepository {
         correspondenceType: value.correspondenceType,
         documentTypeCode: 'COMUNICADO_INTERNO',
         documentTypeName: 'Comunicado',
-        subject: value.subject!,
+        subject: value.subject ?? '',
         priority: value.priority,
         status: 'ACTIVE',
         registeredAt: DateTime.utc(2026),
@@ -126,7 +126,9 @@ void main() {
         final section = tester
             .widget<DocumentTypeSection>(find.byType(DocumentTypeSection));
         expect(section.documentTypes, types);
-        expect(find.byType(TechnicalReportFields), findsOneWidget);
+        expect(find.byType(TechnicalReportFields), findsNothing);
+        expect(find.text('Asunto'), findsNothing);
+        expect(find.text('Descripci\u00f3n / contenido'), findsNothing);
       }
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
@@ -190,7 +192,9 @@ void main() {
           description: ' Contenido ',
           senderName: 'Ignored external field');
       expect(repository.input!.correspondenceType, 'INTERNAL');
-      expect(repository.input!.description, 'Contenido');
+      expect(repository.input!.description, isNull);
+      expect(repository.input!.subject, isNull);
+      expect(repository.input!.originEmployeeId, isNull);
       expect(repository.input!.senderName, isNull);
       expect(repository.input!.initialToUnitId, 'unit');
       expect(cubit.state.generalStatus, GeneralStatus.success);

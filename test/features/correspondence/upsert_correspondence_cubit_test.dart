@@ -139,6 +139,24 @@ class _FakeOrganizationRepository implements repo.OrganizationRepository {
 }
 
 void main() {
+  for (final behavior in [DocumentBehavior.routeSheet, DocumentBehavior.internalCommunication,
+      DocumentBehavior.report, DocumentBehavior.memorandum, DocumentBehavior.circular]) {
+    test('new payload omits content and non-route origin for $behavior', () async {
+      final repository = _FakeCorrespondenceRepository();
+      final cubit = UpsertCorrespondenceCubit(correspondenceRepository: repository,
+          organizationRepository: _FakeOrganizationRepository());
+      await cubit.create(profile: behavior, type: CorrespondenceTypeCode.ci,
+          documentTypeId: 'dt', priorityLabel: 'Media', initialToUnitId: 'unit',
+          originEmployeeId: 'spoofed', subject: 'old subject', description: 'old content');
+      final input = repository.lastCreateInput!;
+      expect(input.description, isNull);
+      expect(input.originEmployeeId, behavior == DocumentBehavior.routeSheet ? 'spoofed' : isNull);
+      if (behavior != DocumentBehavior.routeSheet) expect(input.subject, isNull);
+      expect(cubit.state.generalStatus, GeneralStatus.success);
+      await cubit.close();
+    });
+  }
+
   test('retry uploads only failed files and never recreates correspondence', () async {
     final repository = _FakeCorrespondenceRepository()..failFilename = 'b.pdf';
     final cubit = UpsertCorrespondenceCubit(correspondenceRepository: repository,
@@ -260,8 +278,8 @@ void main() {
       expect(cubit.state.generalStatus, GeneralStatus.success);
       expect(cubit.state.createdCorrespondence?.id, 'corr-1');
       final input = correspondenceRepository.lastCreateInput!;
-      expect(input.correspondenceType, 'EXTERNAL');
-      expect(input.senderName, 'Ciudadano');
+      expect(input.correspondenceType, 'INTERNAL');
+      expect(input.senderName, isNull);
       await cubit.close();
     });
 
@@ -284,8 +302,8 @@ void main() {
 
       final input = correspondenceRepository.lastCreateInput!;
       expect(input.correspondenceType, 'INTERNAL');
-      expect(input.description, 'Contenido de la nota');
-      expect(input.originEmployeeId, 'emp-1');
+      expect(input.description, isNull);
+      expect(input.originEmployeeId, isNull);
       expect(input.senderName, isNull);
       await cubit.close();
     });

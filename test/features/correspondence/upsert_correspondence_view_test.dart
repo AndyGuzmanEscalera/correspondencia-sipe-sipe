@@ -84,7 +84,7 @@ class _FakeCorrespondenceRepository implements repo.CorrespondenceRepository {
   @override
   Future<Result<List<repo.DocumentType>, Failure>> listDocumentTypes() async {
     return Ok([
-      repo.DocumentType(id: 'dt-edie', code: 'EDIE', name: 'Encadenamiento', behavior: selectedBehavior),
+      repo.DocumentType(id: 'dt-edie', code: 'EDIE', name: 'Encadenamiento', behavior: selectedBehavior ?? repo.DocumentBehavior.routeSheet),
     ]);
   }
 
@@ -360,6 +360,13 @@ void main() {
         correspondenceRepository.selectedBehavior = behavior;
         await pumpCreateDialog(tester);
         expect(find.text('Agregar archivos'), findsOneWidget);
+        expect(find.text('Texto / contenido'), findsNothing);
+        expect(find.text('Contenido'), findsNothing);
+        if (behavior != repo.DocumentBehavior.routeSheet) {
+          expect(find.text('Asunto'), findsNothing);
+          expect(find.text('Origen'), findsNothing);
+        }
+
         expect(find.text('Adjuntos'), findsOneWidget);
       });
     }
@@ -419,12 +426,12 @@ void main() {
     ) async {
       await pumpCreateDialog(tester);
 
-      expect(find.text('Remitente externo'), findsOneWidget);
+      expect(find.text('DE: nombre libre'), findsOneWidget);
 
       await _selectTypeDropdown(tester, optionText: 'Interna (CI)');
 
-      expect(find.text('Remitente externo'), findsNothing);
-      expect(find.text('Empleado origen'), findsOneWidget);
+      expect(find.text('DE: nombre libre'), findsNothing);
+      expect(find.text('DE: funcionario'), findsOneWidget);
     });
 
     testWidgets('error mantiene upsert abierto', (tester) async {
@@ -494,7 +501,7 @@ void main() {
 
         expect(
           find.text(
-            UpsertCorrespondenceInherited.chainingSubjectReferenceError,
+            'Referencia: Este campo es obligatorio.',
           ),
           findsWidgets,
         );
@@ -545,7 +552,7 @@ Future<void> _fillMinimumExternalForm(WidgetTester tester,
 Future<void> _fillExternalFormWithoutSubject(WidgetTester tester) async {
   await tester.enterText(find.byType(TextFormField).at(0), 'Ciudadano');
   await tester.scrollUntilVisible(
-    find.text('Asunto'),
+    find.text('Referencia'),
     48,
     scrollable: find.byType(Scrollable).first,
   );
@@ -563,7 +570,7 @@ Future<void> _selectTypeDropdown(
   required String optionText,
 }) async {
   await tester.scrollUntilVisible(
-    find.text('Tipo de correspondencia'),
+    find.text('DE: tipo de solicitante'),
     48,
     scrollable: find.byType(Scrollable).first,
   );

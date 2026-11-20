@@ -9,14 +9,10 @@ import 'package:correspondencia_sipe_sipe/features/correspondence/domain/documen
 import 'package:correspondencia_sipe_sipe/features/correspondence/list_correspondence/cubit/correspondence_cubit.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/cubit/upsert_correspondence_cubit.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/helpers/upsert_correspondence_inherited.dart';
-import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/widgets/chaining_fields.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/widgets/chaining_destination_section.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/widgets/destination_section.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/widgets/document_type_section.dart';
-import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/widgets/generic_fields.dart';
-import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/widgets/internal_note_fields.dart';
 import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/widgets/origin_section.dart';
-import 'package:correspondencia_sipe_sipe/features/correspondence/upsert_correspondence/widgets/technical_report_fields.dart';
 import 'package:correspondencia_sipe_sipe/features/home/side_menu/cubit/side_menu_cubit.dart';
 import 'package:correspondencia_sipe_sipe/injection/injection_bloc.dart';
 import 'package:correspondencia_sipe_sipe/shared/widgets/app_form_dialog.dart';
@@ -325,7 +321,7 @@ class _UpsertCorrespondenceBodyState extends State<UpsertCorrespondenceBody> {
                   documentTypes: state.documentTypes,
                   onDocumentTypeChanged: _onDocumentTypeChanged,
                 ),
-                OriginSection(
+                if (_profile == DocumentBehavior.routeSheet) OriginSection(
                   profile: _profile,
                   employees: state.employees,
                   isExternal: _isExternal,
@@ -333,15 +329,6 @@ class _UpsertCorrespondenceBodyState extends State<UpsertCorrespondenceBody> {
                 ),
                 if (_profile == DocumentBehavior.routeSheet)
                   RouteSheetFields(paraLabel: state.routeSheetAuthority),
-                if (_profile == DocumentBehavior.legacyChaining)
-                  const ChainingFields(),
-                if (requiresSubjectOrReference(_profile))
-                  const TechnicalReportFields(requireSubjectOrReference: true),
-                if (_profile == DocumentBehavior.report)
-                  const TechnicalReportFields(),
-                if (_profile == DocumentBehavior.legacyInternalNote)
-                  const InternalNoteFields(),
-                if (_profile == DocumentBehavior.generic) const GenericFields(),
                 if (!state.isIntake)
                   SwitchListTile(
                       title: const Text(

@@ -317,6 +317,10 @@ def test_pdf_snapshot_immutable_after_master_changes(
     assert response.status_code == 201, response.text
     path = "/correspondences/" + response.json()["id"]
     row = db.get(Correspondence, uuid.UUID(response.json()["id"]))
+    # Seed a historical body directly to retain content/invariance coverage.
+    row.description = "Historical content for immutable PDF"
+    row.document_snapshot = {**row.document_snapshot, "content": row.description}
+    db.commit()
     snapshot = copy.deepcopy(row.document_snapshot)
     assert snapshot["actor"]["hierarchy"]["code"] == "DIRECTOR"
     pdf = client.get(path + "/document.pdf", headers=headers(user))
@@ -352,6 +356,12 @@ def test_pdf_long_content_flows_across_pages(client, db, org_unit, second_org_un
     )
     response = client.post("/correspondences", headers=headers(user), json=payload)
     assert response.status_code == 201, response.text
+    # New creation drops content; emulate an already persisted historical snapshot.
+    row = db.get(Correspondence, uuid.UUID(response.json()["id"]))
+    row.description = payload["description"]
+    row.document_snapshot = {**row.document_snapshot, "content": row.description}
+    db.commit()
+    frozen = copy.deepcopy(row.document_snapshot)
     pdf = client.get(
         "/correspondences/" + response.json()["id"] + "/document.pdf",
         headers=headers(user),
@@ -360,6 +370,8 @@ def test_pdf_long_content_flows_across_pages(client, db, org_unit, second_org_un
     reader = PdfReader(BytesIO(pdf.content))
     assert len(reader.pages) >= 3
     assert "Párrafo 59" in "".join(p.extract_text() for p in reader.pages)
+    db.expire(row)
+    assert row.document_snapshot == frozen
     Path("/tmp/phase2-long.pdf").write_bytes(pdf.content)
 
 
@@ -581,16 +593,17 @@ def test_reports_exports_detail_and_attachments_preserve_types(
 
 
 @pytest.mark.parametrize("code", list(OPERATIONAL_DOCUMENTS))
-def test_operational_profiles_reject_external_origin_in_direct_api(
+def test_operational_profiles_use_authenticated_origin_in_direct_api(
     client, db, org_unit, second_org_unit, code
 ):
     user, employee, _ = actor(db, org_unit, "DIRECTOR")
     payload = body(db, code, employee, second_org_unit)
     payload.update(correspondence_type="EXTERNAL", sender_name="Remitente externo")
-    assert (
-        client.post("/correspondences", headers=headers(user), json=payload).status_code
-        == 422
-    )
+    response = client.post("/correspondences", headers=headers(user), json=payload)
+    assert response.status_code == 201, response.text
+    assert response.json()["correspondence_type"] == "INTERNAL"
+    assert response.json()["origin_employee_id"] == str(employee.id)
+    assert response.json()["sender_name"] is None
 
 
 def test_generated_pdf_does_not_bypass_document_visibility(

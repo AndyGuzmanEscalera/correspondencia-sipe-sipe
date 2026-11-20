@@ -107,7 +107,7 @@ void main() {
       inherited.dispose();
     });
 
-    testWidgets('chaining rechaza subject y reference vacíos', (tester) async {
+    testWidgets('chaining no exige subject y reference vacíos', (tester) async {
       late UpsertCorrespondenceInherited inherited;
 
       await tester.pumpWidget(
@@ -142,7 +142,7 @@ void main() {
                           key: inherited.toUnit.fieldKey,
                           validator: (value) => null,
                         ),
-                        const ChainingFields(),
+                        const SizedBox.shrink(),
                       ],
                     ),
                   ),
@@ -173,10 +173,10 @@ void main() {
         isExternal: true,
       );
 
-      expect(result.isPassed, isFalse);
+      expect(result.isPassed, isTrue);
       expect(
-        result.errors[UpsertCorrespondenceInherited.chainingErrorKey],
-        UpsertCorrespondenceInherited.chainingSubjectReferenceError,
+        result.errors.containsKey(UpsertCorrespondenceInherited.chainingErrorKey),
+        isFalse,
       );
       inherited.dispose();
     });

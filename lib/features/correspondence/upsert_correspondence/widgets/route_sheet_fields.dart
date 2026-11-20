@@ -22,13 +22,6 @@ class RouteSheetFields extends StatelessWidget {
             label: 'Referencia',
             maxLength: 200,
             validators: [RequiredValid()]),
-        AppTextField(
-            controller: fields.description,
-            label: 'Texto / contenido',
-            maxLength: 10000,
-            maxLines: 5,
-            inputType: TextInputType.multiline,
-            validators: [RequiredValid()]),
         const Text(
           'La fecha y hora de emisión y el número de hojas se generan automáticamente al guardar.',
           key: Key('route-sheet-automatic-issuance'),

@@ -58,7 +58,7 @@ def create(client, db, creator, employee, unit, target=None, subject=None):
     if target:
         payload["initial_to_user_id"] = str(target.id)
     if subject:
-        payload["subject"] = subject
+        payload["reference"] = subject
     response = client.post("/correspondences", headers=headers(creator), json=payload)
     assert response.status_code == 201, response.text
     return response.json()

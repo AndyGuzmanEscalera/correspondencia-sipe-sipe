@@ -56,7 +56,6 @@ void main() {
         expect(find.text('PARA: Autoridad configurada'), findsOneWidget);
         for (final label in [
           'Referencia',
-          'Texto / contenido',
         ]) {
           expect(find.text(label), findsOneWidget);
         }
@@ -69,14 +68,16 @@ void main() {
         ]) {
           expect(find.text(label), findsNothing);
         }
-      } else if (behavior == repo.DocumentBehavior.generic) {
-        expect(find.byType(TechnicalReportFields), findsNothing);
-        expect(find.text('Asunto'), findsOneWidget);
       } else {
-        expect(find.byType(TechnicalReportFields), findsOneWidget);
-        expect(find.text('Descripción / contenido'), findsOneWidget);
+        expect(find.byType(TechnicalReportFields), findsNothing);
         expect(find.byType(RouteSheetFields), findsNothing);
+        expect(find.byType(OriginSection), findsNothing);
+        expect(find.text('Asunto'), findsNothing);
+        expect(find.text('Descripcion'), findsNothing);
       }
+      expect(find.text('Texto / contenido'), findsNothing);
+      expect(find.text('Descripción / contenido'), findsNothing);
+      expect(find.text('Contenido'), findsNothing);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
       inherited.dispose();
@@ -126,7 +127,7 @@ void main() {
       final input = repository.input!;
       expect(input.originEmployeeId, external ? null : 'e');
       expect(input.senderName, external ? 'Ciudadano' : null);
-      expect(input.description, 'Contenido');
+      expect(input.description, isNull);
       expect(input.emissionDate, isNull);
       expect(input.emissionTime, isNull);
       expect(input.pageCount, isNull);

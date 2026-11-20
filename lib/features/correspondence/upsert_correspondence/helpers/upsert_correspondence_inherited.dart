@@ -136,56 +136,11 @@ class UpsertCorrespondenceInherited extends InheritedWidget {
       toUnit.fieldKey,
     ];
 
-    switch (profile) {
-      case DocumentBehavior.routeSheet:
-        fieldKeys.addAll([
-          reference.fieldKey,
-          description.fieldKey,
-          isExternal ? senderName.fieldKey : originEmployee.fieldKey
-        ]);
-      case DocumentBehavior.legacyChaining:
-        fieldKeys.addAll([
-          firstRecipient.fieldKey,
-          toUser.fieldKey,
-          type.fieldKey,
-          subject.fieldKey,
-          reference.fieldKey,
-        ]);
-        if (isExternal) {
-          fieldKeys.add(senderName.fieldKey);
-        } else {
-          fieldKeys.add(originEmployee.fieldKey);
-        }
-      case DocumentBehavior.internalCommunication:
-      case DocumentBehavior.memorandum:
-      case DocumentBehavior.circular:
-        fieldKeys.addAll([subject.fieldKey, reference.fieldKey]);
-        fieldKeys.addAll([description.fieldKey, originEmployee.fieldKey]);
-      case DocumentBehavior.report:
-      case DocumentBehavior.legacyInternalNote:
-        fieldKeys.add(description.fieldKey);
-        fieldKeys.add(originEmployee.fieldKey);
-      case DocumentBehavior.generic:
-        fieldKeys.addAll([subject.fieldKey, type.fieldKey]);
-        if (isExternal) {
-          fieldKeys.add(senderName.fieldKey);
-        }
+    if (profile == DocumentBehavior.routeSheet) {
+      fieldKeys.addAll([reference.fieldKey,
+        isExternal ? senderName.fieldKey : originEmployee.fieldKey]);
     }
-
     final result = formKey.validateAndGetErrors(fieldKeys);
-
-    if ((profile == DocumentBehavior.legacyChaining ||
-            requiresSubjectOrReference(profile)) &&
-        subject.getValue().trim().isEmpty &&
-        reference.getValue().trim().isEmpty) {
-      return ResultValidate(
-        isPassed: false,
-        errors: {
-          ...result.errors,
-          chainingErrorKey: chainingSubjectReferenceError,
-        },
-      );
-    }
 
     return result;
   }
@@ -201,30 +156,10 @@ class UpsertCorrespondenceInherited extends InheritedWidget {
       (key: type.fieldKey, focusNode: type.focusNode),
       if (profile == DocumentBehavior.routeSheet) ...[
         (key: reference.fieldKey, focusNode: reference.focusNode),
-        (key: description.fieldKey, focusNode: description.focusNode),
         if (isExternal)
           (key: senderName.fieldKey, focusNode: senderName.focusNode)
         else
           (key: originEmployee.fieldKey, focusNode: originEmployee.focusNode),
-      ],
-      if (profile == DocumentBehavior.legacyChaining) ...[
-        (key: firstRecipient.fieldKey, focusNode: firstRecipient.focusNode),
-        (key: toUser.fieldKey, focusNode: toUser.focusNode),
-        if (isExternal)
-          (key: senderName.fieldKey, focusNode: senderName.focusNode)
-        else
-          (key: originEmployee.fieldKey, focusNode: originEmployee.focusNode),
-        (key: subject.fieldKey, focusNode: subject.focusNode),
-        (key: reference.fieldKey, focusNode: reference.focusNode),
-      ],
-      if (isContentProfile(profile)) ...[
-        (key: description.fieldKey, focusNode: description.focusNode),
-        (key: originEmployee.fieldKey, focusNode: originEmployee.focusNode),
-      ],
-      if (profile == DocumentBehavior.generic) ...[
-        (key: subject.fieldKey, focusNode: subject.focusNode),
-        if (isExternal)
-          (key: senderName.fieldKey, focusNode: senderName.focusNode),
       ],
       (key: toUnit.fieldKey, focusNode: toUnit.focusNode),
     ];

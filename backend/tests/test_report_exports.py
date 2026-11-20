@@ -28,6 +28,11 @@ def text(response, fmt):
 @pytest.mark.parametrize("fmt", FORMATS)
 def test_export_real_format_filters_and_personal_scope(client, db, document, second_user, fmt):
     grant(db, second_user)
+    # Historical subject remains exportable; creation no longer accepts it.
+    from app.modules.correspondence.correspondence import Correspondence
+    row = db.get(Correspondence, uuid.UUID(document["id"]))
+    row.subject = "Final QA visible"
+    db.commit()
     params = {"kind": "received", "status": "ACTIVE", "search": document["route_number"],
         "date_from": "2000-01-01", "date_to": "2099-12-31"}
     exported = client.get(f"/reports/export.{fmt}", params=params, headers=headers(second_user))

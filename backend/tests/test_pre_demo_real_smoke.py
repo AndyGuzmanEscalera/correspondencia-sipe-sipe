@@ -113,7 +113,8 @@ def test_five_real_pdf_files(client, db, org_unit, second_org_unit, code, tmp_pa
     assert pdf.headers['content-type'].startswith('application/pdf')
     assert len(pdf.content) > 1000 and pdf.content.startswith(b'%PDF-')
     text = '\n'.join(page.extract_text() for page in PdfReader(BytesIO(pdf.content)).pages)
-    assert payload['reference'] in text and 'Contenido' in text
+    assert payload['reference'] in text
+    assert document['description'] is None
     artifact = tmp_path / (code + '.pdf')
     artifact.write_bytes(pdf.content)
     assert artifact.stat().st_size == len(pdf.content)
@@ -147,9 +148,10 @@ def test_real_search_fields_and_unrelated_reader_isolation(
     response = client.post('/correspondences', headers=headers(creator), json=payload)
     assert response.status_code == 201
     document = response.json()
-    if field == 'cite':
-        # CITE is historical persisted data, not an editable operational create field.
-        db.get(Correspondence, uuid.UUID(document['id'])).cite = marker
+    if field in {'cite', 'subject', 'description'}:
+        # Historical searchable fields are seeded directly, not via new creation.
+        row = db.get(Correspondence, uuid.UUID(document['id']))
+        setattr(row, field, marker)
         db.commit()
     if field == 'route_number':
         marker = document[field]

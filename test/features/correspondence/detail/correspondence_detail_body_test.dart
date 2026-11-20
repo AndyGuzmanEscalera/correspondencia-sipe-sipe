@@ -1,3 +1,5 @@
+import 'package:correspondencia_sipe_sipe/features/correspondence/domain/entities/correspondence_entity.dart';
+import 'package:correspondencia_sipe_sipe/core/util/enums.dart';
 import 'package:correspondencia_repository/correspondencia_repository.dart'
     as repo;
 import 'package:correspondencia_sipe_sipe/core/presentation/widget/responsive_breakpoints.dart';
@@ -237,6 +239,22 @@ void main() {
       expect(find.text('Concluir'), findsNothing);
       expect(find.text('Derivar trámite'), findsNothing);
     });
+
+    for (final behavior in [repo.DocumentBehavior.routeSheet, repo.DocumentBehavior.internalCommunication,
+      repo.DocumentBehavior.report, repo.DocumentBehavior.memorandum, repo.DocumentBehavior.circular]) {
+      testWidgets('backend capability shows derive for $behavior', (tester) async {
+        final base = externalCorrespondence;
+        cubit.emit(cubit.state.copyWith(correspondence: CorrespondenceEntity(
+          id: base.id, uniqueNumber: 1, year: 2026, cite: '', routeNumber: base.routeNumber,
+          type: CorrespondenceTypeCode.ci, priority: 'Media', subject: '', registeredAt: base.registeredAt,
+          status: 'ACTIVE', statusLabel: 'Activa', documentTypeCode: behavior.name,
+          documentTypeName: behavior.name, documentBehavior: behavior, canDerive: true,
+          currentUnitId: base.currentUnitId, currentUnitName: base.currentUnitName,
+        )));
+        await pumpBody(tester);
+        expect(find.text('Derivar trámite'), findsOneWidget);
+      });
+    }
 
     for (final size in [const Size(1366, 900), const Size(390, 844)]) {
       testWidgets(

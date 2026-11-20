@@ -46,7 +46,7 @@ class UpsertCorrespondenceState extends Equatable implements StatusState {
     if (isIntake && firstRecipients.isEmpty) {
       return false;
     }
-    if (!requiresOriginEmployee(profile: profile, isExternal: isExternal)) {
+    if (profile != DocumentBehavior.routeSheet || isExternal) {
       return true;
     }
     return employees.isNotEmpty;

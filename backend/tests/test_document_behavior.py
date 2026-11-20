@@ -69,11 +69,13 @@ def test_route_sheet_complete_snapshot_pdf_and_movements(
     assert result["emission_time"] == "22:03:04"
     assert result["page_count"] == 1
     assert result["reference"] == payload["reference"]
-    assert result["description"] == payload["description"]
+    assert result["description"] is None
+    assert result["origin_employee_id"] == (None if external else str(employee.id))
     assert result["para_label"] == "Autoridad documental"
     row = db.get(Correspondence, uuid.UUID(result["id"]))
     snapshot = row.document_snapshot
     assert snapshot["behavior"] == "ROUTE_SHEET"
+    assert snapshot["content"] is None
     assert row.institutional_authority_snapshot["para_label"] == result["para_label"]
     assert "authority" not in snapshot  # one existing institutional snapshot
     assert snapshot["page_count"] == result["page_count"]
@@ -97,7 +99,6 @@ def test_route_sheet_complete_snapshot_pdf_and_movements(
         "22:03",
         "Autoridad documental",
         payload["reference"],
-        "Contenido",
         "N° HOJAS: 1",
         "PRIMER DESTINATARIO",
         "SEGUNDO DESTINATARIO",
@@ -136,7 +137,7 @@ def test_route_sheet_complete_snapshot_pdf_and_movements(
         {"emission_time": "25:01"},
     ],
 )
-def test_route_sheet_missing_or_invalid_content_rejected_atomically(
+def test_route_sheet_validations_and_removed_content_optional(
     client, db, org_unit, second_org_unit, change
 ):
     user, employee, _ = route_actor(db, org_unit)
@@ -144,6 +145,11 @@ def test_route_sheet_missing_or_invalid_content_rejected_atomically(
     payload.update(change)
     before = db.scalar(select(func.count()).select_from(Correspondence))
     response = client.post("/correspondences", headers=headers(user), json=payload)
+    if change == {"description": " "}:
+        assert response.status_code == 201, response.text
+        assert response.json()["description"] is None
+        assert db.scalar(select(func.count()).select_from(Correspondence)) == before + 1
+        return
     assert response.status_code == 422, response.text
     assert db.scalar(select(func.count()).select_from(Correspondence)) == before
 
@@ -167,11 +173,30 @@ def test_route_sheet_counts_actual_pdf_pages_and_ignores_manual_values(
     pdf = client.get("/correspondences/" + result["id"] + "/document.pdf", headers=headers(user))
     assert pdf.status_code == 200
     pages = PdfReader(BytesIO(pdf.content)).pages
-    assert result["page_count"] == len(pages) > 1
+    assert result["page_count"] == len(pages) == 1
     assert result["emission_date"] != "2000-01-01"
     snapshot = db.get(Correspondence, uuid.UUID(result["id"])).document_snapshot
     assert snapshot["page_count"] == len(pages)
     assert "N° HOJAS: " + str(len(pages)) in pages[0].extract_text()
+
+
+    # Historical multipage snapshot is seeded directly, never through new creation.
+    from app.modules.correspondence.pdf.route_sheet_pdf import count_route_sheet_pages
+    row = db.get(Correspondence, uuid.UUID(result["id"]))
+    historical = {**row.document_snapshot, "content": payload["description"]}
+    count = count_route_sheet_pages(historical, row.institutional_authority_snapshot)
+    row.description = payload["description"]
+    row.page_count = count
+    row.document_snapshot = {**historical, "page_count": count}
+    db.commit()
+    frozen = dict(row.document_snapshot)
+    old_pdf = client.get("/correspondences/" + result["id"] + "/document.pdf", headers=headers(user))
+    assert old_pdf.status_code == 200
+    old_pages = PdfReader(BytesIO(old_pdf.content)).pages
+    assert len(old_pages) == count > 1
+    assert "N° HOJAS: " + str(count) in old_pages[0].extract_text()
+    db.expire(row)
+    assert row.document_snapshot == frozen
 
 
 def test_route_sheet_form_shows_only_real_derivations_without_changing_snapshot(

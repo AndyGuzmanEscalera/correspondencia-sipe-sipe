@@ -30,7 +30,7 @@ def _create_payload(
     payload: dict = {
         "correspondence_type": correspondence_type,
         "document_type_id": str(document_type.id),
-        "subject": subject,
+        "reference": subject,
         "description": subject,
         "priority": "LOW",
         "initial_to_unit_id": str(unit_id),

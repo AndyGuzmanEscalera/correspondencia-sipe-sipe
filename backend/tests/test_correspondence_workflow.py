@@ -69,8 +69,9 @@ def test_document_number_is_per_document_type(
     assert int(third.json()["document_number"]) > int(first.json()["document_number"])
 
 
-def test_chaining_external_requires_sender_name(
+def test_chaining_uses_authenticated_origin_without_external_sender(
     client: TestClient,
+    user: User,
     auth_headers: dict[str, str],
     encadenamiento_document_type: DocumentType,
     second_org_unit: OrganizationalUnit,
@@ -89,7 +90,10 @@ def test_chaining_external_requires_sender_name(
             sender_name="",
         ),
     )
-    assert response.status_code == 422
+    assert response.status_code == 201, response.text
+    assert response.json()["correspondence_type"] == "INTERNAL"
+    assert response.json()["origin_employee_id"] == str(user.employee_id)
+    assert response.json()["sender_name"] is None
 
 
 def test_chaining_employee_origin(
@@ -121,8 +125,9 @@ def test_chaining_employee_origin(
     assert body["sender_name"] is None
 
 
-def test_technical_report_rejects_external_origin(
+def test_technical_report_ignores_external_origin(
     client: TestClient,
+    user: User,
     auth_headers: dict[str, str],
     db: Session,
     second_org_unit: OrganizationalUnit,
@@ -147,7 +152,10 @@ def test_technical_report_rejects_external_origin(
             "description": "Contenido del informe",
         },
     )
-    assert response.status_code == 422
+    assert response.status_code == 201, response.text
+    assert response.json()["correspondence_type"] == "INTERNAL"
+    assert response.json()["origin_employee_id"] == str(user.employee_id)
+    assert response.json()["sender_name"] is None
 
 
 def test_upload_list_download_and_deactivate_attachment(

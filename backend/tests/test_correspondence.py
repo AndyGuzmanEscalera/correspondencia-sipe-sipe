@@ -453,6 +453,7 @@ def test_get_detail(
             "Detalle",
             unit_id=second_org_unit.id,
             priority="HIGH",
+            reference="Detalle",
         ),
     ).json()
     response = client.get(
@@ -460,7 +461,7 @@ def test_get_detail(
         headers=unit_reader_headers(db, second_org_unit.id),
     )
     assert response.status_code == 200
-    assert response.json()["subject"] == "Detalle"
+    assert response.json()["reference"] == "Detalle"
 
 
 def test_derive_updates_current_and_movements(

@@ -96,13 +96,14 @@ def test_existing_external_route_without_document_can_be_consulted(client, db, s
 
 
 @pytest.mark.parametrize('change', ['internal', 'other_behavior', 'deleted'])
-def test_tracking_requires_eligible_external_route(client, db, sheet, change):
+def test_tracking_allows_internal_and_supported_types_but_not_inactive(client, db, sheet, change):
     row, _, _ = sheet
     if change == 'internal': row.correspondence_type = 'INTERNAL'
     if change == 'other_behavior': row.document_snapshot = {'behavior': 'MEMORANDUM'}
     if change == 'deleted': row.is_active = False
     db.commit()
-    assert track(client, row.route_number).json() == NOT_FOUND
+    value = track(client, row.route_number).json()
+    assert value == NOT_FOUND if change == 'deleted' else value['found']
 
 
 @pytest.mark.parametrize('event,label', [('CONCLUDED', 'Concluido'), ('REOPENED', 'Reabierto')])
